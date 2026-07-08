@@ -8,7 +8,6 @@
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%230E6E63'/%3E%3Cpath d='M12 3.2a5.6 5.6 0 0 0-3.4 10c.5.4.8 1 .8 1.7v.4c0 .6.5 1.1 1.1 1.1h3a1.1 1.1 0 0 0 1.1-1.1v-.4c0-.7.3-1.3.8-1.7a5.6 5.6 0 0 0-3.4-10z' fill='%23fff'/%3E%3Crect x='9.4' y='17.3' width='5.2' height='1.4' rx='.7' fill='%23fff'/%3E%3Crect x='9.9' y='19.3' width='4.2' height='1.2' rx='.6' fill='%23fff'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
   /* ===== الوضع النهاري (افتراضي) — هوية "دليل" فاتحة ===== */
   :root{
@@ -149,6 +148,8 @@
   .qoption input{margin-top:6px;accent-color:var(--brand);flex:0 0 auto;width:16px;height:16px;}
   .qoption .qtext{font-size:14.5px;color:var(--ink);}
   .copybtn{margin-inline-start:auto;flex:0 0 auto;border:1px solid var(--line-2);background:var(--card);border-radius:8px;padding:4px 10px;font-size:12px;color:var(--brand-2);cursor:pointer;}
+  .qfilelink{color:var(--brand-2);text-decoration:underline;font-size:12.5px;white-space:nowrap;}
+  .qfilelink:hover{color:var(--brand-3);}
   .section-h{font-size:12.5px;font-weight:600;color:var(--muted);margin:18px 0 8px;}
   .expected{background:var(--gold);border:1px solid var(--gold-line);border-radius:10px;padding:12px 14px;font-size:14px;color:var(--gold-ink);margin-top:6px;}
   .expected .lbl{font-weight:700;color:var(--gold-lbl);display:block;margin-bottom:3px;font-size:12px;}
@@ -211,7 +212,8 @@
   .subacc.open>.head .caret{transform:rotate(90deg);}
   .lbl-sm{font-size:11.5px;font-weight:600;color:var(--muted);margin:10px 0 4px;}
   .qline{display:flex;gap:8px;margin-top:6px;}
-  .qline textarea{flex:1;min-height:44px;border:1px solid var(--line-2);border-radius:9px;padding:8px 10px;font-size:13.5px;resize:vertical;background:var(--card-2);color:var(--ink);}
+  .qline textarea{width:100%;min-height:44px;border:1px solid var(--line-2);border-radius:9px;padding:8px 10px;font-size:13.5px;resize:vertical;background:var(--card-2);color:var(--ink);}
+  .qline input{width:100%;border:1px solid var(--line-2);border-radius:9px;padding:6px 10px;font-size:12.5px;background:var(--card-2);color:var(--ink);}
   .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
   .selbox{width:16px;height:16px;accent-color:var(--fail);}
   .tabbar{display:flex;gap:8px;flex-wrap:wrap;}
@@ -329,6 +331,8 @@ function flatten(cats){const f=[];cats.forEach((c,ci)=>c.tests.forEach(t=>f.push
 function modeList(t){const m=t.modes||{normal:true,detailed:false};const a=[];if(m.normal)a.push('normal');if(m.detailed)a.push('detailed');return a.length?a:['normal'];}
 function modeLabel(t){const l=modeList(t);return l.map(x=>x==='normal'?'عادي':'تفصيلي').join(' + ');}
 function isDual(t){const m=t.modes||{};return m.normal&&m.detailed;}
+function qText(q){return typeof q==='string'?q:(q&&q.text)||'';}
+function qFile(q){return (q&&typeof q==='object'&&q.file)||'';}
 
 /* ===== التنقل ===== */
 const app={view:'dashboard',sub:null,ctx:{}};
@@ -377,7 +381,7 @@ function renderDashboard(){
       <div class="steps">
         <div class="step"><span class="num">1</span><span class="txt" data-edit-key="dash.step1">${esc(t('dash.step1','اضغطوا «بدء اختبار جديد» وعبّئوا اسم الموظف وتاريخ الاختبار.'))}</span></div>
         <div class="step"><span class="num">2</span><span class="txt" data-edit-key="dash.step2">${esc(t('dash.step2','مرّوا على كل حالة، انسخوا السؤال، جرّبوه في المنصة، ثم حدّدوا مجتاز أو غير مجتاز.'))}</span></div>
-        <div class="step"><span class="num">3</span><span class="txt" data-edit-key="dash.step3">${esc(t('dash.step3','راجعوا النتيجة النهائية وشاركوها أو نزّلوها كملف PDF.'))}</span></div>
+        <div class="step"><span class="num">3</span><span class="txt" data-edit-key="dash.step3">${esc(t('dash.step3','راجعوا النتيجة النهائية وشاركوها مباشرة من داخل التطبيق.'))}</span></div>
       </div>
     </div>
     <div class="card">
@@ -394,7 +398,6 @@ function renderDashboard(){
     ${DRAFTS.length?`<div class="card"><div class="eyebrow" data-edit-key="dash.drafts.eyebrow">${esc(t('dash.drafts.eyebrow','قيد الإكمال'))}</div><h2 class="h2" data-edit-key="dash.drafts.title">${esc(t('dash.drafts.title','المسودات'))}</h2>${draftsHtml}</div>`:''}
     <div class="card"><div class="eyebrow" data-edit-key="dash.history.eyebrow">${esc(t('dash.history.eyebrow','السجل'))}</div><h2 class="h2" data-edit-key="dash.history.title">${esc(t('dash.history.title','الاختبارات السابقة'))}</h2>${runsHtml}</div>`;
   document.getElementById('newRun').onclick=smokeStart;
-  screen.querySelectorAll('[data-pdf]').forEach(b=>b.onclick=()=>downloadPDF(RUNS[+b.dataset.pdf]));
   screen.querySelectorAll('[data-share]').forEach(b=>b.onclick=()=>shareRun(RUNS[+b.dataset.share]));
   screen.querySelectorAll('[data-delrun]').forEach(b=>b.onclick=()=>{if(confirm('حذف هذا الاختبار؟')){RUNS.splice(+b.dataset.delrun,1);save(K.runs,RUNS);render();}});
   screen.querySelectorAll('[data-resume]').forEach(b=>b.onclick=()=>smokeResume(+b.dataset.resume));
@@ -403,7 +406,7 @@ function renderDashboard(){
 function runRow(r,i,isDraft){
   const passed=r.results.filter(x=>x.result==='pass').length,failed=r.results.filter(x=>x.result==='fail').length,done=r.results.filter(x=>x.result).length;
   const badge=isDraft?`<span class="badge draft">مسودة ${done}/${r.tests.length}</span>`:(failed===0?`<span class="badge pass">مجتاز بالكامل</span>`:`<span class="badge fail">${failed} لم تجتَز</span>`);
-  const actions=isDraft?`<button class="btn btn-primary btn-sm" data-resume="${i}">إكمال</button><button class="iconbtn del" data-deldraft="${i}"><i class="ti ti-trash"></i></button>`:`<button class="iconbtn" data-share="${i}"><i class="ti ti-share"></i></button><button class="iconbtn" data-pdf="${i}"><i class="ti ti-download"></i></button><button class="iconbtn del" data-delrun="${i}"><i class="ti ti-trash"></i></button>`;
+  const actions=isDraft?`<button class="btn btn-primary btn-sm" data-resume="${i}">إكمال</button><button class="iconbtn del" data-deldraft="${i}"><i class="ti ti-trash"></i></button>`:`<button class="iconbtn" data-share="${i}"><i class="ti ti-share"></i></button><button class="iconbtn del" data-delrun="${i}"><i class="ti ti-trash"></i></button>`;
   return `<div class="lrow"><div class="ri"><div class="t">${esc(r.employee||'—')}</div><div class="m">${esc(r.date)} • ${r.tests.length} حالة${isDraft?'':` • مجتاز ${passed} / غير مجتاز ${failed}`}${r.reason?' • '+esc(r.reason):''}</div></div>${badge}${actions}</div>`;
 }
 
@@ -446,7 +449,7 @@ function smokeTest(){
   res.modeResults=res.modeResults||{};
   let qHtml;
   if(t.custom){qHtml=`<div class="qline"><textarea id="cq" placeholder="${esc(t.customHint||'اكتب السؤال المستخدم')}">${esc(res.customText)}</textarea><button class="copybtn" id="cqCopy"><i class="ti ti-copy"></i> نسخ</button></div>`;}
-  else{qHtml=(t.questions||[]).map((q,qi)=>`<label class="qoption ${res.qIndex===qi?'sel':''}" data-i="${qi}"><input type="radio" ${res.qIndex===qi?'checked':''}><span class="qtext">${esc(q)}</span><span class="copybtn" data-copy="${qi}"><i class="ti ti-copy"></i></span></label>`).join('');}
+  else{qHtml=(t.questions||[]).map((q,qi)=>{const qf=qFile(q);return `<label class="qoption ${res.qIndex===qi?'sel':''}" data-i="${qi}"><input type="radio" ${res.qIndex===qi?'checked':''}><span class="qtext">${esc(qText(q))}${qf?` · <a href="${esc(qf)}" target="_blank" rel="noopener" class="qfilelink" data-stop>ملف مساعد <i class="ti ti-external-link"></i></a>`:''}</span><span class="copybtn" data-copy="${qi}"><i class="ti ti-copy"></i></span></label>`;}).join('');}
 
   // منطقة نتيجة التنفيذ: مفردة أو ثنائية
   let verdictHtml;
@@ -491,8 +494,9 @@ function smokeTest(){
 
   if(t.custom){const ta=document.getElementById('cq');ta.oninput=e=>res.customText=e.target.value;document.getElementById('cqCopy').onclick=()=>{if(ta.value.trim())copyText(ta.value.trim());};}
   else{
-    screen.querySelectorAll('.qoption').forEach(el=>{const qi=+el.dataset.i;el.onclick=()=>{res.qIndex=qi;screen.querySelectorAll('.qoption').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');el.querySelector('input').checked=true;copyText(t.questions[qi]);};});
-    screen.querySelectorAll('[data-copy]').forEach(b=>b.onclick=e=>{e.stopPropagation();copyText(t.questions[+b.dataset.copy]);});
+    screen.querySelectorAll('.qoption').forEach(el=>{const qi=+el.dataset.i;el.onclick=(e)=>{if(e.target.closest('[data-stop]'))return;res.qIndex=qi;screen.querySelectorAll('.qoption').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');el.querySelector('input').checked=true;copyText(qText(t.questions[qi]));};});
+    screen.querySelectorAll('[data-copy]').forEach(b=>b.onclick=e=>{e.stopPropagation();copyText(qText(t.questions[+b.dataset.copy]));});
+    screen.querySelectorAll('[data-stop]').forEach(a=>a.onclick=e=>e.stopPropagation());
   }
   const nb=document.getElementById('nb'),notes=document.getElementById('notes'),convId=document.getElementById('convId');
   notes.oninput=e=>res.notes=e.target.value; convId.oninput=e=>res.convId=e.target.value;
@@ -542,7 +546,8 @@ function modeCard(key,label,res){
     </div></div>`;
 }
 
-function chosenQuestion(run,i){const t=run.tests[i],r=run.results[i];if(t.custom)return (r.customText||'').trim()||'—';return r.qIndex!=null?t.questions[r.qIndex]:'—';}
+function chosenQuestion(run,i){const t=run.tests[i],r=run.results[i];if(t.custom)return (r.customText||'').trim()||'—';return r.qIndex!=null?qText(t.questions[r.qIndex]):'—';}
+function chosenQuestionFile(run,i){const t=run.tests[i],r=run.results[i];if(t.custom||r.qIndex==null)return '';return qFile(t.questions[r.qIndex]);}
 function modeResultText(run,i){const t=run.tests[i],r=run.results[i];if(!isDual(t)||!r.modeResults)return '';const parts=[];if(r.modeResults.normal)parts.push('عادي: '+(r.modeResults.normal==='pass'?'مجتاز':'غير مجتاز'));if(r.modeResults.detailed)parts.push('تفصيلي: '+(r.modeResults.detailed==='pass'?'مجتاز':'غير مجتاز'));return parts.join(' • ');}
 function buildSummaryText(run){
   const passed=run.results.filter(r=>r.result==='pass').length,failed=run.results.filter(r=>r.result==='fail').length;
@@ -565,9 +570,9 @@ function smokeReview(){
   const passed=run.results.filter(r=>r.result==='pass').length,failed=run.results.filter(r=>r.result==='fail').length;
   const overall=failed===0?'مجتاز بالكامل':`يوجد ${failed} حالة لم تجتَز`;
   let rows='';
-  run.tests.forEach((t,i)=>{const r=run.results[i],b=r.result==='pass'?'pass':'fail',bt=r.result==='pass'?'مجتاز':'غير مجتاز';const mr=modeResultText(run,i);
+  run.tests.forEach((t,i)=>{const r=run.results[i],b=r.result==='pass'?'pass':'fail',bt=r.result==='pass'?'مجتاز':'غير مجتاز';const mr=modeResultText(run,i);const qf=chosenQuestionFile(run,i);
     rows+=`<div class="rrow"><div class="rhead"><span class="case-id">${esc(t.id)}</span><b style="color:var(--ink-2);">${esc(t.title)}</b><span class="badge ${b}">${bt}</span></div>
-    <div class="qq"><b>السؤال المختار:</b> ${esc(chosenQuestion(run,i))}</div>
+    <div class="qq"><b>السؤال المختار:</b> ${esc(chosenQuestion(run,i))}${qf?` · <a href="${esc(qf)}" target="_blank" rel="noopener" class="qfilelink">ملف مساعد <i class="ti ti-external-link"></i></a>`:''}</div>
     <div class="meta"><b>الوضع:</b> ${esc(modeLabel(t))}${mr?' ('+esc(mr)+')':''} • <b>المتوقع:</b> ${esc(t.expected)}</div>
     ${r.result==='fail'?`<div class="rnotes"><b>الملاحظات:</b> ${esc(r.notes)}<br><b>معرّف السؤال/المحادثة:</b> ${esc(r.convId||'—')}</div>`:''}</div>`;});
   screen.innerHTML=`<div class="card">
@@ -588,66 +593,13 @@ function smokeReview(){
       <button class="btn btn-ghost" id="back">→ رجوع</button>
       <div class="row"><button class="btn btn-ghost" id="copySum"><i class="ti ti-copy"></i> نسخ الملخّص</button><button class="btn btn-primary" id="share"><i class="ti ti-share"></i> حفظ ومشاركة</button></div>
     </div>
-    <div class="muted-note" style="margin-top:10px;text-align:left;">أو <a href="#" id="pdfLink" style="color:var(--brand);">تنزيل PDF</a> (يتطلب اتصالًا بالإنترنت).</div>
   </div>`;
   document.getElementById('back').onclick=()=>{app.sub='test';run.step=run.tests.length-1;render();window.scrollTo(0,0);};
   const persist=()=>{if(!app.ctx._saved){const saved={employee:run.employee,date:run.date,asana:run.asana,reason:run.reason,savedAt:new Date().toISOString(),tests:clone(run.tests),results:clone(run.results),passed,failed};RUNS.unshift(saved);save(K.runs,RUNS);if(app.ctx.draftIndex!=null){DRAFTS.splice(app.ctx.draftIndex,1);save(K.drafts,DRAFTS);app.ctx.draftIndex=null;}app.ctx._saved=saved;toast('تم حفظ الاختبار');}return app.ctx._saved;};
   document.getElementById('copySum').onclick=()=>{const s=persist();copyText(buildSummaryText(s));toast('تم نسخ ملخّص الاختبار');};
   document.getElementById('share').onclick=async()=>{const s=persist();await shareRun(s);setTimeout(()=>{app.sub=null;app.ctx={};render();window.scrollTo(0,0);},600);};
-  document.getElementById('pdfLink').onclick=(e)=>{e.preventDefault();const s=persist();downloadPDF(s);};
 }
 async function shareRun(run){const text=buildSummaryText(run);if(navigator.share){try{await navigator.share({title:'تقرير اختبار الدخان',text});}catch(e){}}else{copyText(text);toast('نُسخ الملخّص لتلصقه');}}
-
-/* ===== تقرير PDF ===== */
-function buildReportNode(run){
-  const passed=run.results.filter(r=>r.result==='pass').length,failed=run.results.filter(r=>r.result==='fail').length;
-  const overall=failed===0?'مجتاز بالكامل':`يوجد ${failed} حالة لم تجتَز`;
-  const FF='Tahoma, \"Segoe UI\", Arial, sans-serif';
-  const w=document.createElement('div');
-  w.style.cssText=`width:760px;background:#fff;color:#182421;font-family:${FF};direction:rtl;text-align:right;padding:30px 32px;box-sizing:border-box;`;
-  let h=`<div style="border-bottom:4px solid #0E6E63;padding-bottom:14px;margin-bottom:16px;">
-    <div style="font-size:23px;font-weight:bold;color:#0E6E63;">تقرير اختبار الدخان · منصة مِعيار</div>
-    <div style="font-size:13px;color:#5c6f6b;margin-top:4px;">${esc(SETTINGS.team)} — المنتج: ${esc(SETTINGS.product)}</div></div>
-    <table style="width:100%;border-collapse:collapse;font-size:13px;">
-      <tr><td style="padding:4px 0;"><b style="color:#0b3b36">الموظف:</b> ${esc(run.employee)}</td><td style="padding:4px 0;"><b style="color:#0b3b36">التاريخ:</b> ${esc(run.date)}</td></tr>
-      ${run.reason?`<tr><td colspan="2" style="padding:4px 0;"><b style="color:#0b3b36">سبب الاختبار:</b> ${esc(run.reason)}</td></tr>`:''}
-      ${run.asana?`<tr><td colspan="2" style="padding:4px 0;"><b style="color:#0b3b36">أسانا:</b> ${esc(run.asana)}</td></tr>`:''}
-    </table>
-    <table style="width:100%;border-collapse:collapse;margin:10px 0 6px;">
-      <tr>
-        <td style="width:25%;border:1px solid #dbe4e2;background:#f2f7f6;text-align:center;padding:9px;"><div style="font-size:21px;font-weight:bold;color:#0E6E63;">${run.tests.length}</div><div style="font-size:11px;color:#5c6f6b;">إجمالي</div></td>
-        <td style="width:25%;border:1px solid #dbe4e2;background:#e6f4ec;text-align:center;padding:9px;"><div style="font-size:21px;font-weight:bold;color:#1f7a4d;">${passed}</div><div style="font-size:11px;color:#5c6f6b;">مجتاز</div></td>
-        <td style="width:25%;border:1px solid #dbe4e2;background:#fbeaea;text-align:center;padding:9px;"><div style="font-size:21px;font-weight:bold;color:#b3261e;">${failed}</div><div style="font-size:11px;color:#5c6f6b;">غير مجتاز</div></td>
-        <td style="width:25%;border:1px solid #dbe4e2;background:#f2f7f6;text-align:center;padding:9px;"><div style="font-size:12.5px;font-weight:bold;color:${failed===0?'#1f7a4d':'#b3261e'};padding:5px 2px;">${esc(overall)}</div><div style="font-size:11px;color:#5c6f6b;">النتيجة العامة</div></td>
-      </tr>
-    </table>`;
-  const groups=[];const idx={};
-  run.tests.forEach((t,i)=>{if(!(t.cat in idx)){idx[t.cat]=groups.length;groups.push({title:t.cat,items:[]});}groups[idx[t.cat]].items.push({t,r:run.results[i],i});});
-  groups.forEach(g=>{
-    h+=`<div style="font-size:14px;font-weight:bold;color:#12897B;border-bottom:1px solid #dbe4e2;padding-bottom:5px;margin:16px 0 6px;">${esc(g.title)}</div>`;
-    g.items.forEach(({t,r,i})=>{const p=r.result==='pass';const col=p?'#1f7a4d':'#b3261e',bg=p?'#e6f4ec':'#fbeaea',bd=p?'#9ed3b6':'#e7a9a6';const mr=modeResultText(run,i);
-      h+=`<div style="border:1px solid #dbe4e2;border-radius:10px;padding:11px 13px;margin-top:9px;page-break-inside:avoid;">
-        <div><span style="background:#0E6E63;color:#fff;font-weight:bold;font-size:11.5px;padding:2px 8px;border-radius:6px;">${esc(t.id)}</span>
-        <span style="font-weight:bold;color:#0b3b36;font-size:13.5px;margin-right:6px;">${esc(t.title)}</span>
-        <span style="float:left;background:${bg};color:${col};border:1px solid ${bd};font-weight:bold;font-size:11px;padding:2px 10px;border-radius:99px;">${p?'مجتاز':'غير مجتاز'}</span></div>
-        <div style="font-size:12.5px;margin-top:5px;"><b style="color:#0b3b36">السؤال المختار:</b> ${esc(chosenQuestion(run,i))}</div>
-        <div style="font-size:12px;color:#5c6f6b;margin-top:4px;"><b style="color:#0b3b36">الوضع:</b> ${esc(modeLabel(t))}${mr?' ('+esc(mr)+')':''}</div>
-        <div style="font-size:12px;color:#5c6f6b;margin-top:3px;"><b style="color:#0b3b36">المتوقع:</b> ${esc(t.expected)}</div>
-        ${!p?`<div style="font-size:12.5px;color:#6e211c;background:#fbeaea;border:1px solid #e7a9a6;border-radius:8px;padding:7px 11px;margin-top:6px;"><b>الملاحظات:</b> ${esc(r.notes)}<br><b>معرّف السؤال/المحادثة:</b> ${esc(r.convId||'—')}</div>`:''}
-      </div>`;});
-  });
-  h+=`<div style="margin-top:20px;border-top:1px solid #dbe4e2;padding-top:8px;font-size:11px;color:#9aa7a4;text-align:center;">أُنشئ آليًا من منصة مِعيار • ${esc(new Date().toLocaleString('ar'))}</div>`;
-  w.innerHTML=h;return w;
-}
-function downloadPDF(run){
-  const node=buildReportNode(run);
-  const holder=document.createElement('div');holder.style.cssText='position:fixed;top:0;left:0;z-index:-1;opacity:0.01;overflow:hidden;';holder.appendChild(node);document.body.appendChild(holder);
-  const safe=(run.employee||'موظف').replace(/[\\/:*?"<>|]/g,'').trim().replace(/\s+/g,'_');
-  const done=()=>{if(holder.parentNode)document.body.removeChild(holder);};
-  if(typeof html2pdf!=='undefined'){toast('جارٍ إنشاء PDF...');
-    html2pdf().set({margin:[10,10,12,10],filename:`تقرير_الدخان_${safe}_${run.date}.pdf`,image:{type:'jpeg',quality:0.98},html2canvas:{scale:2,backgroundColor:'#ffffff',windowWidth:820},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['css','legacy']}}).from(node).save().then(()=>{done();toast('تم تنزيل التقرير');}).catch(()=>{done();window.print();});
-  }else{done();window.print();}
-}
 
 /* ===== الإعدادات (٥ تبويبات) ===== */
 let adminCats=null;
@@ -667,8 +619,8 @@ function settingsCases(){
   const cats=adminCats.map((c,ci)=>{
     const tests=c.tests.map((t,ti)=>{
       const m=t.modes||{normal:true,detailed:false};
-      const qs=(t.questions||[]).map((q,qi)=>`<div class="qline"><textarea data-q="${ci}|${ti}|${qi}">${esc(q)}</textarea><button class="iconbtn del" data-delq="${ci}|${ti}|${qi}"><i class="ti ti-x"></i></button></div>`).join('');
-      return `<div class="subacc" data-sub><div class="head"><span class="caret">▶</span>
+      const qs=(t.questions||[]).map((q,qi)=>`<div class="qline"><div style="flex:1;"><textarea data-q="${ci}|${ti}|${qi}" placeholder="نص السؤال">${esc(qText(q))}</textarea><input data-qfile="${ci}|${ti}|${qi}" placeholder="رابط ملف مساعد (اختياري)" value="${esc(qFile(q))}" style="margin-top:6px;"></div><button class="iconbtn del" data-delq="${ci}|${ti}|${qi}"><i class="ti ti-x"></i></button></div>`).join('');
+      return `<div class="subacc ${t._open?'open':''}" data-sub="${ci}|${ti}"><div class="head"><span class="caret">▶</span>
         <input type="checkbox" class="selbox" data-sel="${ci}|${ti}" ${t._sel?'checked':''} onclick="event.stopPropagation()">
         <span class="case-id">${esc(t.id)||'?'}</span><span class="title" style="font-size:13.5px;">${esc(t.title)||'(بدون عنوان)'}</span></div>
         <div class="body">
@@ -686,7 +638,7 @@ function settingsCases(){
           <div style="margin-top:10px;"><button class="iconbtn del" data-deltest="${ci}|${ti}"><i class="ti ti-trash"></i> حذف الحالة</button></div>
         </div></div>`;
     }).join('');
-    return `<div class="acc" data-cat><div class="head"><span class="caret">▶</span><span class="title">${esc(c.title)||'(فئة)'}</span><span class="sub-c" style="margin-inline-start:auto;">${c.tests.length} حالة</span></div>
+    return `<div class="acc ${c._open?'open':''}" data-cat="${ci}"><div class="head"><span class="caret">▶</span><span class="title">${esc(c.title)||'(فئة)'}</span><span class="sub-c" style="margin-inline-start:auto;">${c.tests.length} حالة</span></div>
       <div class="body"><div class="lbl-sm">عنوان الفئة</div><input data-catf="${ci}|title" value="${esc(c.title)}"><div class="lbl-sm">وصف الفئة</div><input data-catf="${ci}|note" value="${esc(c.note||'')}">
       ${tests}
       <div class="toolbar" style="margin-top:12px;"><button class="iconbtn" data-addtest="${ci}"><i class="ti ti-plus"></i> إضافة حالة</button><button class="iconbtn del" data-delcat="${ci}"><i class="ti ti-trash"></i> حذف الفئة</button></div></div></div>`;
@@ -702,23 +654,24 @@ function settingsCases(){
   </div>`;
 }
 function bindCases(){
-  screen.querySelectorAll('[data-cat]').forEach(a=>a.querySelector('.head').onclick=()=>a.classList.toggle('open'));
-  screen.querySelectorAll('[data-sub]').forEach(a=>a.querySelector('.head').onclick=(e)=>{if(e.target.matches('input,textarea'))return;a.classList.toggle('open');});
+  screen.querySelectorAll('[data-cat]').forEach(a=>a.querySelector('.head').onclick=()=>{const ci=+a.dataset.cat;adminCats[ci]._open=!adminCats[ci]._open;a.classList.toggle('open');});
+  screen.querySelectorAll('[data-sub]').forEach(a=>a.querySelector('.head').onclick=(e)=>{if(e.target.matches('input,textarea'))return;const[ci,ti]=a.dataset.sub.split('|');const t=adminCats[+ci].tests[+ti];t._open=!t._open;a.classList.toggle('open');});
   screen.querySelectorAll('[data-catf]').forEach(el=>el.oninput=e=>{const[ci,f]=el.dataset.catf.split('|');adminCats[+ci][f]=e.target.value;});
   screen.querySelectorAll('[data-f]').forEach(el=>el.oninput=e=>{const[ci,ti,f]=el.dataset.f.split('|');adminCats[+ci].tests[+ti][f]=e.target.value;});
-  screen.querySelectorAll('[data-q]').forEach(el=>el.oninput=e=>{const[ci,ti,qi]=el.dataset.q.split('|');adminCats[+ci].tests[+ti].questions[+qi]=e.target.value;});
+  screen.querySelectorAll('[data-q]').forEach(el=>el.oninput=e=>{const[ci,ti,qi]=el.dataset.q.split('|');const t=adminCats[+ci].tests[+ti];const q=t.questions[+qi];t.questions[+qi]=typeof q==='object'?{...q,text:e.target.value}:e.target.value;});
+  screen.querySelectorAll('[data-qfile]').forEach(el=>el.oninput=e=>{const[ci,ti,qi]=el.dataset.qfile.split('|');const t=adminCats[+ci].tests[+ti];const q=t.questions[+qi];t.questions[+qi]=typeof q==='string'?{text:q,file:e.target.value}:{...q,file:e.target.value};});
   screen.querySelectorAll('[data-sel]').forEach(el=>el.onchange=e=>{const[ci,ti]=el.dataset.sel.split('|');adminCats[+ci].tests[+ti]._sel=e.target.checked;});
   screen.querySelectorAll('[data-custom]').forEach(el=>el.onchange=e=>{const[ci,ti]=el.dataset.custom.split('|');adminCats[+ci].tests[+ti].custom=e.target.checked;});
   const re=()=>renderSettings();
   screen.querySelectorAll('[data-modechk]').forEach(el=>el.onclick=(e)=>{e.preventDefault();const[ci,ti,mode]=el.dataset.modechk.split('|');const t=adminCats[+ci].tests[+ti];t.modes=t.modes||{normal:true,detailed:false};t.modes[mode]=!t.modes[mode];if(!t.modes.normal&&!t.modes.detailed)t.modes[mode]=true;re();});
-  screen.querySelectorAll('[data-addq]').forEach(b=>b.onclick=()=>{const[ci,ti]=b.dataset.addq.split('|');const t=adminCats[+ci].tests[+ti];t.questions=t.questions||[];t.questions.push('');re();});
-  screen.querySelectorAll('[data-delq]').forEach(b=>b.onclick=()=>{const[ci,ti,qi]=b.dataset.delq.split('|');adminCats[+ci].tests[+ti].questions.splice(+qi,1);re();});
-  screen.querySelectorAll('[data-addtest]').forEach(b=>b.onclick=()=>{const ci=+b.dataset.addtest;adminCats[ci].tests.push({id:'جديد',title:'',modes:{normal:true,detailed:false},expected:'',reason:'',questions:['']});re();});
+  screen.querySelectorAll('[data-addq]').forEach(b=>b.onclick=()=>{const[ci,ti]=b.dataset.addq.split('|');const t=adminCats[+ci].tests[+ti];t.questions=t.questions||[];t.questions.push('');t._open=true;re();});
+  screen.querySelectorAll('[data-delq]').forEach(b=>b.onclick=()=>{const[ci,ti,qi]=b.dataset.delq.split('|');const t=adminCats[+ci].tests[+ti];t.questions.splice(+qi,1);t._open=true;re();});
+  screen.querySelectorAll('[data-addtest]').forEach(b=>b.onclick=()=>{const ci=+b.dataset.addtest;adminCats[ci]._open=true;adminCats[ci].tests.push({id:'جديد',title:'',modes:{normal:true,detailed:false},expected:'',reason:'',questions:[''],_open:true});re();});
   screen.querySelectorAll('[data-deltest]').forEach(b=>b.onclick=()=>{const[ci,ti]=b.dataset.deltest.split('|');if(confirm('حذف الحالة؟')){adminCats[+ci].tests.splice(+ti,1);re();}});
   screen.querySelectorAll('[data-delcat]').forEach(b=>b.onclick=()=>{const ci=+b.dataset.delcat;if(confirm('حذف الفئة؟')){adminCats.splice(ci,1);re();}});
-  document.getElementById('addCat').onclick=()=>{adminCats.push({title:'فئة جديدة',note:'',tests:[]});re();};
+  document.getElementById('addCat').onclick=()=>{adminCats.push({title:'فئة جديدة',note:'',tests:[],_open:true});re();};
   document.getElementById('delSel').onclick=()=>{let n=0;adminCats.forEach(c=>{const b=c.tests.length;c.tests=c.tests.filter(t=>!t._sel);n+=b-c.tests.length;});if(n){toast(`حُذفت ${n} حالة`);re();}else toast('لم تحدّد شيئًا');};
-  document.getElementById('saveCats').onclick=()=>{const cl=clone(adminCats);cl.forEach(c=>c.tests.forEach(t=>delete t._sel));CATS=cl;save(K.cats,CATS);adminCats=null;toast('تم حفظ التغييرات');go('dashboard');};
+  document.getElementById('saveCats').onclick=()=>{const cl=clone(adminCats);cl.forEach(c=>{delete c._open;c.tests.forEach(t=>{delete t._sel;delete t._open;});});CATS=cl;save(K.cats,CATS);adminCats=null;toast('تم حفظ التغييرات');go('dashboard');};
 }
 
 /* ===== الجوال والثيم ===== */
