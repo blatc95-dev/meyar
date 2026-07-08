@@ -71,6 +71,14 @@
   .hamb{display:none;background:none;border:1px solid var(--line);border-radius:9px;padding:6px 10px;font-size:16px;cursor:pointer;color:var(--ink-2);}
   .homebtn{background:var(--accent-soft);border:none;border-radius:9px;width:34px;height:34px;display:grid;place-items:center;font-size:16px;cursor:pointer;color:var(--brand);flex:0 0 auto;}
   .homebtn:hover{background:var(--accent-border);}
+  .homebtn.on{background:var(--brand);color:#fff;}
+  .editbar{display:none;align-items:center;gap:14px;background:var(--brand);color:#fff;padding:9px 26px;font-size:13px;position:sticky;top:0;z-index:30;flex-wrap:wrap;}
+  body.editmode .editbar{display:flex;}
+  .editbar button{background:rgba(255,255,255,.18);border:none;color:#fff;padding:5px 12px;border-radius:8px;font-size:12.5px;cursor:pointer;}
+  .editbar button:hover{background:rgba(255,255,255,.3);}
+  body.editmode [data-edit-key]{outline:1.5px dashed rgba(47,111,237,.55);outline-offset:3px;border-radius:4px;cursor:text;}
+  body.editmode [data-edit-key]:hover{background:var(--accent-soft);}
+  body.editmode [data-edit-key]:focus{outline:2px solid var(--brand);background:var(--accent-soft);}
   .mainrow{display:flex;gap:28px;padding:26px;max-width:1180px;width:100%;margin:0 auto;align-items:flex-start;}
   .content{flex:1;min-width:0;max-width:760px;}
   .toc{width:220px;flex:0 0 220px;position:sticky;top:86px;}
@@ -237,7 +245,8 @@
   </aside>
   <div class="scrim" id="scrim"></div>
   <div class="main">
-    <div class="topbar"><button class="hamb" id="hamb"><i class="ti ti-menu-2"></i></button><button class="homebtn" id="homeBtn" title="الرئيسية"><i class="ti ti-home"></i></button><div class="crumb" id="crumb"></div></div>
+    <div class="editbar" id="editBar"><i class="ti ti-pencil"></i> وضع تحرير النصوص مفعّل — اضغط على أي نص وعدّله، وسيُحفظ تلقائيًا عند الخروج منه. <button id="exitEdit">إنهاء التحرير</button> <button id="resetTexts">استعادة النصوص الافتراضية</button></div>
+    <div class="topbar"><button class="hamb" id="hamb"><i class="ti ti-menu-2"></i></button><button class="homebtn" id="homeBtn" title="الرئيسية"><i class="ti ti-home"></i></button><div class="crumb" id="crumb"></div><button class="homebtn" id="editBtn" title="تعديل النصوص" style="margin-inline-start:auto;"><i class="ti ti-pencil"></i></button></div>
     <div class="mainrow">
       <div class="content" id="screen"></div>
       <aside class="toc">
@@ -260,7 +269,18 @@ const store={mem:{},get(k){try{return localStorage.getItem(k);}catch(e){return (
 const clone=o=>JSON.parse(JSON.stringify(o));
 function load(k,d){const s=store.get(k);if(s){try{return JSON.parse(s);}catch(e){}}return clone(d);}
 function save(k,v){store.set(k,JSON.stringify(v));}
-const K={cats:'m_cats',runs:'m_runs',drafts:'m_drafts',settings:'m_settings',theme:'m_theme'};
+const K={cats:'m_cats',runs:'m_runs',drafts:'m_drafts',settings:'m_settings',theme:'m_theme',texts:'m_texts'};
+
+/* ===== تحرير النصوص الثابتة ===== */
+let TEXTS=load(K.texts,{});
+let EDIT_MODE=false;
+function t(key,fallback){const v=TEXTS[key];return (v!=null&&v!=='')?v:fallback;}
+function bindEditable(){
+  document.querySelectorAll('[data-edit-key]').forEach(el=>{
+    el.contentEditable=EDIT_MODE?'true':'false';
+    el.onblur=EDIT_MODE?()=>{const key=el.dataset.editKey,val=el.textContent.trim();if(val){TEXTS[key]=val;}else{delete TEXTS[key];}save(K.texts,TEXTS);}:null;
+  });
+}
 
 /* ===== الثيم ===== */
 function applyTheme(t){document.documentElement.setAttribute('data-theme',t);const dark=t==='dark';const ic=document.getElementById('themeIc'),lb=document.getElementById('themeLbl');if(ic)ic.innerHTML=`<i class="ti ti-${dark?'sun':'moon'}"></i>`;if(lb)lb.textContent=dark?'الوضع النهاري':'الوضع الليلي';}
@@ -331,6 +351,7 @@ function render(){buildNav();setCrumb();
   else if(app.sub==='review') smokeReview();
   else renderDashboard();
   buildToc();
+  bindEditable();
 }
 function buildToc(){
   const heads=[...screen.querySelectorAll('h1,h2')];
@@ -349,19 +370,19 @@ function renderDashboard(){
   const testers=new Set(RUNS.map(r=>(r.employee||'').trim()).filter(Boolean)).size;
   screen.innerHTML=`
     <div class="card hero">
-      <div class="eyebrow">المنتج · اختبار الدخان</div>
-      <h1 class="h1">مرحبًا بكم في مِعيار</h1>
-      <p class="sub">تعرّفوا على أداة اختبار الدخان وكيف تستفيدون منها لفحص المنتج بسرعة. فحص سريع للتأكد أن المنتج يعمل من البداية للنهاية دون أعطال — اختاروا سؤالًا واحدًا لكل حالة وحدّدوا النتيجة.</p>
-      <div class="tip"><span class="ic"><i class="ti ti-bulb"></i></span><div>الحالات التي تحمل وسم <b>ثنائي الأوضاع</b> تُنفَّذ في الوضعين العادي والتفصيلي؛ تُحتسب مجتازة فقط إذا نجح الوضعان معًا.</div></div>
+      <div class="eyebrow" data-edit-key="dash.eyebrow">${esc(t('dash.eyebrow','المنتج · اختبار الدخان'))}</div>
+      <h1 class="h1" data-edit-key="dash.title">${esc(t('dash.title','مرحبًا بكم في مِعيار'))}</h1>
+      <p class="sub" data-edit-key="dash.sub">${esc(t('dash.sub','تعرّفوا على أداة اختبار الدخان وكيف تستفيدون منها لفحص المنتج بسرعة. فحص سريع للتأكد أن المنتج يعمل من البداية للنهاية دون أعطال — اختاروا سؤالًا واحدًا لكل حالة وحدّدوا النتيجة.'))}</p>
+      <div class="tip"><span class="ic"><i class="ti ti-bulb"></i></span><div data-edit-key="dash.tip">${esc(t('dash.tip','الحالات التي تحمل وسم ثنائي الأوضاع تُنفَّذ في الوضعين العادي والتفصيلي؛ تُحتسب مجتازة فقط إذا نجح الوضعان معًا.'))}</div></div>
       <div class="steps">
-        <div class="step"><span class="num">1</span><span class="txt">اضغطوا «بدء اختبار جديد» وعبّئوا اسم الموظف وتاريخ الاختبار.</span></div>
-        <div class="step"><span class="num">2</span><span class="txt">مرّوا على كل حالة، انسخوا السؤال، جرّبوه في المنصة، ثم حدّدوا مجتاز أو غير مجتاز.</span></div>
-        <div class="step"><span class="num">3</span><span class="txt">راجعوا النتيجة النهائية وشاركوها أو نزّلوها كملف PDF.</span></div>
+        <div class="step"><span class="num">1</span><span class="txt" data-edit-key="dash.step1">${esc(t('dash.step1','اضغطوا «بدء اختبار جديد» وعبّئوا اسم الموظف وتاريخ الاختبار.'))}</span></div>
+        <div class="step"><span class="num">2</span><span class="txt" data-edit-key="dash.step2">${esc(t('dash.step2','مرّوا على كل حالة، انسخوا السؤال، جرّبوه في المنصة، ثم حدّدوا مجتاز أو غير مجتاز.'))}</span></div>
+        <div class="step"><span class="num">3</span><span class="txt" data-edit-key="dash.step3">${esc(t('dash.step3','راجعوا النتيجة النهائية وشاركوها أو نزّلوها كملف PDF.'))}</span></div>
       </div>
     </div>
     <div class="card">
-      <div class="eyebrow">نظرة عامة</div>
-      <h2 class="h2">الإحصائيات</h2>
+      <div class="eyebrow" data-edit-key="dash.stats.eyebrow">${esc(t('dash.stats.eyebrow','نظرة عامة'))}</div>
+      <h2 class="h2" data-edit-key="dash.stats.title">${esc(t('dash.stats.title','الإحصائيات'))}</h2>
       <div class="stat-row" style="grid-template-columns:repeat(4,1fr);margin-top:16px;">
         <div class="stat"><div class="ic"><i class="ti ti-circle-check"></i></div><div class="n">${RUNS.length}</div><div class="l">اختبار مكتمل</div></div>
         <div class="stat"><div class="ic"><i class="ti ti-file-pencil"></i></div><div class="n">${DRAFTS.length}</div><div class="l">مسودة</div></div>
@@ -370,8 +391,8 @@ function renderDashboard(){
       </div>
       <div class="row" style="margin-top:18px;"><button class="btn btn-primary" id="newRun"><i class="ti ti-plus"></i> بدء اختبار جديد</button></div>
     </div>
-    ${DRAFTS.length?`<div class="card"><div class="eyebrow">قيد الإكمال</div><h2 class="h2">المسودات</h2>${draftsHtml}</div>`:''}
-    <div class="card"><div class="eyebrow">السجل</div><h2 class="h2">الاختبارات السابقة</h2>${runsHtml}</div>`;
+    ${DRAFTS.length?`<div class="card"><div class="eyebrow" data-edit-key="dash.drafts.eyebrow">${esc(t('dash.drafts.eyebrow','قيد الإكمال'))}</div><h2 class="h2" data-edit-key="dash.drafts.title">${esc(t('dash.drafts.title','المسودات'))}</h2>${draftsHtml}</div>`:''}
+    <div class="card"><div class="eyebrow" data-edit-key="dash.history.eyebrow">${esc(t('dash.history.eyebrow','السجل'))}</div><h2 class="h2" data-edit-key="dash.history.title">${esc(t('dash.history.title','الاختبارات السابقة'))}</h2>${runsHtml}</div>`;
   document.getElementById('newRun').onclick=smokeStart;
   screen.querySelectorAll('[data-pdf]').forEach(b=>b.onclick=()=>downloadPDF(RUNS[+b.dataset.pdf]));
   screen.querySelectorAll('[data-share]').forEach(b=>b.onclick=()=>shareRun(RUNS[+b.dataset.share]));
@@ -397,8 +418,8 @@ function smokeResume(i){app.ctx.run=clone(DRAFTS[i]);app.ctx.draftIndex=i;app.su
 function smokeIntro(){
   const r=app.ctx.run;setCrumb('اختبار جديد');
   screen.innerHTML=`<div class="card">
-    <div class="eyebrow">قبل البدء</div><h1 class="h1">بدء اختبار جديد</h1>
-    <p class="sub">عبّئ المعلومات الأساسية للجلسة.</p>
+    <div class="eyebrow" data-edit-key="intro.eyebrow">${esc(t('intro.eyebrow','قبل البدء'))}</div><h1 class="h1" data-edit-key="intro.title">${esc(t('intro.title','بدء اختبار جديد'))}</h1>
+    <p class="sub" data-edit-key="intro.sub">${esc(t('intro.sub','عبّئ المعلومات الأساسية للجلسة.'))}</p>
     <div class="grid2">
       <div class="field"><label>اسم الموظف</label><input id="f_emp" value="${esc(r.employee)}" placeholder="الاسم الكامل"></div>
       <div class="field"><label>تاريخ الاختبار</label><input id="f_dt" type="date" value="${esc(r.date)}"></div>
@@ -550,7 +571,7 @@ function smokeReview(){
     <div class="meta"><b>الوضع:</b> ${esc(modeLabel(t))}${mr?' ('+esc(mr)+')':''} • <b>المتوقع:</b> ${esc(t.expected)}</div>
     ${r.result==='fail'?`<div class="rnotes"><b>الملاحظات:</b> ${esc(r.notes)}<br><b>معرّف السؤال/المحادثة:</b> ${esc(r.convId||'—')}</div>`:''}</div>`;});
   screen.innerHTML=`<div class="card">
-    <div class="eyebrow">اكتمل التنفيذ</div><h1 class="h1">مراجعة النتيجة</h1>
+    <div class="eyebrow" data-edit-key="review.eyebrow">${esc(t('review.eyebrow','اكتمل التنفيذ'))}</div><h1 class="h1" data-edit-key="review.title">${esc(t('review.title','مراجعة النتيجة'))}</h1>
     <div class="stat-row" style="grid-template-columns:repeat(3,1fr);margin-top:14px;">
       <div class="stat"><div class="n">${run.tests.length}</div><div class="l">إجمالي</div></div>
       <div class="stat"><div class="n" style="color:var(--pass);">${passed}</div><div class="l">مجتاز</div></div>
@@ -635,8 +656,8 @@ function renderSettings(){
   const tab=app.ctx.settingsTab||'cases';
   const tabsHtml=SETTABS.map(([k,l,soon])=>`<button class="tab ${tab===k?'on':''} ${soon?'soon':''}" ${soon?'':`data-tab="${k}"`}>${l}${soon?' · قريبًا':''}</button>`).join('');
   let body= tab==='cases'?settingsCases():`<div class="card"><div class="empty">هذا القسم سيُفعّل مع إطلاق المنتج المقابل.</div></div>`;
-  screen.innerHTML=`<div class="card"><div class="eyebrow">الإعدادات</div><h1 class="h1">الإعدادات</h1>
-    <p class="sub">لكل منتج قسم خاص. المتاح الآن: تحرير فئات وحالات اختبار الدخان.</p>
+  screen.innerHTML=`<div class="card"><div class="eyebrow" data-edit-key="settings.eyebrow">${esc(t('settings.eyebrow','الإعدادات'))}</div><h1 class="h1" data-edit-key="settings.title">${esc(t('settings.title','الإعدادات'))}</h1>
+    <p class="sub" data-edit-key="settings.sub">${esc(t('settings.sub','لكل منتج قسم خاص. المتاح الآن: تحرير فئات وحالات اختبار الدخان.'))}</p>
     <div class="tabbar" style="margin-top:14px;">${tabsHtml}</div></div>${body}`;
   screen.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{app.ctx.settingsTab=b.dataset.tab;render();});
   if(tab==='cases') bindCases();
@@ -707,6 +728,10 @@ document.getElementById('scrim').onclick=closeSide;
 document.getElementById('themeBtn').onclick=()=>{THEME=THEME==='light'?'dark':'light';store.set(K.theme,THEME);applyTheme(THEME);};
 document.getElementById('homeBtn').onclick=()=>go('dashboard');
 document.getElementById('copyLinkBtn').onclick=()=>copyText(location.href,'تم نسخ رابط الصفحة');
+function setEditMode(v){EDIT_MODE=v;document.body.classList.toggle('editmode',EDIT_MODE);document.getElementById('editBtn').classList.toggle('on',EDIT_MODE);bindEditable();}
+document.getElementById('editBtn').onclick=()=>{setEditMode(!EDIT_MODE);toast(EDIT_MODE?'وضع التحرير مفعّل':'تم إنهاء التحرير');};
+document.getElementById('exitEdit').onclick=()=>setEditMode(false);
+document.getElementById('resetTexts').onclick=()=>{if(confirm('استعادة كل النصوص إلى قيمها الافتراضية؟')){TEXTS={};save(K.texts,TEXTS);render();toast('تمت استعادة النصوص الافتراضية');}};
 
 applyTheme(THEME);
 render();
