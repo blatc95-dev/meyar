@@ -64,6 +64,10 @@
   .navitem .ic{width:22px;height:22px;text-align:center;flex:0 0 auto;font-size:14px;display:grid;place-items:center;border-radius:7px;background:var(--accent-soft);color:var(--brand);}
   .navitem.active .ic{background:var(--brand);color:#fff;}
   .navitem .badge-n{margin-inline-start:auto;background:var(--accent-soft);color:var(--brand-2);border-radius:99px;font-size:11px;padding:1px 9px;}
+  .navitem.soon{cursor:default;opacity:.6;}
+  .navitem.soon:hover{background:none;}
+  .navitem.soon .ic{background:var(--card-2);color:var(--muted-2);}
+  .navitem.soon .soon-badge{margin-inline-start:auto;background:var(--card-2);color:var(--muted-2);border:1px solid var(--line-2);border-radius:99px;font-size:10.5px;padding:1px 8px;white-space:nowrap;}
   .side .foot{padding:12px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:4px;}
   .themebtn{display:flex;align-items:center;gap:10px;width:100%;background:var(--card-2);border:none;color:var(--side-ink);padding:10px 12px;border-radius:9px;font-size:13px;cursor:pointer;}
   .themebtn:hover{background:var(--accent-soft);}
@@ -268,6 +272,9 @@
 <symbol id="ic-trash" viewBox="0 0 24 24"><path d="M21 5.97998C17.67 5.64998 14.32 5.47998 10.98 5.47998C9 5.47998 7.02 5.57998 5.04 5.77998L3 5.97998" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M8.5 4.97L8.72 3.66C8.88 2.71 9 2 10.69 2H13.31C15 2 15.13 2.75 15.28 3.67L15.5 4.97" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M18.85 9.14001L18.2 19.21C18.09 20.78 18 22 15.21 22H8.79002C6.00002 22 5.91002 20.78 5.80002 19.21L5.15002 9.14001" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M10.33 16.5H13.66" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M9.5 12.5H14.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
 <symbol id="ic-users" viewBox="0 0 24 24"><path d="M9.16006 10.87C9.06006 10.86 8.94006 10.86 8.83006 10.87C6.45006 10.79 4.56006 8.84 4.56006 6.44C4.56006 3.99 6.54006 2 9.00006 2C11.4501 2 13.4401 3.99 13.4401 6.44C13.4301 8.84 11.5401 10.79 9.16006 10.87Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M16.41 4C18.35 4 19.91 5.57 19.91 7.5C19.91 9.39 18.41 10.93 16.54 11C16.46 10.99 16.37 10.99 16.28 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M4.15997 14.56C1.73997 16.18 1.73997 18.82 4.15997 20.43C6.90997 22.27 11.42 22.27 14.17 20.43C16.59 18.81 16.59 16.17 14.17 14.56C11.43 12.73 6.91997 12.73 4.15997 14.56Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M18.3401 20C19.0601 19.85 19.7401 19.56 20.3001 19.13C21.8601 17.96 21.8601 16.03 20.3001 14.86C19.7501 14.44 19.0801 14.16 18.3701 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
 <symbol id="ic-x" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 6 6 18M6 6l12 12" fill="none"/></symbol>
+<symbol id="ic-chart" viewBox="0 0 24 24"><path d="M9 22H15C20 22 22 20 22 15V9C22 4 20 2 15 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M15.5 18.5C16.6 18.5 17.5 17.6 17.5 16.5V7.5C17.5 6.4 16.6 5.5 15.5 5.5C14.4 5.5 13.5 6.4 13.5 7.5V16.5C13.5 17.6 14.39 18.5 15.5 18.5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M8.5 18.5C9.6 18.5 10.5 17.6 10.5 16.5V13C10.5 11.9 9.6 11 8.5 11C7.4 11 6.5 11.9 6.5 13V16.5C6.5 17.6 7.39 18.5 8.5 18.5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+<symbol id="ic-question" viewBox="0 0 24 24"><path d="M17 18.4301H13L8.54999 21.39C7.88999 21.83 7 21.3601 7 20.5601V18.4301C4 18.4301 2 16.4301 2 13.4301V7.42999C2 4.42999 4 2.42999 7 2.42999H17C20 2.42999 22 4.42999 22 7.42999V13.4301C22 16.4301 20 18.4301 17 18.4301Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M12.0001 11.36V11.15C12.0001 10.47 12.4201 10.11 12.8401 9.82001C13.2501 9.54001 13.66 9.18002 13.66 8.52002C13.66 7.60002 12.9201 6.85999 12.0001 6.85999C11.0801 6.85999 10.3401 7.60002 10.3401 8.52002" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M11.9955 13.75H12.0045" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+<symbol id="ic-folder" viewBox="0 0 24 24"><path d="M22 11V17C22 21 21 22 17 22H7C3 22 2 21 2 17V7C2 3 3 2 7 2H8.5C10 2 10.33 2.44 10.9 3.2L12.4 5.2C12.78 5.7 13 6 14 6H17C21 6 22 7 22 11Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
 </defs>
 </svg>
 <div class="layout">
@@ -375,10 +382,17 @@ function qFile(q){return (q&&typeof q==='object'&&q.file)||'';}
 
 /* ===== التنقل ===== */
 const app={view:'dashboard',sub:null,ctx:{}};
+const SOON_PRODUCTS=[
+  {icon:'chart',label:'تحليل المنافسين'},
+  {icon:'question',label:'بنك الأسئلة'},
+  {icon:'folder',label:'الملفات المساندة'},
+];
 function buildNav(){
   const el=document.getElementById('navList');
+  const soonHtml=SOON_PRODUCTS.map(p=>`<button class="navitem soon" disabled><span class="ic"><svg class="icon"><use href="#ic-${p.icon}"/></svg></span> ${p.label}<span class="soon-badge">قريبًا</span></button>`).join('');
   el.innerHTML=`<div class="grp">المنتجات</div>
-    <button class="navitem ${app.view==='dashboard'?'active':''}" data-nav="dashboard"><span class="ic"><svg class="icon"><use href="#ic-search"/></svg></span> اختبار الدخان<span class="badge-n">${RUNS.length}</span></button>`;
+    <button class="navitem ${app.view==='dashboard'?'active':''}" data-nav="dashboard"><span class="ic"><svg class="icon"><use href="#ic-search"/></svg></span> اختبار الدخان<span class="badge-n">${RUNS.length}</span></button>
+    ${soonHtml}`;
   el.querySelector('[data-nav]').onclick=()=>go('dashboard');
   document.querySelector('.foot [data-nav]').onclick=()=>go('settings');
   document.querySelector('.foot .navitem').classList.toggle('active',app.view==='settings');
