@@ -4,53 +4,58 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>مِعيار — منصة تقييم الذكاء الاصطناعي القانوني</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%230E6E63'/%3E%3Cpath d='M12 3.2a5.6 5.6 0 0 0-3.4 10c.5.4.8 1 .8 1.7v.4c0 .6.5 1.1 1.1 1.1h3a1.1 1.1 0 0 0 1.1-1.1v-.4c0-.7.3-1.3.8-1.7a5.6 5.6 0 0 0-3.4-10z' fill='%23fff'/%3E%3Crect x='9.4' y='17.3' width='5.2' height='1.4' rx='.7' fill='%23fff'/%3E%3Crect x='9.9' y='19.3' width='4.2' height='1.2' rx='.6' fill='%23fff'/%3E%3C/svg%3E">
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%230E6E63'/%3E%3Cpath d='M12 3.2a5.6 5.6 0 0 0-3.4 10c.5.4.8 1 .8 1.7v.4c0 .6.5 1.1 1.1 1.1h3a1.1 1.1 0 0 0 1.1-1.1v-.4c0-.7.3-1.3.8-1.7a5.6 5.6 0 0 0-3.4-10z' fill='%23fff'/%3E%3Crect x='9.4' y='17.3' width='5.2' height='1.4' rx='.7' fill='%23fff'/%3E%3Crect x='9.9' y='19.3' width='4.2' height='1.2' rx='.6' fill='%23fff'/%3E%3C/svg%3E">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%230a1c6d'/%3E%3Cpath d='M12 3.2a5.6 5.6 0 0 0-3.4 10c.5.4.8 1 .8 1.7v.4c0 .6.5 1.1 1.1 1.1h3a1.1 1.1 0 0 0 1.1-1.1v-.4c0-.7.3-1.3.8-1.7a5.6 5.6 0 0 0-3.4-10z' fill='%23fff'/%3E%3Crect x='9.4' y='17.3' width='5.2' height='1.4' rx='.7' fill='%23fff'/%3E%3Crect x='9.9' y='19.3' width='4.2' height='1.2' rx='.6' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%230a1c6d'/%3E%3Cpath d='M12 3.2a5.6 5.6 0 0 0-3.4 10c.5.4.8 1 .8 1.7v.4c0 .6.5 1.1 1.1 1.1h3a1.1 1.1 0 0 0 1.1-1.1v-.4c0-.7.3-1.3.8-1.7a5.6 5.6 0 0 0-3.4-10z' fill='%23fff'/%3E%3Crect x='9.4' y='17.3' width='5.2' height='1.4' rx='.7' fill='%23fff'/%3E%3Crect x='9.9' y='19.3' width='4.2' height='1.2' rx='.6' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/fonts/fonts.css">
 <style>
-  /* ===== الوضع النهاري (افتراضي) — هوية "دليل" فاتحة ===== */
+  /* ===== الوضع النهاري (افتراضي) — هوية قانونية ===== */
   :root{
-    --brand:#2f6fed; --brand-2:#1d56d1; --brand-3:#173f9c; --brand-glow:#2f6fed;
+    --brand:#0a1c6d; --brand-2:#1f50ab; --brand-3:#000354; --brand-glow:#1f50ab;
     --ai:#7c5cff; --ai-2:#5b3df0;
-    --side-bg:#ffffff; --side-bg2:#fbfcfe; --side-ink:#1c2b39; --side-muted:#8792a0; --side-active-bg:#eaf1fd; --side-active-ink:#1d56d1; --side-logo:#2f6fed; --side-logo-ink:#ffffff;
-    --bg:#f5f8fc; --card:#ffffff; --card-2:#f7f9fd; --line:#e6ebf2; --line-2:#dbe3ee;
-    --ink:#1c2b39; --ink-2:#101c28; --muted:#6b7785; --muted-2:#8792a0;
-    --accent-soft:#eaf1fd; --accent-border:#cddffa;
-    --pass:#1f7a4d; --pass-bg:#e6f4ec; --pass-line:#9ed3b6;
-    --fail:#b3261e; --fail-bg:#fbeaea; --fail-line:#e7a9a6;
-    --warn:#9a6a00; --warn-bg:#fdf3e0; --warn-line:#e7d3a0;
-    --info-bg:#eaf1fd; --info-line:#cddffa; --info-ink:#1d56d1;
-    --gold:#fbf6e7; --gold-line:#e7d9a6; --gold-ink:#5b4d1f; --gold-lbl:#7a6516;
-    --radius:12px; --font:"IBM Plex Sans Arabic","Tahoma","Segoe UI",Arial,sans-serif;
-    --shadow:0 2px 10px rgba(28,43,57,.05);
+    --side-bg:#ffffff; --side-bg2:#fbfcfe; --side-ink:#1f2937; --side-muted:#6b7280; --side-active-bg:#f2f5ff; --side-active-ink:#194089; --side-logo:#0a1c6d; --side-logo-ink:#ffffff;
+    --bg:#f9fafb; --card:#ffffff; --card-2:#f3f4f6; --line:#e5e7eb; --line-2:#d1d5db;
+    --ink:#1f2937; --ink-2:#111827; --muted:#4b5563; --muted-2:#6b7280;
+    --accent-soft:#f2f5ff; --accent-border:#cad6ed;
+    --pass:#15803d; --pass-bg:#f0fdf4; --pass-line:#86efac;
+    --fail:#b91c1c; --fail-bg:#fef2f2; --fail-line:#fca5a5;
+    --warn:#b45309; --warn-bg:#fffbeb; --warn-line:#fcd34d;
+    --info-bg:#f2f5ff; --info-line:#cad6ed; --info-ink:#133067;
+    --gold:#fffbeb; --gold-line:#fcd34d; --gold-ink:#78350f; --gold-lbl:#b45309;
+    --radius:12px; --font:"Ping AR + LT","Tahoma","Segoe UI",Arial,sans-serif;
+    --shadow:0 2px 10px rgba(31,41,55,.05);
   }
-  /* ===== الوضع الليلي ===== */
+  /* ===== الوضع الليلي (مُستنتج من مقياس ألوان قانونية) ===== */
   [data-theme="dark"]{
-    --brand:#5b8dff; --brand-2:#4477f0; --brand-3:#2f6fed; --brand-glow:#5b8dff;
+    --brand:#7593cc; --brand-2:#4a72bb; --brand-3:#1f50ab; --brand-glow:#7593cc;
     --ai:#a08bff; --ai-2:#8a6bff;
-    --side-bg:#0e1420; --side-bg2:#0a0f18; --side-ink:#e6ecf5; --side-muted:#7c8a9c; --side-active-bg:#1b2740; --side-active-ink:#8fb4ff; --side-logo:#5b8dff; --side-logo-ink:#0a0f18;
-    --bg:#0b111a; --card:#111927; --card-2:#0e1622; --line:#20293a; --line-2:#2a3548;
-    --ink:#e6ecf5; --ink-2:#f2f6fb; --muted:#93a1b3; --muted-2:#7c8a9c;
-    --accent-soft:#1b2740; --accent-border:#28406b;
-    --pass:#5fe0a8; --pass-bg:#0f3a2c; --pass-line:#1e6b4c;
-    --fail:#ff8a82; --fail-bg:#3a1512; --fail-line:#6b2420;
-    --warn:#f0c064; --warn-bg:#3a2c10; --warn-line:#6b5420;
-    --info-bg:#152540; --info-line:#28406b; --info-ink:#8fb4ff;
-    --gold:#2e2a16; --gold-line:#5a5020; --gold-ink:#e7d9a6; --gold-lbl:#c9b96a;
+    --side-bg:#00003a; --side-bg2:#000021; --side-ink:#ffffff; --side-muted:#9da4c5; --side-active-bg:#000354; --side-active-ink:#9fb5dc; --side-logo:#7593cc; --side-logo-ink:#000021;
+    --bg:#0f172a; --card:#1e293b; --card-2:#0f172a; --line:#334155; --line-2:#475569;
+    --ink:#f1f5f9; --ink-2:#ffffff; --muted:#94a3b8; --muted-2:#64748b;
+    --accent-soft:#000354; --accent-border:#133067;
+    --pass:#4ade80; --pass-bg:#14532d; --pass-line:#15803d;
+    --fail:#f87171; --fail-bg:#7f1d1d; --fail-line:#b91c1c;
+    --warn:#fbbf24; --warn-bg:#78350f; --warn-line:#b45309;
+    --info-bg:#000021; --info-line:#133067; --info-ink:#9fb5dc;
+    --gold:#78350f; --gold-line:#b45309; --gold-ink:#fde68a; --gold-lbl:#fcd34d;
     --shadow:0 3px 14px rgba(0,0,0,.35);
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;height:100%;}
   body{font-family:var(--font);color:var(--ink);background:var(--bg);line-height:1.7;-webkit-font-smoothing:antialiased;transition:background .2s,color .2s;}
   button,input,textarea,select{font-family:var(--font);}
+  input:not([type="checkbox"]):not([type="radio"]),textarea,select{background:var(--card-2);color:var(--ink);border:1px solid var(--line-2);border-radius:9px;padding:8px 10px;font-size:13.5px;}
 
   .layout{display:flex;min-height:100vh;}
   .side{width:264px;flex:0 0 264px;background:var(--side-bg);color:var(--side-ink);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;border-inline-start:1px solid var(--line);}
   .brand{display:flex;align-items:center;gap:11px;padding:20px 18px;border-bottom:1px solid var(--line);}
-  .brand .mk{width:38px;height:38px;border-radius:10px;background:var(--side-logo);display:grid;place-items:center;font-size:19px;color:var(--side-logo-ink);flex:0 0 auto;}
+  .brand .mk{width:38px;height:38px;border-radius:10px;background:var(--side-logo);display:grid;place-items:center;flex:0 0 auto;}
+  .brand .mk img{width:16px;height:20px;display:block;}
+  .brand .mk .logo-dark{display:none;}
+  [data-theme="dark"] .brand .mk .logo-light{display:none;}
+  [data-theme="dark"] .brand .mk .logo-dark{display:block;}
   .brand h1{font-size:15.5px;margin:0;font-weight:700;line-height:1.3;color:var(--ink-2);}
   .brand p{margin:2px 0 0;font-size:11px;color:var(--side-muted);}
+  .icon{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0 auto;fill:none;stroke:currentColor;}
   .nav{padding:16px 12px;flex:1;overflow-y:auto;}
   .nav .grp{font-size:11px;color:var(--side-muted);letter-spacing:.3px;padding:14px 12px 7px;font-weight:600;}
   .navitem{display:flex;align-items:center;gap:11px;width:100%;background:none;border:none;color:var(--side-ink);padding:10px 12px;border-radius:9px;font-size:14px;cursor:pointer;text-align:right;margin-bottom:2px;transition:.15s;}
@@ -102,7 +107,7 @@
   .btn{border:none;border-radius:11px;padding:11px 20px;font-size:14.5px;font-weight:600;cursor:pointer;transition:.12s;}
   .btn:active{transform:translateY(1px);}
   .btn-primary{background:var(--brand);color:#fff;box-shadow:0 0 0 rgba(0,0,0,0);}
-  [data-theme="dark"] .btn-primary{color:#04231f;box-shadow:0 0 18px -4px var(--brand-glow);}
+  [data-theme="dark"] .btn-primary{color:#000021;box-shadow:0 0 18px -4px var(--brand-glow);}
   .btn-primary:hover{background:var(--brand-3);}
   [data-theme="dark"] .btn-primary:hover{background:var(--brand-2);}
   .btn-ghost{background:transparent;color:var(--brand);border:1.5px solid var(--line-2);} .btn-ghost:hover{border-color:var(--brand-2);}
@@ -170,7 +175,7 @@
   .modechk.on{border-color:var(--brand);background:var(--accent-soft);}
   .modechk .box{width:22px;height:22px;border-radius:6px;border:2px solid var(--line-2);display:grid;place-items:center;color:#fff;flex:0 0 auto;font-size:13px;}
   .modechk.on .box{background:var(--brand);border-color:var(--brand);}
-  [data-theme="dark"] .modechk.on .box{color:#04231f;}
+  [data-theme="dark"] .modechk.on .box{color:#000021;}
   .modechk .mlab{font-size:14px;font-weight:600;color:var(--ink-2);}
   .modechk .mst{font-size:11.5px;color:var(--muted);}
 
@@ -189,7 +194,7 @@
   .rrow{border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-top:12px;background:var(--card-2);}
   .rrow .rhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
   .case-id{display:inline-block;background:var(--brand);color:#fff;font-weight:700;font-size:12px;padding:2px 9px;border-radius:7px;}
-  [data-theme="dark"] .case-id{color:#04231f;}
+  [data-theme="dark"] .case-id{color:#000021;}
   .rrow .qq{font-size:14px;margin-top:9px;}
   .rrow .meta{font-size:12.5px;color:var(--muted);margin-top:6px;}
   .rrow .rnotes{font-size:13.5px;margin-top:8px;background:var(--fail-bg);border:1px solid var(--fail-line);border-radius:8px;padding:8px 12px;color:var(--fail);}
@@ -219,11 +224,11 @@
   .tabbar{display:flex;gap:8px;flex-wrap:wrap;}
   .tab{border:1px solid var(--line-2);background:var(--card-2);border-radius:10px;padding:9px 15px;font-size:13.5px;font-weight:600;cursor:pointer;color:var(--muted);}
   .tab.on{background:var(--brand);color:#fff;border-color:var(--brand);}
-  [data-theme="dark"] .tab.on{color:#04231f;}
+  [data-theme="dark"] .tab.on{color:#000021;}
   .tab.soon{opacity:.55;cursor:default;}
 
   .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink-2);color:var(--bg);padding:11px 20px;border-radius:99px;font-size:14px;font-weight:600;opacity:0;transition:.25s;z-index:99;pointer-events:none;}
-  [data-theme="dark"] .toast{background:var(--brand);color:#04231f;}
+  [data-theme="dark"] .toast{background:var(--brand);color:#000021;}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
   .scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:40;}
 
@@ -236,19 +241,54 @@
 </style>
 </head>
 <body>
+<svg style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
+<defs>
+<symbol id="ic-lamp" viewBox="0 0 24 24"><path d="M5.79011 14.69H18.2101C19.8701 14.69 20.8701 13.38 20.4401 11.78L18.2401 3.71C17.9801 2.77 16.9701 2 16.0101 2H7.99011C7.03011 2 6.02011 2.77 5.77011 3.7L3.57011 11.77C3.13011 13.38 4.13011 14.69 5.79011 14.69Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M12 15V22" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M8 22H16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+<symbol id="ic-calendar" viewBox="0 0 24 24"><path d="M8 2V5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M16 2V5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M16 3.5C19.33 3.68 21 4.95 21 9.65V15.83C21 19.95 20 22.01 15 22.01H9C4 22.01 3 19.95 3 15.83V9.65C3 4.95 4.67 3.69 8 3.5H16Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M20.75 17.6H3.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M12 8.25C10.77 8.25 9.73 8.92 9.73 10.22C9.73 10.84 10.02 11.31 10.46 11.61C9.85 11.97 9.5 12.55 9.5 13.23C9.5 14.47 10.45 15.24 12 15.24C13.54 15.24 14.5 14.47 14.5 13.23C14.5 12.55 14.15 11.96 13.53 11.61C13.98 11.3 14.26 10.84 14.26 10.22C14.26 8.92 13.23 8.25 12 8.25Z" fill="currentColor"/></symbol>
+<symbol id="ic-check" viewBox="0 0 24 24"><path d="M11.02 19.5H7.5C6.88 19.5 6.33 19.48 5.84 19.41C3.21 19.12 2.5 17.88 2.5 14.5V9.5C2.5 6.12 3.21 4.88 5.84 4.59C6.33 4.52 6.88 4.5 7.5 4.5H10.96" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M15.02 4.5H16.5C17.12 4.5 17.67 4.52 18.16 4.59C20.79 4.88 21.5 6.12 21.5 9.5V14.5C21.5 17.88 20.79 19.12 18.16 19.41C17.67 19.48 17.12 19.5 16.5 19.5H15.02" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M15 2V22" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M8 8.5V15.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+<symbol id="ic-circle-check" viewBox="0 0 24 24"><path d="M12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M7.75 12L10.58 14.83L16.25 9.17004" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+<symbol id="ic-copy" viewBox="0 0 24 24"><path d="M16 12.9V17.1C16 20.6 14.6 22 11.1 22H6.9C3.4 22 2 20.6 2 17.1V12.9C2 9.4 3.4 8 6.9 8H11.1C14.6 8 16 9.4 16 12.9Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M22 6.9V11.1C22 14.6 20.6 16 17.1 16H16V12.9C16 9.4 14.6 8 11.1 8H8V6.9C8 3.4 9.4 2 12.9 2H17.1C20.6 2 22 3.4 22 6.9Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+<symbol id="ic-save" viewBox="0 0 24 24"><path d="M12.89 5.87988H5.10999C3.39999 5.87988 2 7.27987 2 8.98987V20.3499C2 21.7999 3.04 22.4199 4.31 21.7099L8.23999 19.5199C8.65999 19.2899 9.34 19.2899 9.75 19.5199L13.68 21.7099C14.95 22.4199 15.99 21.7999 15.99 20.3499V8.98987C16 7.27987 14.6 5.87988 12.89 5.87988Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M16 8.98987V20.3499C16 21.7999 14.96 22.4099 13.69 21.7099L9.76001 19.5199C9.34001 19.2899 8.65999 19.2899 8.23999 19.5199L4.31 21.7099C3.04 22.4099 2 21.7999 2 20.3499V8.98987C2 7.27987 3.39999 5.87988 5.10999 5.87988H12.89C14.6 5.87988 16 7.27987 16 8.98987Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M22 5.10999V16.47C22 17.92 20.96 18.53 19.69 17.83L16 15.77V8.98999C16 7.27999 14.6 5.88 12.89 5.88H8V5.10999C8 3.39999 9.39999 2 11.11 2H18.89C20.6 2 22 3.39999 22 5.10999Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+<symbol id="ic-external-link" viewBox="0 0 24 24"><path d="M8.18009 16.0199C7.42009 15.9499 6.6701 15.5999 6.0901 14.9899C4.7701 13.5999 4.7701 11.3199 6.0901 9.92989L8.2801 7.6299C9.6001 6.2399 11.7701 6.2399 13.1001 7.6299C14.4201 9.0199 14.4201 11.2999 13.1001 12.6899L12.0101 13.8399" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M15.8202 7.97998C16.5802 8.04998 17.3302 8.39998 17.9102 9.00998C19.2302 10.4 19.2302 12.68 17.9102 14.07L15.7202 16.37C14.4002 17.76 12.2302 17.76 10.9002 16.37C9.58016 14.98 9.58016 12.7 10.9002 11.31L11.9902 10.16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M9 22H15C20 22 22 20 22 15V9C22 4 20 2 15 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+<symbol id="ic-draft" viewBox="0 0 24 24"><path d="M21 7V17C21 20 19.5 22 16 22H8C4.5 22 3 20 3 17V7C3 4 4.5 2 8 2H16C19.5 2 21 4 21 7Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M14.5 4.5V6.5C14.5 7.6 15.4 8.5 16.5 8.5H18.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M8 13H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M8 17H16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+<symbol id="ic-home" viewBox="0 0 24 24"><path d="M12 18V15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M10.07 2.81997L3.14002 8.36997C2.36002 8.98997 1.86002 10.3 2.03002 11.28L3.36002 19.24C3.60002 20.66 4.96002 21.81 6.40002 21.81H17.6C19.03 21.81 20.4 20.65 20.64 19.24L21.97 11.28C22.13 10.3 21.63 8.98997 20.86 8.36997L13.93 2.82997C12.86 1.96997 11.13 1.96997 10.07 2.81997Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+<symbol id="ic-link" viewBox="0 0 24 24"><path d="M3.27 12C2.48 11.05 2 9.83 2 8.5C2 5.48 4.47 3 7.5 3H12.5C15.52 3 18 5.48 18 8.5C18 11.52 15.53 14 12.5 14H10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M20.73 12C21.52 12.95 22 14.17 22 15.5C22 18.52 19.53 21 16.5 21H11.5C8.48 21 6 18.52 6 15.5C6 12.48 8.47 10 11.5 10H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+<symbol id="ic-menu" viewBox="0 0 24 24"><path d="M3 7H21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/><path d="M3 12H21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/><path d="M3 17H21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></symbol>
+<symbol id="ic-moon" viewBox="0 0 24 24"><path d="M2.03009 12.42C2.39009 17.57 6.76009 21.76 11.9901 21.99C15.6801 22.15 18.9801 20.43 20.9601 17.72C21.7801 16.61 21.3401 15.87 19.9701 16.12C19.3001 16.24 18.6101 16.29 17.8901 16.26C13.0001 16.06 9.00009 11.97 8.98009 7.13996C8.97009 5.83996 9.24009 4.60996 9.73009 3.48996C10.2701 2.24996 9.62009 1.65996 8.37009 2.18996C4.41009 3.85996 1.70009 7.84996 2.03009 12.42Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+<symbol id="ic-sun" viewBox="0 0 24 24"><path d="M12 8.5V3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M12 21V15.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M10 3H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M10 21H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M8.96996 10.25L4.20996 7.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M19.79 16.5L15.03 13.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M3.20996 9.23001L5.20996 5.77002" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M18.79 18.23L20.79 14.77" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M15.5 12C15.5 12.64 15.33 13.23 15.03 13.75C14.42 14.8 13.29 15.5 12 15.5C10.71 15.5 9.58 14.8 8.97 13.75C8.67 13.23 8.5 12.64 8.5 12C8.5 11.36 8.67 10.77 8.97 10.25C9.58 9.2 10.71 8.5 12 8.5C13.29 8.5 14.42 9.2 15.03 10.25C15.33 10.77 15.5 11.36 15.5 12Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M19.79 7.5L15.03 10.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M8.96996 13.75L4.20996 16.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M20.79 9.23001L18.79 5.77002" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M5.20996 18.23L3.20996 14.77" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+<symbol id="ic-paperclip" viewBox="0 0 24 24"><path d="M11.97 12V15.5C11.97 17.43 13.54 19 15.47 19C17.4 19 18.97 17.43 18.97 15.5V10C18.97 6.13 15.84 3 11.97 3C8.09997 3 4.96997 6.13 4.96997 10V16C4.96997 19.31 7.65997 22 10.97 22" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+<symbol id="ic-pencil" viewBox="0 0 24 24"><path d="M13.26 3.59997L5.04997 12.29C4.73997 12.62 4.43997 13.27 4.37997 13.72L4.00997 16.96C3.87997 18.13 4.71997 18.93 5.87997 18.73L9.09997 18.18C9.54997 18.1 10.18 17.77 10.49 17.43L18.7 8.73997C20.12 7.23997 20.76 5.52997 18.55 3.43997C16.35 1.36997 14.68 2.09997 13.26 3.59997Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M11.89 5.05005C12.32 7.81005 14.56 9.92005 17.34 10.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M3 22H21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+<symbol id="ic-plus" viewBox="0 0 24 24"><path d="M6 12H18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M12 18V6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+<symbol id="ic-refresh" viewBox="0 0 24 24"><path d="M22 12C22 17.52 17.52 22 12 22C6.48 22 3.11 16.44 3.11 16.44M3.11 16.44H7.63M3.11 16.44V21.44M2 12C2 6.48 6.44 2 12 2C18.67 2 22 7.56 22 7.56M22 7.56V2.56M22 7.56H17.56" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+<symbol id="ic-repeat" viewBox="0 0 24 24"><path d="M3.57996 5.15991H17.42C19.08 5.15991 20.42 6.49991 20.42 8.15991V11.4799" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M6.73996 2L3.57996 5.15997L6.73996 8.32001" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M20.42 18.84H6.57996C4.91996 18.84 3.57996 17.5 3.57996 15.84V12.52" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M17.26 21.9999L20.42 18.84L17.26 15.6799" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+<symbol id="ic-search" viewBox="0 0 24 24"><path d="M11 20C15.9706 20 20 15.9706 20 11C20 6.02944 15.9706 2 11 2C6.02944 2 2 6.02944 2 11C2 15.9706 6.02944 20 11 20Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M18.9299 20.6898C19.4599 22.2898 20.6699 22.4498 21.5999 21.0498C22.4499 19.7698 21.8899 18.7198 20.3499 18.7198C19.2099 18.7098 18.5699 19.5998 18.9299 20.6898Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+<symbol id="ic-search-zoom" viewBox="0 0 24 24"><path d="M9.19995 11.7H14.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M11.7 14.2V9.19995" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M11.5 21C16.7467 21 21 16.7467 21 11.5C21 6.25329 16.7467 2 11.5 2C6.25329 2 2 6.25329 2 11.5C2 16.7467 6.25329 21 11.5 21Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M22 22L20 20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+<symbol id="ic-settings" viewBox="0 0 24 24"><path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M2 12.8799V11.1199C2 10.0799 2.85 9.21994 3.9 9.21994C5.71 9.21994 6.45 7.93994 5.54 6.36994C5.02 5.46994 5.33 4.29994 6.24 3.77994L7.97 2.78994C8.76 2.31994 9.78 2.59994 10.25 3.38994L10.36 3.57994C11.26 5.14994 12.74 5.14994 13.65 3.57994L13.76 3.38994C14.23 2.59994 15.25 2.31994 16.04 2.78994L17.77 3.77994C18.68 4.29994 18.99 5.46994 18.47 6.36994C17.56 7.93994 18.3 9.21994 20.11 9.21994C21.15 9.21994 22.01 10.0699 22.01 11.1199V12.8799C22.01 13.9199 21.16 14.7799 20.11 14.7799C18.3 14.7799 17.56 16.0599 18.47 17.6299C18.99 18.5399 18.68 19.6999 17.77 20.2199L16.04 21.2099C15.25 21.6799 14.23 21.3999 13.76 20.6099L13.65 20.4199C12.75 18.8499 11.27 18.8499 10.36 20.4199L10.25 20.6099C9.78 21.3999 8.76 21.6799 7.97 21.2099L6.24 20.2199C5.33 19.6999 5.02 18.5299 5.54 17.6299C6.45 16.0599 5.71 14.7799 3.9 14.7799C2.85 14.7799 2 13.9199 2 12.8799Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+<symbol id="ic-share" viewBox="0 0 24 24"><path d="M16.96 6.17004C18.96 7.56004 20.34 9.77004 20.62 12.32" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M3.48999 12.37C3.74999 9.82997 5.10999 7.61997 7.08999 6.21997" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M8.19 20.9399C9.35 21.5299 10.67 21.8599 12.06 21.8599C13.4 21.8599 14.66 21.5599 15.79 21.0099" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M12.06 7.70001C13.5954 7.70001 14.84 6.45537 14.84 4.92001C14.84 3.38466 13.5954 2.14001 12.06 2.14001C10.5247 2.14001 9.28003 3.38466 9.28003 4.92001C9.28003 6.45537 10.5247 7.70001 12.06 7.70001Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M4.82999 19.92C6.36534 19.92 7.60999 18.6753 7.60999 17.14C7.60999 15.6046 6.36534 14.36 4.82999 14.36C3.29464 14.36 2.04999 15.6046 2.04999 17.14C2.04999 18.6753 3.29464 19.92 4.82999 19.92Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M19.17 19.92C20.7054 19.92 21.95 18.6753 21.95 17.14C21.95 15.6046 20.7054 14.36 19.17 14.36C17.6347 14.36 16.39 15.6046 16.39 17.14C16.39 18.6753 17.6347 19.92 19.17 19.92Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+<symbol id="ic-trash" viewBox="0 0 24 24"><path d="M21 5.97998C17.67 5.64998 14.32 5.47998 10.98 5.47998C9 5.47998 7.02 5.57998 5.04 5.77998L3 5.97998" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M8.5 4.97L8.72 3.66C8.88 2.71 9 2 10.69 2H13.31C15 2 15.13 2.75 15.28 3.67L15.5 4.97" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M18.85 9.14001L18.2 19.21C18.09 20.78 18 22 15.21 22H8.79002C6.00002 22 5.91002 20.78 5.80002 19.21L5.15002 9.14001" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M10.33 16.5H13.66" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M9.5 12.5H14.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+<symbol id="ic-users" viewBox="0 0 24 24"><path d="M9.16006 10.87C9.06006 10.86 8.94006 10.86 8.83006 10.87C6.45006 10.79 4.56006 8.84 4.56006 6.44C4.56006 3.99 6.54006 2 9.00006 2C11.4501 2 13.4401 3.99 13.4401 6.44C13.4301 8.84 11.5401 10.79 9.16006 10.87Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M16.41 4C18.35 4 19.91 5.57 19.91 7.5C19.91 9.39 18.41 10.93 16.54 11C16.46 10.99 16.37 10.99 16.28 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M4.15997 14.56C1.73997 16.18 1.73997 18.82 4.15997 20.43C6.90997 22.27 11.42 22.27 14.17 20.43C16.59 18.81 16.59 16.17 14.17 14.56C11.43 12.73 6.91997 12.73 4.15997 14.56Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M18.3401 20C19.0601 19.85 19.7401 19.56 20.3001 19.13C21.8601 17.96 21.8601 16.03 20.3001 14.86C19.7501 14.44 19.0801 14.16 18.3701 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+<symbol id="ic-x" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 6 6 18M6 6l12 12" fill="none"/></symbol>
+</defs>
+</svg>
 <div class="layout">
   <aside class="side" id="side">
-    <div class="brand"><div class="mk"><i class="ti ti-scale"></i></div><div><h1>مِعيار</h1><p>منصة تقييم الذكاء الاصطناعي القانوني</p></div></div>
+    <div class="brand">
+      <div class="mk">
+        <img class="logo-light" src="assets/logos/logo-color-mark.svg" alt="" width="22" height="28">
+        <img class="logo-dark" src="assets/logos/logo-white-mark.svg" alt="" width="22" height="28">
+      </div>
+      <div><h1>مِعيار</h1><p>منصة تقييم الذكاء الاصطناعي القانوني</p></div>
+    </div>
     <nav class="nav" id="navList"></nav>
     <div class="foot">
-      <button class="navitem" data-nav="settings"><span class="ic"><i class="ti ti-settings"></i></span> الإعدادات</button>
-      <button class="themebtn" id="themeBtn"><span id="themeIc"><i class="ti ti-moon"></i></span> <span id="themeLbl">الوضع الليلي</span></button>
+      <button class="navitem" data-nav="settings"><span class="ic"><svg class="icon"><use href="#ic-settings"/></svg></span> الإعدادات</button>
+      <button class="themebtn" id="themeBtn"><span id="themeIc"><svg class="icon"><use href="#ic-moon"/></svg></span> <span id="themeLbl">الوضع الليلي</span></button>
     </div>
   </aside>
   <div class="scrim" id="scrim"></div>
   <div class="main">
-    <div class="editbar" id="editBar"><i class="ti ti-pencil"></i> وضع تحرير النصوص مفعّل — اضغط على أي نص وعدّله، وسيُحفظ تلقائيًا عند الخروج منه. <button id="exitEdit">إنهاء التحرير</button> <button id="resetTexts">استعادة النصوص الافتراضية</button></div>
-    <div class="topbar"><button class="hamb" id="hamb"><i class="ti ti-menu-2"></i></button><button class="homebtn" id="homeBtn" title="الرئيسية"><i class="ti ti-home"></i></button><div class="crumb" id="crumb"></div><button class="homebtn" id="editBtn" title="تعديل النصوص" style="margin-inline-start:auto;"><i class="ti ti-pencil"></i></button></div>
+    <div class="editbar" id="editBar"><svg class="icon"><use href="#ic-pencil"/></svg> وضع تحرير النصوص مفعّل — اضغط على أي نص وعدّله، وسيُحفظ تلقائيًا عند الخروج منه. <button id="exitEdit">إنهاء التحرير</button> <button id="resetTexts">استعادة النصوص الافتراضية</button></div>
+    <div class="topbar"><button class="hamb" id="hamb"><svg class="icon"><use href="#ic-menu"/></svg></button><button class="homebtn" id="homeBtn" title="الرئيسية"><svg class="icon"><use href="#ic-home"/></svg></button><div class="crumb" id="crumb"></div><button class="homebtn" id="editBtn" title="تعديل النصوص" style="margin-inline-start:auto;"><svg class="icon"><use href="#ic-pencil"/></svg></button></div>
     <div class="mainrow">
       <div class="content" id="screen"></div>
       <aside class="toc">
@@ -256,14 +296,13 @@
         <nav class="toclist" id="tocList"></nav>
         <div class="sharebox">
           <h3>مشاركة</h3>
-          <button class="sharelink" id="copyLinkBtn"><i class="ti ti-link"></i> نسخ الرابط</button>
+          <button class="sharelink" id="copyLinkBtn"><svg class="icon"><use href="#ic-link"/></svg> نسخ الرابط</button>
         </div>
       </aside>
     </div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.11.0/tabler-icons.min.css">
 
 <script>
 /* ===== التخزين ===== */
@@ -285,7 +324,7 @@ function bindEditable(){
 }
 
 /* ===== الثيم ===== */
-function applyTheme(t){document.documentElement.setAttribute('data-theme',t);const dark=t==='dark';const ic=document.getElementById('themeIc'),lb=document.getElementById('themeLbl');if(ic)ic.innerHTML=`<i class="ti ti-${dark?'sun':'moon'}"></i>`;if(lb)lb.textContent=dark?'الوضع النهاري':'الوضع الليلي';}
+function applyTheme(t){document.documentElement.setAttribute('data-theme',t);const dark=t==='dark';const ic=document.getElementById('themeIc'),lb=document.getElementById('themeLbl');if(ic)ic.innerHTML=`<svg class="icon"><use href="#ic-${dark?'sun':'moon'}"/></svg>`;if(lb)lb.textContent=dark?'الوضع النهاري':'الوضع الليلي';}
 let THEME=store.get(K.theme)||'light';
 
 const DEF_SETTINGS={team:'الفريق القانوني',product:'قانونية AI'};
@@ -339,7 +378,7 @@ const app={view:'dashboard',sub:null,ctx:{}};
 function buildNav(){
   const el=document.getElementById('navList');
   el.innerHTML=`<div class="grp">المنتجات</div>
-    <button class="navitem ${app.view==='dashboard'?'active':''}" data-nav="dashboard"><span class="ic"><i class="ti ti-search"></i></span> اختبار الدخان<span class="badge-n">${RUNS.length}</span></button>`;
+    <button class="navitem ${app.view==='dashboard'?'active':''}" data-nav="dashboard"><span class="ic"><svg class="icon"><use href="#ic-search"/></svg></span> اختبار الدخان<span class="badge-n">${RUNS.length}</span></button>`;
   el.querySelector('[data-nav]').onclick=()=>go('dashboard');
   document.querySelector('.foot [data-nav]').onclick=()=>go('settings');
   document.querySelector('.foot .navitem').classList.toggle('active',app.view==='settings');
@@ -377,7 +416,7 @@ function renderDashboard(){
       <div class="eyebrow" data-edit-key="dash.eyebrow">${esc(t('dash.eyebrow','المنتج · اختبار الدخان'))}</div>
       <h1 class="h1" data-edit-key="dash.title">${esc(t('dash.title','مرحبًا بكم في مِعيار'))}</h1>
       <p class="sub" data-edit-key="dash.sub">${esc(t('dash.sub','تعرّفوا على أداة اختبار الدخان وكيف تستفيدون منها لفحص المنتج بسرعة. فحص سريع للتأكد أن المنتج يعمل من البداية للنهاية دون أعطال — اختاروا سؤالًا واحدًا لكل حالة وحدّدوا النتيجة.'))}</p>
-      <div class="tip"><span class="ic"><i class="ti ti-bulb"></i></span><div data-edit-key="dash.tip">${esc(t('dash.tip','الحالات التي تحمل وسم ثنائي الأوضاع تُنفَّذ في الوضعين العادي والتفصيلي؛ تُحتسب مجتازة فقط إذا نجح الوضعان معًا.'))}</div></div>
+      <div class="tip"><span class="ic"><svg class="icon"><use href="#ic-lamp"/></svg></span><div data-edit-key="dash.tip">${esc(t('dash.tip','الحالات التي تحمل وسم ثنائي الأوضاع تُنفَّذ في الوضعين العادي والتفصيلي؛ تُحتسب مجتازة فقط إذا نجح الوضعان معًا.'))}</div></div>
       <div class="steps">
         <div class="step"><span class="num">1</span><span class="txt" data-edit-key="dash.step1">${esc(t('dash.step1','اضغطوا «بدء اختبار جديد» وعبّئوا اسم الموظف وتاريخ الاختبار.'))}</span></div>
         <div class="step"><span class="num">2</span><span class="txt" data-edit-key="dash.step2">${esc(t('dash.step2','مرّوا على كل حالة، انسخوا السؤال، جرّبوه في المنصة، ثم حدّدوا مجتاز أو غير مجتاز.'))}</span></div>
@@ -388,12 +427,12 @@ function renderDashboard(){
       <div class="eyebrow" data-edit-key="dash.stats.eyebrow">${esc(t('dash.stats.eyebrow','نظرة عامة'))}</div>
       <h2 class="h2" data-edit-key="dash.stats.title">${esc(t('dash.stats.title','الإحصائيات'))}</h2>
       <div class="stat-row" style="grid-template-columns:repeat(4,1fr);margin-top:16px;">
-        <div class="stat"><div class="ic"><i class="ti ti-circle-check"></i></div><div class="n">${RUNS.length}</div><div class="l">اختبار مكتمل</div></div>
-        <div class="stat"><div class="ic"><i class="ti ti-file-pencil"></i></div><div class="n">${DRAFTS.length}</div><div class="l">مسودة</div></div>
-        <div class="stat"><div class="ic"><i class="ti ti-calendar"></i></div><div class="n" style="font-size:15px;padding-top:5px;">${esc(lastDate)}</div><div class="l">آخر اختبار</div></div>
-        <div class="stat"><div class="ic"><i class="ti ti-users"></i></div><div class="n">${testers}</div><div class="l">عدد المختبِرين</div></div>
+        <div class="stat"><div class="ic"><svg class="icon"><use href="#ic-circle-check"/></svg></div><div class="n">${RUNS.length}</div><div class="l">اختبار مكتمل</div></div>
+        <div class="stat"><div class="ic"><svg class="icon"><use href="#ic-draft"/></svg></div><div class="n">${DRAFTS.length}</div><div class="l">مسودة</div></div>
+        <div class="stat"><div class="ic"><svg class="icon"><use href="#ic-calendar"/></svg></div><div class="n" style="font-size:15px;padding-top:5px;">${esc(lastDate)}</div><div class="l">آخر اختبار</div></div>
+        <div class="stat"><div class="ic"><svg class="icon"><use href="#ic-users"/></svg></div><div class="n">${testers}</div><div class="l">عدد المختبِرين</div></div>
       </div>
-      <div class="row" style="margin-top:18px;"><button class="btn btn-primary" id="newRun"><i class="ti ti-plus"></i> بدء اختبار جديد</button></div>
+      <div class="row" style="margin-top:18px;"><button class="btn btn-primary" id="newRun"><svg class="icon"><use href="#ic-plus"/></svg> بدء اختبار جديد</button></div>
     </div>
     ${DRAFTS.length?`<div class="card"><div class="eyebrow" data-edit-key="dash.drafts.eyebrow">${esc(t('dash.drafts.eyebrow','قيد الإكمال'))}</div><h2 class="h2" data-edit-key="dash.drafts.title">${esc(t('dash.drafts.title','المسودات'))}</h2>${draftsHtml}</div>`:''}
     <div class="card"><div class="eyebrow" data-edit-key="dash.history.eyebrow">${esc(t('dash.history.eyebrow','السجل'))}</div><h2 class="h2" data-edit-key="dash.history.title">${esc(t('dash.history.title','الاختبارات السابقة'))}</h2>${runsHtml}</div>`;
@@ -406,7 +445,7 @@ function renderDashboard(){
 function runRow(r,i,isDraft){
   const passed=r.results.filter(x=>x.result==='pass').length,failed=r.results.filter(x=>x.result==='fail').length,done=r.results.filter(x=>x.result).length;
   const badge=isDraft?`<span class="badge draft">مسودة ${done}/${r.tests.length}</span>`:(failed===0?`<span class="badge pass">مجتاز بالكامل</span>`:`<span class="badge fail">${failed} لم تجتَز</span>`);
-  const actions=isDraft?`<button class="btn btn-primary btn-sm" data-resume="${i}">إكمال</button><button class="iconbtn del" data-deldraft="${i}"><i class="ti ti-trash"></i></button>`:`<button class="iconbtn" data-share="${i}"><i class="ti ti-share"></i></button><button class="iconbtn del" data-delrun="${i}"><i class="ti ti-trash"></i></button>`;
+  const actions=isDraft?`<button class="btn btn-primary btn-sm" data-resume="${i}">إكمال</button><button class="iconbtn del" data-deldraft="${i}"><svg class="icon"><use href="#ic-trash"/></svg></button>`:`<button class="iconbtn" data-share="${i}"><svg class="icon"><use href="#ic-share"/></svg></button><button class="iconbtn del" data-delrun="${i}"><svg class="icon"><use href="#ic-trash"/></svg></button>`;
   return `<div class="lrow"><div class="ri"><div class="t">${esc(r.employee||'—')}</div><div class="m">${esc(r.date)} • ${r.tests.length} حالة${isDraft?'':` • مجتاز ${passed} / غير مجتاز ${failed}`}${r.reason?' • '+esc(r.reason):''}</div></div>${badge}${actions}</div>`;
 }
 
@@ -448,22 +487,22 @@ function smokeTest(){
   const dual=isDual(t);
   res.modeResults=res.modeResults||{};
   let qHtml;
-  if(t.custom){qHtml=`<div class="qline"><textarea id="cq" placeholder="${esc(t.customHint||'اكتب السؤال المستخدم')}">${esc(res.customText)}</textarea><button class="copybtn" id="cqCopy"><i class="ti ti-copy"></i> نسخ</button></div>`;}
-  else{qHtml=(t.questions||[]).map((q,qi)=>{const qf=qFile(q);return `<label class="qoption ${res.qIndex===qi?'sel':''}" data-i="${qi}"><input type="radio" ${res.qIndex===qi?'checked':''}><span class="qtext">${esc(qText(q))}${qf?` · <a href="${esc(qf)}" target="_blank" rel="noopener" class="qfilelink" data-stop>ملف مساعد <i class="ti ti-external-link"></i></a>`:''}</span><span class="copybtn" data-copy="${qi}"><i class="ti ti-copy"></i></span></label>`;}).join('');}
+  if(t.custom){qHtml=`<div class="qline"><textarea id="cq" placeholder="${esc(t.customHint||'اكتب السؤال المستخدم')}">${esc(res.customText)}</textarea><button class="copybtn" id="cqCopy"><svg class="icon"><use href="#ic-copy"/></svg> نسخ</button></div>`;}
+  else{qHtml=(t.questions||[]).map((q,qi)=>{const qf=qFile(q);return `<label class="qoption ${res.qIndex===qi?'sel':''}" data-i="${qi}"><input type="radio" ${res.qIndex===qi?'checked':''}><span class="qtext">${esc(qText(q))}${qf?` · <a href="${esc(qf)}" target="_blank" rel="noopener" class="qfilelink" data-stop>ملف مساعد <svg class="icon"><use href="#ic-external-link"/></svg></a>`:''}</span><span class="copybtn" data-copy="${qi}"><svg class="icon"><use href="#ic-copy"/></svg></span></label>`;}).join('');}
 
   // منطقة نتيجة التنفيذ: مفردة أو ثنائية
   let verdictHtml;
   if(dual){
     verdictHtml=`
-      <div class="dualnote"><i class="ti ti-repeat"></i> هذه الحالة تُنفَّذ في وضعين. حدّد نتيجة كل وضع؛ وتُحتسب مجتازة فقط إذا نجح الوضعان.</div>
+      <div class="dualnote"><svg class="icon"><use href="#ic-repeat"/></svg> هذه الحالة تُنفَّذ في وضعين. حدّد نتيجة كل وضع؛ وتُحتسب مجتازة فقط إذا نجح الوضعان.</div>
       ${modeCard('normal','عادي',res)}
       ${modeCard('detailed','تفصيلي',res)}`;
   }else{
     const only=modeList(t)[0];
     verdictHtml=`
       <div class="verdict">
-        <button class="vbtn pass ${res.result==='pass'?'on':''}" id="pass"><span class="mk"><i class="ti ti-check"></i></span> مجتاز</button>
-        <button class="vbtn fail ${res.result==='fail'?'on':''}" id="fail"><span class="mk"><i class="ti ti-x"></i></span> غير مجتاز</button>
+        <button class="vbtn pass ${res.result==='pass'?'on':''}" id="pass"><span class="mk"><svg class="icon"><use href="#ic-check"/></svg></span> مجتاز</button>
+        <button class="vbtn fail ${res.result==='fail'?'on':''}" id="fail"><span class="mk"><svg class="icon"><use href="#ic-x"/></svg></span> غير مجتاز</button>
       </div>`;
   }
 
@@ -473,7 +512,7 @@ function smokeTest(){
     <div style="margin-top:14px;"><span class="case-id">${esc(t.id)}</span> <b style="font-size:17px;color:var(--ink-2);">${esc(t.title)}</b></div>
     <div class="section-h">${t.custom?'السؤال المستخدم':'اختر سؤالًا واحدًا (يُنسخ تلقائيًا)'}</div>
     ${qHtml}
-    ${t.fileNote?`<div class="filenote"><i class="ti ti-paperclip"></i> ${esc(t.fileNote)}</div>`:''}
+    ${t.fileNote?`<div class="filenote"><svg class="icon"><use href="#ic-paperclip"/></svg> ${esc(t.fileNote)}</div>`:''}
     ${t.reason?`<div class="reason"><b>سبب الحالة:</b> ${esc(t.reason)}</div>`:''}
     <div class="row" style="margin-top:14px;"><span class="chip">نوع الوضع المطلوب: <b>${esc(modeLabel(t))}</b></span></div>
     <div class="expected"><span class="lbl">النتيجة المتوقعة</span>${esc(t.expected)}</div>
@@ -487,7 +526,7 @@ function smokeTest(){
     </div>
     <div class="warnmsg" id="w"></div>
     <div class="nav-btns">
-      <div class="row"><button class="btn btn-ghost" id="prev">→ السابق</button><button class="btn btn-ghost" id="draft"><i class="ti ti-device-floppy"></i> حفظ كمسودة</button></div>
+      <div class="row"><button class="btn btn-ghost" id="prev">→ السابق</button><button class="btn btn-ghost" id="draft"><svg class="icon"><use href="#ic-save"/></svg> حفظ كمسودة</button></div>
       <button class="btn btn-primary" id="next">${i===total-1?'إنهاء ومراجعة':'التالي ←'}</button>
     </div>
   </div>`;
@@ -539,10 +578,10 @@ function smokeTest(){
 function modeCard(key,label,res){
   const v=(res.modeResults||{})[key];
   return `<div style="margin-top:10px;border:1px solid var(--line-2);border-radius:12px;padding:12px 14px;background:var(--card-2);">
-    <div style="font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:8px;"><i class="ti ti-${key==='normal'?'search':'zoom-scan'}"></i> الوضع ${label}</div>
+    <div style="font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:8px;"><svg class="icon"><use href="#ic-${key==='normal'?'search':'search-zoom'}"/></svg> الوضع ${label}</div>
     <div class="verdict" style="margin-top:0;" data-mode="${key}">
-      <button class="vbtn pass ${v==='pass'?'on':''}" data-mv="pass"><span class="mk"><i class="ti ti-check"></i></span> مجتاز</button>
-      <button class="vbtn fail ${v==='fail'?'on':''}" data-mv="fail"><span class="mk"><i class="ti ti-x"></i></span> غير مجتاز</button>
+      <button class="vbtn pass ${v==='pass'?'on':''}" data-mv="pass"><span class="mk"><svg class="icon"><use href="#ic-check"/></svg></span> مجتاز</button>
+      <button class="vbtn fail ${v==='fail'?'on':''}" data-mv="fail"><span class="mk"><svg class="icon"><use href="#ic-x"/></svg></span> غير مجتاز</button>
     </div></div>`;
 }
 
@@ -572,7 +611,7 @@ function smokeReview(){
   let rows='';
   run.tests.forEach((t,i)=>{const r=run.results[i],b=r.result==='pass'?'pass':'fail',bt=r.result==='pass'?'مجتاز':'غير مجتاز';const mr=modeResultText(run,i);const qf=chosenQuestionFile(run,i);
     rows+=`<div class="rrow"><div class="rhead"><span class="case-id">${esc(t.id)}</span><b style="color:var(--ink-2);">${esc(t.title)}</b><span class="badge ${b}">${bt}</span></div>
-    <div class="qq"><b>السؤال المختار:</b> ${esc(chosenQuestion(run,i))}${qf?` · <a href="${esc(qf)}" target="_blank" rel="noopener" class="qfilelink">ملف مساعد <i class="ti ti-external-link"></i></a>`:''}</div>
+    <div class="qq"><b>السؤال المختار:</b> ${esc(chosenQuestion(run,i))}${qf?` · <a href="${esc(qf)}" target="_blank" rel="noopener" class="qfilelink">ملف مساعد <svg class="icon"><use href="#ic-external-link"/></svg></a>`:''}</div>
     <div class="meta"><b>الوضع:</b> ${esc(modeLabel(t))}${mr?' ('+esc(mr)+')':''} • <b>المتوقع:</b> ${esc(t.expected)}</div>
     ${r.result==='fail'?`<div class="rnotes"><b>الملاحظات:</b> ${esc(r.notes)}<br><b>معرّف السؤال/المحادثة:</b> ${esc(r.convId||'—')}</div>`:''}</div>`;});
   screen.innerHTML=`<div class="card">
@@ -591,7 +630,7 @@ function smokeReview(){
     ${rows}
     <div class="nav-btns">
       <button class="btn btn-ghost" id="back">→ رجوع</button>
-      <div class="row"><button class="btn btn-ghost" id="copySum"><i class="ti ti-copy"></i> نسخ الملخّص</button><button class="btn btn-primary" id="share"><i class="ti ti-share"></i> حفظ ومشاركة</button></div>
+      <div class="row"><button class="btn btn-ghost" id="copySum"><svg class="icon"><use href="#ic-copy"/></svg> نسخ الملخّص</button><button class="btn btn-primary" id="share"><svg class="icon"><use href="#ic-share"/></svg> حفظ ومشاركة</button></div>
     </div>
   </div>`;
   document.getElementById('back').onclick=()=>{app.sub='test';run.step=run.tests.length-1;render();window.scrollTo(0,0);};
@@ -619,38 +658,38 @@ function settingsCases(){
   const cats=adminCats.map((c,ci)=>{
     const tests=c.tests.map((t,ti)=>{
       const m=t.modes||{normal:true,detailed:false};
-      const qs=(t.questions||[]).map((q,qi)=>`<div class="qline"><div style="flex:1;"><textarea data-q="${ci}|${ti}|${qi}" placeholder="نص السؤال">${esc(qText(q))}</textarea><input data-qfile="${ci}|${ti}|${qi}" placeholder="رابط ملف مساعد (اختياري)" value="${esc(qFile(q))}" style="margin-top:6px;"></div><button class="iconbtn del" data-delq="${ci}|${ti}|${qi}"><i class="ti ti-x"></i></button></div>`).join('');
+      const qs=(t.questions||[]).map((q,qi)=>`<div class="qline"><div style="flex:1;"><textarea data-q="${ci}|${ti}|${qi}" placeholder="نص السؤال">${esc(qText(q))}</textarea><input data-qfile="${ci}|${ti}|${qi}" placeholder="رابط ملف مساعد (اختياري)" value="${esc(qFile(q))}" style="margin-top:6px;"></div><button class="iconbtn del" data-delq="${ci}|${ti}|${qi}"><svg class="icon"><use href="#ic-x"/></svg></button></div>`).join('');
       return `<div class="subacc ${t._open?'open':''}" data-sub="${ci}|${ti}"><div class="head"><span class="caret">▶</span>
         <input type="checkbox" class="selbox" data-sel="${ci}|${ti}" ${t._sel?'checked':''} onclick="event.stopPropagation()">
         <span class="case-id">${esc(t.id)||'?'}</span><span class="title" style="font-size:13.5px;">${esc(t.title)||'(بدون عنوان)'}</span></div>
         <div class="body">
           <div class="grid2"><div><div class="lbl-sm">المعرّف</div><input data-f="${ci}|${ti}|id" value="${esc(t.id)}"></div><div><div class="lbl-sm">العنوان</div><input data-f="${ci}|${ti}|title" value="${esc(t.title)}"></div></div>
           <div class="lbl-sm">نماذج الأسئلة</div>${qs||'<div class="muted-note">لا أسئلة (حالة سؤال حر).</div>'}
-          <button class="iconbtn" data-addq="${ci}|${ti}" style="margin-top:6px;"><i class="ti ti-plus"></i> سؤال</button>
+          <button class="iconbtn" data-addq="${ci}|${ti}" style="margin-top:6px;"><svg class="icon"><use href="#ic-plus"/></svg> سؤال</button>
           <div class="lbl-sm">نوع الوضع المطلوب</div>
           <div class="modebox">
-            <label class="modechk ${m.normal?'on':''}" data-modechk="${ci}|${ti}|normal"><span class="box">${m.normal?'<i class="ti ti-check"></i>':''}</span><span><span class="mlab">الوضع العادي</span><br><span class="mst">بحث عادي</span></span></label>
-            <label class="modechk ${m.detailed?'on':''}" data-modechk="${ci}|${ti}|detailed"><span class="box">${m.detailed?'<i class="ti ti-check"></i>':''}</span><span><span class="mlab">الوضع التفصيلي</span><br><span class="mst">بحث موسّع</span></span></label>
+            <label class="modechk ${m.normal?'on':''}" data-modechk="${ci}|${ti}|normal"><span class="box">${m.normal?'<svg class="icon"><use href="#ic-check"/></svg>':''}</span><span><span class="mlab">الوضع العادي</span><br><span class="mst">بحث عادي</span></span></label>
+            <label class="modechk ${m.detailed?'on':''}" data-modechk="${ci}|${ti}|detailed"><span class="box">${m.detailed?'<svg class="icon"><use href="#ic-check"/></svg>':''}</span><span><span class="mlab">الوضع التفصيلي</span><br><span class="mst">بحث موسّع</span></span></label>
           </div>
           <div class="lbl-sm">سبب الحالة (اختياري)</div><input data-f="${ci}|${ti}|reason" value="${esc(t.reason||'')}">
           <div class="lbl-sm">النتيجة المتوقعة</div><textarea data-f="${ci}|${ti}|expected">${esc(t.expected||'')}</textarea>
           <div class="grid2" style="margin-top:10px;"><div><div class="lbl-sm">ملاحظة الملف (اختياري)</div><input data-f="${ci}|${ti}|fileNote" value="${esc(t.fileNote||'')}"></div><div><div class="lbl-sm">سؤال حر؟</div><label style="font-size:13px;display:flex;gap:8px;align-items:center;margin-top:8px;color:var(--ink-2);"><input type="checkbox" data-custom="${ci}|${ti}" ${t.custom?'checked':''}> الموظف يكتب السؤال</label></div></div>
-          <div class="row" style="margin-top:10px;"><button class="btn btn-primary btn-sm" data-savetest="${ci}|${ti}"><i class="ti ti-device-floppy"></i> حفظ الحالة</button><button class="iconbtn del" data-deltest="${ci}|${ti}"><i class="ti ti-trash"></i> حذف الحالة</button></div>
+          <div class="row" style="margin-top:10px;"><button class="btn btn-primary btn-sm" data-savetest="${ci}|${ti}"><svg class="icon"><use href="#ic-save"/></svg> حفظ الحالة</button><button class="iconbtn del" data-deltest="${ci}|${ti}"><svg class="icon"><use href="#ic-trash"/></svg> حذف الحالة</button></div>
         </div></div>`;
     }).join('');
     return `<div class="acc ${c._open?'open':''}" data-cat="${ci}"><div class="head"><span class="caret">▶</span><span class="title">${esc(c.title)||'(فئة)'}</span><span class="sub-c" style="margin-inline-start:auto;">${c.tests.length} حالة</span></div>
       <div class="body"><div class="lbl-sm">عنوان الفئة</div><input data-catf="${ci}|title" value="${esc(c.title)}"><div class="lbl-sm">وصف الفئة</div><input data-catf="${ci}|note" value="${esc(c.note||'')}">
       ${tests}
-      <div class="toolbar" style="margin-top:12px;"><button class="iconbtn" data-addtest="${ci}"><i class="ti ti-plus"></i> إضافة حالة</button><button class="iconbtn del" data-delcat="${ci}"><i class="ti ti-trash"></i> حذف الفئة</button></div></div></div>`;
+      <div class="toolbar" style="margin-top:12px;"><button class="iconbtn" data-addtest="${ci}"><svg class="icon"><use href="#ic-plus"/></svg> إضافة حالة</button><button class="iconbtn del" data-delcat="${ci}"><svg class="icon"><use href="#ic-trash"/></svg> حذف الفئة</button></div></div></div>`;
   }).join('');
   return `<div class="card">
     <div class="toolbar" style="justify-content:space-between;">
       <h2 class="h2" style="margin:0;">فئات وحالات اختبار الدخان</h2>
-      <div class="row"><button class="btn btn-ghost btn-sm" id="resetCats"><i class="ti ti-refresh"></i> استعادة الافتراضي</button><button class="btn btn-ghost btn-sm" id="delSel"><i class="ti ti-trash"></i> حذف المحدد</button><button class="btn btn-primary btn-sm" id="saveCats"><i class="ti ti-device-floppy"></i> حفظ التغييرات</button></div>
+      <div class="row"><button class="btn btn-ghost btn-sm" id="resetCats"><svg class="icon"><use href="#ic-refresh"/></svg> استعادة الافتراضي</button><button class="btn btn-ghost btn-sm" id="delSel"><svg class="icon"><use href="#ic-trash"/></svg> حذف المحدد</button><button class="btn btn-primary btn-sm" id="saveCats"><svg class="icon"><use href="#ic-save"/></svg> حفظ التغييرات</button></div>
     </div>
     <p class="sub" style="margin-top:8px;">اضغط على الفئة لفتحها ثم على الحالة لتحريرها. لكل حالة تحدّد الأوضاع المطلوبة (عادي/تفصيلي).</p>
     ${cats}
-    <div style="margin-top:14px;"><button class="btn btn-ghost" id="addCat"><i class="ti ti-plus"></i> إضافة فئة جديدة</button></div>
+    <div style="margin-top:14px;"><button class="btn btn-ghost" id="addCat"><svg class="icon"><use href="#ic-plus"/></svg> إضافة فئة جديدة</button></div>
   </div>`;
 }
 function persistCats(){const cl=clone(adminCats);cl.forEach(c=>{delete c._open;c.tests.forEach(t=>{delete t._sel;delete t._open;});});CATS=cl;save(K.cats,CATS);}
