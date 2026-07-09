@@ -635,7 +635,7 @@ function settingsCases(){
           <div class="lbl-sm">سبب الحالة (اختياري)</div><input data-f="${ci}|${ti}|reason" value="${esc(t.reason||'')}">
           <div class="lbl-sm">النتيجة المتوقعة</div><textarea data-f="${ci}|${ti}|expected">${esc(t.expected||'')}</textarea>
           <div class="grid2" style="margin-top:10px;"><div><div class="lbl-sm">ملاحظة الملف (اختياري)</div><input data-f="${ci}|${ti}|fileNote" value="${esc(t.fileNote||'')}"></div><div><div class="lbl-sm">سؤال حر؟</div><label style="font-size:13px;display:flex;gap:8px;align-items:center;margin-top:8px;color:var(--ink-2);"><input type="checkbox" data-custom="${ci}|${ti}" ${t.custom?'checked':''}> الموظف يكتب السؤال</label></div></div>
-          <div style="margin-top:10px;"><button class="iconbtn del" data-deltest="${ci}|${ti}"><i class="ti ti-trash"></i> حذف الحالة</button></div>
+          <div class="row" style="margin-top:10px;"><button class="btn btn-primary btn-sm" data-savetest="${ci}|${ti}"><i class="ti ti-device-floppy"></i> حفظ الحالة</button><button class="iconbtn del" data-deltest="${ci}|${ti}"><i class="ti ti-trash"></i> حذف الحالة</button></div>
         </div></div>`;
     }).join('');
     return `<div class="acc ${c._open?'open':''}" data-cat="${ci}"><div class="head"><span class="caret">▶</span><span class="title">${esc(c.title)||'(فئة)'}</span><span class="sub-c" style="margin-inline-start:auto;">${c.tests.length} حالة</span></div>
@@ -646,15 +646,16 @@ function settingsCases(){
   return `<div class="card">
     <div class="toolbar" style="justify-content:space-between;">
       <h2 class="h2" style="margin:0;">فئات وحالات اختبار الدخان</h2>
-      <div class="row"><button class="btn btn-ghost btn-sm" id="delSel"><i class="ti ti-trash"></i> حذف المحدد</button><button class="btn btn-primary btn-sm" id="saveCats"><i class="ti ti-device-floppy"></i> حفظ التغييرات</button></div>
+      <div class="row"><button class="btn btn-ghost btn-sm" id="resetCats"><i class="ti ti-refresh"></i> استعادة الافتراضي</button><button class="btn btn-ghost btn-sm" id="delSel"><i class="ti ti-trash"></i> حذف المحدد</button><button class="btn btn-primary btn-sm" id="saveCats"><i class="ti ti-device-floppy"></i> حفظ التغييرات</button></div>
     </div>
     <p class="sub" style="margin-top:8px;">اضغط على الفئة لفتحها ثم على الحالة لتحريرها. لكل حالة تحدّد الأوضاع المطلوبة (عادي/تفصيلي).</p>
     ${cats}
     <div style="margin-top:14px;"><button class="btn btn-ghost" id="addCat"><i class="ti ti-plus"></i> إضافة فئة جديدة</button></div>
   </div>`;
 }
+function persistCats(){const cl=clone(adminCats);cl.forEach(c=>{delete c._open;c.tests.forEach(t=>{delete t._sel;delete t._open;});});CATS=cl;save(K.cats,CATS);}
 function bindCases(){
-  screen.querySelectorAll('[data-cat]').forEach(a=>a.querySelector('.head').onclick=()=>{const ci=+a.dataset.cat;adminCats[ci]._open=!adminCats[ci]._open;a.classList.toggle('open');});
+  screen.querySelectorAll('[data-cat]').forEach(a=>a.querySelector('.head').onclick=()=>{const ci=+a.dataset.cat;const willOpen=!adminCats[ci]._open;adminCats.forEach((c,idx)=>{c._open=idx===ci?willOpen:false;});re();});
   screen.querySelectorAll('[data-sub]').forEach(a=>a.querySelector('.head').onclick=(e)=>{if(e.target.matches('input,textarea'))return;const[ci,ti]=a.dataset.sub.split('|');const t=adminCats[+ci].tests[+ti];t._open=!t._open;a.classList.toggle('open');});
   screen.querySelectorAll('[data-catf]').forEach(el=>el.oninput=e=>{const[ci,f]=el.dataset.catf.split('|');adminCats[+ci][f]=e.target.value;});
   screen.querySelectorAll('[data-f]').forEach(el=>el.oninput=e=>{const[ci,ti,f]=el.dataset.f.split('|');adminCats[+ci].tests[+ti][f]=e.target.value;});
@@ -666,12 +667,17 @@ function bindCases(){
   screen.querySelectorAll('[data-modechk]').forEach(el=>el.onclick=(e)=>{e.preventDefault();const[ci,ti,mode]=el.dataset.modechk.split('|');const t=adminCats[+ci].tests[+ti];t.modes=t.modes||{normal:true,detailed:false};t.modes[mode]=!t.modes[mode];if(!t.modes.normal&&!t.modes.detailed)t.modes[mode]=true;re();});
   screen.querySelectorAll('[data-addq]').forEach(b=>b.onclick=()=>{const[ci,ti]=b.dataset.addq.split('|');const t=adminCats[+ci].tests[+ti];t.questions=t.questions||[];t.questions.push('');t._open=true;re();});
   screen.querySelectorAll('[data-delq]').forEach(b=>b.onclick=()=>{const[ci,ti,qi]=b.dataset.delq.split('|');const t=adminCats[+ci].tests[+ti];t.questions.splice(+qi,1);t._open=true;re();});
-  screen.querySelectorAll('[data-addtest]').forEach(b=>b.onclick=()=>{const ci=+b.dataset.addtest;adminCats[ci]._open=true;adminCats[ci].tests.push({id:'جديد',title:'',modes:{normal:true,detailed:false},expected:'',reason:'',questions:[''],_open:true});re();});
+  screen.querySelectorAll('[data-addtest]').forEach(b=>b.onclick=()=>{const ci=+b.dataset.addtest;adminCats.forEach((c,idx)=>{c._open=idx===ci;});adminCats[ci].tests.push({id:'جديد',title:'',modes:{normal:true,detailed:false},expected:'',reason:'',questions:[''],_open:true});re();
+    const newEl=screen.querySelector(`[data-sub="${ci}|${adminCats[ci].tests.length-1}"]`);
+    if(newEl){newEl.scrollIntoView({behavior:'smooth',block:'center'});newEl.style.outline='2px solid var(--brand)';newEl.style.outlineOffset='2px';setTimeout(()=>{newEl.style.outline='';newEl.style.outlineOffset='';},1600);}
+  });
   screen.querySelectorAll('[data-deltest]').forEach(b=>b.onclick=()=>{const[ci,ti]=b.dataset.deltest.split('|');if(confirm('حذف الحالة؟')){adminCats[+ci].tests.splice(+ti,1);re();}});
   screen.querySelectorAll('[data-delcat]').forEach(b=>b.onclick=()=>{const ci=+b.dataset.delcat;if(confirm('حذف الفئة؟')){adminCats.splice(ci,1);re();}});
-  document.getElementById('addCat').onclick=()=>{adminCats.push({title:'فئة جديدة',note:'',tests:[],_open:true});re();};
+  screen.querySelectorAll('[data-savetest]').forEach(b=>b.onclick=()=>{persistCats();toast('تم حفظ الحالة');});
+  document.getElementById('addCat').onclick=()=>{adminCats.forEach(c=>c._open=false);adminCats.push({title:'فئة جديدة',note:'',tests:[],_open:true});re();};
   document.getElementById('delSel').onclick=()=>{let n=0;adminCats.forEach(c=>{const b=c.tests.length;c.tests=c.tests.filter(t=>!t._sel);n+=b-c.tests.length;});if(n){toast(`حُذفت ${n} حالة`);re();}else toast('لم تحدّد شيئًا');};
-  document.getElementById('saveCats').onclick=()=>{const cl=clone(adminCats);cl.forEach(c=>{delete c._open;c.tests.forEach(t=>{delete t._sel;delete t._open;});});CATS=cl;save(K.cats,CATS);adminCats=null;toast('تم حفظ التغييرات');go('dashboard');};
+  document.getElementById('saveCats').onclick=()=>{persistCats();adminCats=null;toast('تم حفظ التغييرات');go('dashboard');};
+  document.getElementById('resetCats').onclick=()=>{if(confirm('استعادة كل الفئات والحالات إلى القيم الافتراضية؟ سيُفقد أي تعديل غير محفوظ.')){CATS=clone(DEF_CATS);save(K.cats,CATS);adminCats=null;toast('تمت استعادة الفئات الافتراضية');re();}};
 }
 
 /* ===== الجوال والثيم ===== */
