@@ -235,6 +235,41 @@
   [data-theme="dark"] .tab.on{color:#000021;}
   .tab.soon{opacity:.55;cursor:default;}
 
+  /* ===== تحليل المنافسين ===== */
+  .cat-law{--cat-ink:#14a950;--cat-bg:#f0fdf4;--cat-line:#86efac;}
+  .cat-jud{--cat-ink:#f97315;--cat-bg:#fff7ed;--cat-line:#fdba74;}
+  .cat-cir{--cat-ink:#ef4444;--cat-bg:#fef2f2;--cat-line:#fca5a5;}
+  .cat-book{--cat-ink:#3c82f6;--cat-bg:#eff6ff;--cat-line:#93c5fd;}
+  [data-theme="dark"] .cat-law{--cat-bg:#0f2e1c;--cat-line:#14a950;}
+  [data-theme="dark"] .cat-jud{--cat-bg:#3a220f;--cat-line:#f97315;}
+  [data-theme="dark"] .cat-cir{--cat-bg:#3a1414;--cat-line:#ef4444;}
+  [data-theme="dark"] .cat-book{--cat-bg:#122a4a;--cat-line:#3c82f6;}
+  .catlabel{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:var(--cat-ink);}
+  .catlabel .dot{width:9px;height:9px;border-radius:50%;background:var(--cat-ink);flex:0 0 auto;}
+  .catcard{border:1px solid var(--cat-line);background:var(--cat-bg);border-radius:14px;padding:16px;margin-top:14px;}
+  .compitem{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 0;border-top:1px solid var(--line);}
+  .compitem:first-of-type{border-top:none;padding-top:6px;}
+  .compitem .clabel{flex:1;min-width:180px;font-size:14px;color:var(--ink-2);font-weight:500;}
+  .optpills{display:flex;gap:8px;flex-wrap:wrap;}
+  .optpill{border:1.5px solid var(--line-2);background:var(--card);border-radius:99px;padding:7px 15px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;}
+  .optpill:hover{border-color:var(--cat-ink,var(--brand-2));}
+  .optpill.on{background:var(--cat-ink,var(--brand));border-color:var(--cat-ink,var(--brand));color:#fff;}
+  [data-theme="dark"] .optpill.on{color:#000021;}
+  .platcard{border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:12px;background:var(--card);}
+  .platcard .phead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .platcard .pname{font-size:16px;font-weight:700;color:var(--ink-2);}
+  .platcard .pmeta{font-size:12.5px;color:var(--muted);margin-top:2px;}
+  .own-badge{font-size:11px;font-weight:700;color:var(--brand-2);background:var(--accent-soft);border:1px solid var(--accent-border);border-radius:99px;padding:2px 10px;}
+  .cmpwrap{overflow-x:auto;margin-top:14px;border:1px solid var(--line);border-radius:14px;}
+  .cmptable{width:100%;border-collapse:collapse;font-size:13.5px;min-width:520px;}
+  .cmptable th,.cmptable td{padding:10px 14px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap;}
+  .cmptable thead th{background:var(--card-2);color:var(--ink-2);font-size:12.5px;}
+  .cmptable td.rowlabel{font-weight:600;color:var(--ink-2);white-space:normal;min-width:160px;}
+  .cmptable tr.diff{background:var(--accent-soft);}
+  .cmptable tr.diff td.rowlabel{color:var(--brand-2);}
+  .verdictcard{border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-top:10px;background:var(--card-2);}
+  .verdictcard .vh{font-size:13px;font-weight:700;color:var(--ink-2);margin-bottom:6px;}
+
   .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink-2);color:var(--bg);padding:11px 20px;border-radius:99px;font-size:14px;font-weight:600;opacity:0;transition:.25s;z-index:99;pointer-events:none;}
   [data-theme="dark"] .toast{background:var(--brand);color:#000021;}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
@@ -321,7 +356,7 @@ const store={mem:{},get(k){try{return localStorage.getItem(k);}catch(e){return (
 const clone=o=>JSON.parse(JSON.stringify(o));
 function load(k,d){const s=store.get(k);if(s){try{return JSON.parse(s);}catch(e){}}return clone(d);}
 function save(k,v){store.set(k,JSON.stringify(v));}
-const K={cats:'m_cats',runs:'m_runs',drafts:'m_drafts',settings:'m_settings',theme:'m_theme',texts:'m_texts',qbank:'m_qbank_v4',tags:'m_tags_v2'};
+const K={cats:'m_cats',runs:'m_runs',drafts:'m_drafts',settings:'m_settings',theme:'m_theme',texts:'m_texts',qbank:'m_qbank_v4',tags:'m_tags_v2',comp:'m_comp_defs_v1',compRuns:'m_comp_runs_v1'};
 
 /* ===== تحرير النصوص الثابتة ===== */
 let TEXTS=load(K.texts,{});
@@ -517,6 +552,40 @@ const DEF_QBANK={
 };
 let QBANK=load(K.qbank,DEF_QBANK);
 
+/* ===== تحليل المنافسين ===== */
+const DEF_COMP={
+  research:{label:'البحث القانوني',ready:true,cats:[
+    {title:'التشريعات',color:'law',items:[
+      {key:'legislation',label:'التشريعات',type:'scale',options:['لا يوجد','محدود','موسع']},
+      {key:'foreign_legislation',label:'تشريعات الدول الأخرى',type:'scale',options:['لا يوجد','محدود','موسع']},
+      {key:'intl_agreements',label:'الاتفاقيات الدولية',type:'yesno'},
+    ]},
+    {title:'السوابق القضائية',color:'jud',items:[
+      {key:'rulings',label:'الأحكام القضائية',type:'scale',options:['لا يوجد','محدود','موسع']},
+      {key:'special_rulings',label:'أحكام قضائية خاصة',type:'yesno'},
+      {key:'ruling_analysis',label:'تحليل الأحكام',type:'yesno'},
+    ]},
+    {title:'التعاميم والأوامر',color:'cir',items:[
+      {key:'circulars',label:'التعاميم',type:'scale',options:['لا يوجد','محدود','موسع']},
+    ]},
+    {title:'الكتب والمصادر الثانوية',color:'book',items:[
+      {key:'books',label:'الكتب',type:'scale',options:['لا يوجد','محدود','موسع']},
+      {key:'university_research',label:'أبحاث الجامعات',type:'yesno'},
+      {key:'legal_articles',label:'مقالات قانونية',type:'yesno'},
+    ]},
+  ]},
+  ai:{label:'الذكاء الاصطناعي',ready:false,cats:[]},
+  contracts:{label:'إدارة العقود',ready:false,cats:[]},
+};
+let COMP_DEFS=load(K.comp,DEF_COMP);
+let COMP_RUNS=load(K.compRuns,{research:[],ai:[],contracts:[]});
+Object.keys(COMP_DEFS).forEach(k=>{if(!COMP_RUNS[k])COMP_RUNS[k]=[];});
+function compItemOptions(it){return it.type==='yesno'?['نعم','لا']:(it.options||[]);}
+function compFlatItems(product){const items=[];(COMP_DEFS[product].cats||[]).forEach(c=>c.items.forEach(it=>items.push({...it,cat:c.title,color:c.color})));return items;}
+function compCount(){return Object.values(COMP_RUNS).reduce((n,arr)=>n+arr.length,0);}
+function compAllRuns(product){return COMP_RUNS[product]||[];}
+function compPlatforms(product){const names=[];compAllRuns(product).forEach(r=>{if(!names.includes(r.platform))names.push(r.platform);});names.sort((a,b)=>(a==='منصتنا'?-1:b==='منصتنا'?1:0));return names;}
+
 /* ===== أدوات ===== */
 const esc=s=>(s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const screen=document.getElementById('screen');
@@ -534,7 +603,6 @@ function qFile(q){return (q&&typeof q==='object'&&q.file)||'';}
 /* ===== التنقل ===== */
 const app={view:'dashboard',sub:null,ctx:{}};
 const SOON_PRODUCTS=[
-  {icon:'chart',label:'تحليل المنافسين'},
   {icon:'folder',label:'الملفات المساندة'},
 ];
 function bankCount(){return Object.values(QBANK).reduce((n,w)=>n+w.cats.reduce((m,c)=>m+c.tests.length,0),0);}
@@ -544,18 +612,20 @@ function buildNav(){
   el.innerHTML=`<div class="grp">المنتجات</div>
     <button class="navitem ${app.view==='dashboard'?'active':''}" data-nav="dashboard"><span class="ic"><svg class="icon"><use href="#ic-search"/></svg></span> اختبار الدخان<span class="badge-n">${RUNS.length}</span></button>
     <button class="navitem ${app.view==='qbank'?'active':''}" data-nav="qbank"><span class="ic"><svg class="icon"><use href="#ic-question"/></svg></span> بنك الأسئلة<span class="badge-n">${bankCount()}</span></button>
+    <button class="navitem ${app.view==='comp'?'active':''}" data-nav="comp"><span class="ic"><svg class="icon"><use href="#ic-chart"/></svg></span> تحليل المنافسين<span class="badge-n">${compCount()}</span></button>
     ${soonHtml}`;
   el.querySelectorAll('[data-nav]').forEach(b=>b.onclick=()=>go(b.dataset.nav));
   document.querySelector('.foot [data-nav]').onclick=()=>go('settings');
   document.querySelector('.foot .navitem').classList.toggle('active',app.view==='settings');
 }
 function go(v){app.view=v;app.sub=null;app.ctx={};closeSide();render();window.scrollTo(0,0);}
-const CRUMB={dashboard:'اختبار الدخان',qbank:'بنك الأسئلة',settings:'الإعدادات'};
+const CRUMB={dashboard:'اختبار الدخان',qbank:'بنك الأسئلة',comp:'تحليل المنافسين',settings:'الإعدادات'};
 function setCrumb(x){document.getElementById('crumb').innerHTML=`<b>${CRUMB[app.view]||''}</b>${x?' / '+esc(x):''}`;}
 
 function render(){buildNav();setCrumb();
   if(app.view==='settings') renderSettings();
   else if(app.view==='qbank') renderQBank();
+  else if(app.view==='comp') renderCompRouter();
   else if(app.sub==='intro') smokeIntro();
   else if(app.sub==='test') smokeTest();
   else if(app.sub==='review') smokeReview();
@@ -889,19 +959,211 @@ function smokeReview(){
 }
 async function shareRun(run){const text=buildSummaryText(run);if(navigator.share){try{await navigator.share({title:'تقرير اختبار الدخان',text});}catch(e){}}else{copyText(text);toast('نُسخ الملخّص لتلصقه');}}
 
+/* ===== تحليل المنافسين ===== */
+function renderCompRouter(){
+  const s=app.sub;
+  if(s==='intro') renderCompIntro();
+  else if(s==='form') renderCompForm();
+  else if(s==='compareSelect') renderCompareSelect();
+  else if(s==='compareView') renderCompareView();
+  else renderComp();
+}
+function renderComp(){
+  const product=app.ctx.compProduct||'research';
+  const tabsHtml=Object.entries(COMP_DEFS).map(([k,p])=>`<button class="tab ${product===k?'on':''}" data-cprod="${k}">${esc(p.label)}${p.ready?'':' · قريبًا'}</button>`).join('');
+  const def=COMP_DEFS[product];
+  let body;
+  if(!def.ready){
+    body=`<div class="card"><div class="empty">سيُفعّل تحليل المنافسين لهذا المنتج قريبًا.</div></div>`;
+  }else{
+    const platforms=compPlatforms(product);
+    const cards=platforms.length?platforms.map(pl=>compPlatformCard(product,pl)).join(''):`<div class="empty">لم يُسجَّل أي تحليل بعد. ابدأ بإضافة منصتنا، ثم أضف كل منافس على حدة.</div>`;
+    body=`<div class="card">
+      <div class="toolbar" style="justify-content:space-between;">
+        <h2 class="h2" style="margin:0;">المنصات المشمولة بالتحليل</h2>
+        <div class="row"><button class="btn btn-ghost btn-sm" id="cmpGo" ${compAllRuns(product).length<2?'disabled':''}><svg class="icon"><use href="#ic-chart"/></svg> مقارنة</button><button class="btn btn-primary btn-sm" id="newComp"><svg class="icon"><use href="#ic-plus"/></svg> تحليل جديد</button></div>
+      </div>
+      ${cards}
+    </div>`;
+  }
+  screen.innerHTML=`<div class="card hero">
+    <div class="eyebrow" data-edit-key="comp.eyebrow">${esc(t('comp.eyebrow','رصد الفروقات'))}</div>
+    <h1 class="h1" data-edit-key="comp.title">${esc(t('comp.title','تحليل المنافسين'))}</h1>
+    <p class="sub" data-edit-key="comp.sub">${esc(t('comp.sub','قائمة معايير ثابتة تُراجَع مع منصتنا ومع كل منافس على حدة، ويُحفظ كل تحليل بتاريخه ليمكن الرجوع له أو مقارنته لاحقًا. الهدف رصد الفروقات بين المنصات لا احتساب نسبة أو تقييم رقمي.'))}</p>
+    <div class="tabbar" style="margin-top:14px;">${tabsHtml}</div>
+  </div>
+  ${body}`;
+  screen.querySelectorAll('[data-cprod]').forEach(b=>b.onclick=()=>{app.ctx.compProduct=b.dataset.cprod;app.ctx.compOpenPlatform=null;render();});
+  if(def.ready){
+    document.getElementById('newComp').onclick=()=>compStart(product);
+    const cmpGo=document.getElementById('cmpGo');
+    if(cmpGo) cmpGo.onclick=()=>{app.ctx.compareProduct=product;app.ctx.compareSel=[];app.sub='compareSelect';render();};
+    bindCompPlatformCards(product);
+  }
+  bindEditable();
+}
+function compPlatformCard(product,pl){
+  const runs=compAllRuns(product).filter(r=>r.platform===pl).sort((a,b)=>b.date.localeCompare(a.date));
+  const last=runs[0];
+  const isOwn=pl==='منصتنا';
+  const open=app.ctx.compOpenPlatform===pl;
+  const rows=runs.map(r=>{
+    const gi=compAllRuns(product).indexOf(r);
+    return `<div class="rrow">
+      <div class="rhead"><b style="color:var(--ink-2);">${esc(r.date)}</b><span class="chip">${esc(r.employee)}</span></div>
+      ${r.verdict?`<div class="qq" style="margin-top:6px;">${esc(r.verdict)}</div>`:''}
+      <div class="row" style="margin-top:8px;"><button class="iconbtn del" data-delrun2="${gi}"><svg class="icon"><use href="#ic-trash"/></svg> حذف</button></div>
+    </div>`;
+  }).join('');
+  return `<div class="platcard">
+    <div class="phead">
+      <span class="pname">${esc(pl)}</span>${isOwn?`<span class="own-badge">منصتنا</span>`:''}
+      <span class="badge-n" style="margin-inline-start:auto;">${runs.length} تحليل</span>
+    </div>
+    <div class="pmeta">آخر تحليل: ${last?esc(last.date)+' · '+esc(last.employee):'—'}</div>
+    <div class="row" style="margin-top:10px;">
+      <button class="btn btn-ghost btn-sm" data-newfor="${esc(pl)}"><svg class="icon"><use href="#ic-plus"/></svg> تحليل جديد لهذه المنصة</button>
+      <button class="btn btn-ghost btn-sm" data-toghist="${esc(pl)}">${open?'إخفاء السجل':'عرض السجل'} (${runs.length})</button>
+    </div>
+    ${open?rows:''}
+  </div>`;
+}
+function bindCompPlatformCards(product){
+  screen.querySelectorAll('[data-newfor]').forEach(b=>b.onclick=()=>compStart(product,b.dataset.newfor));
+  screen.querySelectorAll('[data-toghist]').forEach(b=>b.onclick=()=>{const pl=b.dataset.toghist;app.ctx.compOpenPlatform=app.ctx.compOpenPlatform===pl?null:pl;render();});
+  screen.querySelectorAll('[data-delrun2]').forEach(b=>b.onclick=()=>{if(confirm('حذف هذا التحليل؟')){COMP_RUNS[product].splice(+b.dataset.delrun2,1);save(K.compRuns,COMP_RUNS);render();}});
+}
+
+function compStart(product,prefillPlatform){
+  app.ctx.compDraft={product,platform:prefillPlatform||'',employee:'',date:today(),answers:{},verdict:''};
+  app.sub='intro';render();window.scrollTo(0,0);
+}
+function renderCompIntro(){
+  const d=app.ctx.compDraft;setCrumb('تحليل جديد');
+  const existing=compPlatforms(d.product);
+  screen.innerHTML=`<div class="card">
+    <div class="eyebrow">قبل البدء</div><h1 class="h1">بدء تحليل جديد</h1>
+    <p class="sub">حدّد المنصة المطلوب تحليلها واسم من يقوم بالتحليل.</p>
+    <div class="field"><label>اسم المنصة</label><input id="f_pl" list="platList" value="${esc(d.platform)}" placeholder="منصتنا أو اسم المنافس"><datalist id="platList">${existing.map(p=>`<option value="${esc(p)}">`).join('')}</datalist></div>
+    ${d.platform!=='منصتنا'?`<div class="row" style="margin-top:2px;"><button class="chip" id="ownQuick" style="cursor:pointer;">استخدام "منصتنا"</button></div>`:''}
+    <div class="grid2" style="margin-top:10px;">
+      <div class="field" style="margin-top:0;"><label>اسم الموظف الذي يجري التحليل</label><input id="f_emp" value="${esc(d.employee)}" placeholder="الاسم الكامل"></div>
+      <div class="field" style="margin-top:0;"><label>تاريخ التحليل</label><input id="f_dt" type="date" value="${esc(d.date)}"></div>
+    </div>
+    <div class="warnmsg" id="w">اكتب اسم المنصة واسم الموظف على الأقل للمتابعة.</div>
+    <div class="nav-btns"><button class="btn btn-ghost" id="cancel">إلغاء</button><button class="btn btn-primary" id="startc">التالي ←</button></div>
+  </div>`;
+  document.getElementById('cancel').onclick=()=>{app.sub=null;app.ctx.compDraft=null;render();};
+  const own=document.getElementById('ownQuick');
+  if(own) own.onclick=()=>{document.getElementById('f_pl').value='منصتنا';};
+  document.getElementById('startc').onclick=()=>{
+    d.platform=document.getElementById('f_pl').value.trim();
+    d.employee=document.getElementById('f_emp').value.trim();
+    d.date=document.getElementById('f_dt').value||today();
+    if(!d.platform||!d.employee){document.getElementById('w').classList.add('show');return;}
+    app.sub='form';render();window.scrollTo(0,0);
+  };
+}
+function renderCompForm(){
+  const d=app.ctx.compDraft;setCrumb('تحليل: '+d.platform);
+  const cats=(COMP_DEFS[d.product].cats||[]).map(c=>{
+    const items=c.items.map(it=>{
+      const opts=compItemOptions(it);
+      const val=d.answers[it.key];
+      const pills=opts.map(o=>`<button class="optpill ${val===o?'on':''}" data-cans="${it.key}|${esc(o)}">${esc(o)}</button>`).join('');
+      return `<div class="compitem"><span class="clabel">${esc(it.label)}</span><div class="optpills">${pills}</div></div>`;
+    }).join('');
+    return `<div class="catcard cat-${c.color||'law'}"><div class="catlabel"><span class="dot"></span>${esc(c.title)}</div>${items}</div>`;
+  }).join('');
+  screen.innerHTML=`<div class="card">
+    <div class="eyebrow">${esc(d.platform)}</div><h1 class="h1" style="margin-bottom:4px;">قائمة المراجعة</h1><p class="sub" style="margin:0;">${esc(d.employee)} · ${esc(d.date)}</p>
+    ${cats}
+    <div class="field" style="margin-top:18px;"><label>الرأي النهائي</label><textarea id="f_verdict" placeholder="اكتب خلاصتك بعد مراجعة القائمة أعلاه">${esc(d.verdict)}</textarea></div>
+    <div class="warnmsg" id="w"></div>
+    <div class="nav-btns">
+      <button class="btn btn-ghost" id="back">→ رجوع</button>
+      <button class="btn btn-primary" id="saveComp"><svg class="icon"><use href="#ic-save"/></svg> حفظ التحليل</button>
+    </div>
+  </div>`;
+  screen.querySelectorAll('[data-cans]').forEach(b=>b.onclick=()=>{const[key,val]=b.dataset.cans.split('|');d.answers[key]=val;renderCompForm();});
+  document.getElementById('back').onclick=()=>{app.sub='intro';render();window.scrollTo(0,0);};
+  const verdictEl=document.getElementById('f_verdict');
+  verdictEl.oninput=e=>d.verdict=e.target.value;
+  document.getElementById('saveComp').onclick=()=>{
+    const w=document.getElementById('w');
+    const missing=compFlatItems(d.product).filter(it=>!d.answers[it.key]);
+    if(missing.length){w.textContent='حدّد إجابة لكل معيار في القائمة قبل الحفظ.';w.classList.add('show');return;}
+    if(!d.verdict.trim()){w.textContent='اكتب الرأي النهائي قبل الحفظ.';w.classList.add('show');verdictEl.focus();return;}
+    const run={id:'c'+Date.now()+Math.random().toString(36).slice(2,7),platform:d.platform,employee:d.employee,date:d.date,answers:clone(d.answers),verdict:d.verdict.trim(),createdAt:new Date().toISOString()};
+    COMP_RUNS[d.product].unshift(run);save(K.compRuns,COMP_RUNS);
+    app.ctx.compOpenPlatform=d.platform;
+    app.sub=null;app.ctx.compDraft=null;
+    toast('تم حفظ التحليل');render();window.scrollTo(0,0);
+  };
+}
+
+function renderCompareSelect(){
+  const product=app.ctx.compareProduct;setCrumb('اختيار تحليلات للمقارنة');
+  app.ctx.compareSel=app.ctx.compareSel||[];
+  const runs=compAllRuns(product);
+  const rows=runs.map((r,i)=>`<label class="qoption ${app.ctx.compareSel.includes(i)?'sel':''}" data-cri="${i}"><input type="checkbox" ${app.ctx.compareSel.includes(i)?'checked':''}><span class="qtext"><b>${esc(r.platform)}</b> · ${esc(r.date)} · ${esc(r.employee)}</span></label>`).join('');
+  screen.innerHTML=`<div class="card">
+    <div class="eyebrow">تحليل المنافسين</div><h1 class="h1">اختر التحليلات المطلوب مقارنتها</h1>
+    <p class="sub">اختر تحليلين أو أكثر (من أي منصة وأي تاريخ) لعرضها جنبًا إلى جنب.</p>
+    ${rows||'<div class="empty">لا توجد تحليلات محفوظة بعد.</div>'}
+    <div class="warnmsg" id="w"></div>
+    <div class="nav-btns"><button class="btn btn-ghost" id="back">→ رجوع</button><button class="btn btn-primary" id="doCompare">قارن المحدد ←</button></div>
+  </div>`;
+  screen.querySelectorAll('[data-cri]').forEach(el=>el.querySelector('input').onchange=(e)=>{
+    const i=+el.dataset.cri,sel=app.ctx.compareSel,p=sel.indexOf(i);
+    if(e.target.checked){if(p===-1)sel.push(i);}else if(p>-1)sel.splice(p,1);
+    render();
+  });
+  document.getElementById('back').onclick=()=>{app.sub=null;render();};
+  document.getElementById('doCompare').onclick=()=>{
+    if(app.ctx.compareSel.length<2){const w=document.getElementById('w');w.textContent='اختر تحليلين على الأقل.';w.classList.add('show');return;}
+    app.sub='compareView';render();
+  };
+}
+function renderCompareView(){
+  const product=app.ctx.compareProduct;setCrumb('مقارنة');
+  const runs=app.ctx.compareSel.map(i=>compAllRuns(product)[i]);
+  const items=compFlatItems(product);
+  let lastCat='';
+  const rowsHtml=items.map(it=>{
+    const vals=runs.map(r=>r.answers[it.key]||'—');
+    const diff=new Set(vals).size>1;
+    let catHead='';
+    if(it.cat!==lastCat){catHead=`<tr><td colspan="${runs.length+1}" style="background:var(--card-2);"><span class="catlabel cat-${it.color||'law'}"><span class="dot"></span>${esc(it.cat)}</span></td></tr>`;lastCat=it.cat;}
+    return catHead+`<tr class="${diff?'diff':''}"><td class="rowlabel">${esc(it.label)}</td>${vals.map(v=>`<td>${esc(v)}</td>`).join('')}</tr>`;
+  }).join('');
+  const head=`<tr><th>المعيار</th>${runs.map(r=>`<th>${esc(r.platform)}<br><span class="muted-note">${esc(r.date)}</span></th>`).join('')}</tr>`;
+  const verdicts=runs.map(r=>`<div class="verdictcard"><div class="vh">${esc(r.platform)} · ${esc(r.date)}</div>${esc(r.verdict)||'—'}</div>`).join('');
+  screen.innerHTML=`<div class="card">
+    <div class="eyebrow">تحليل المنافسين</div><h1 class="h1">مقارنة التحليلات</h1>
+    <p class="sub">الصفوف المظللة تشير إلى اختلاف بين المنصات المقارَنة في هذا المعيار. لا يُحتسب أي تقييم رقمي، فقط رصد للفروقات.</p>
+    <div class="cmpwrap"><table class="cmptable"><thead>${head}</thead><tbody>${rowsHtml}</tbody></table></div>
+    <h2 class="h2" style="margin-top:20px;">الرأي النهائي لكل تحليل</h2>
+    ${verdicts}
+    <div class="nav-btns"><button class="btn btn-ghost" id="back">→ رجوع</button></div>
+  </div>`;
+  document.getElementById('back').onclick=()=>{app.sub='compareSelect';render();};
+}
+
 /* ===== الإعدادات (٥ تبويبات) ===== */
 let adminCats=null;
-const SETTABS=[['cases','اختبار الدخان',false],['comp','تحليل المنافسين',true],['bank','بنك الأسئلة',false],['files','الملفات المساندة',true],['general','عام',true]];
+const SETTABS=[['cases','اختبار الدخان',false],['comp','تحليل المنافسين',false],['bank','بنك الأسئلة',false],['files','الملفات المساندة',true],['general','عام',true]];
 function renderSettings(){
   const tab=app.ctx.settingsTab||'cases';
   const tabsHtml=SETTABS.map(([k,l,soon])=>`<button class="tab ${tab===k?'on':''} ${soon?'soon':''}" ${soon?'':`data-tab="${k}"`}>${l}${soon?' · قريبًا':''}</button>`).join('');
-  let body= tab==='cases'?settingsCases(): tab==='bank'?settingsBank():`<div class="card"><div class="empty">هذا القسم سيُفعّل مع إطلاق المنتج المقابل.</div></div>`;
+  let body= tab==='cases'?settingsCases(): tab==='bank'?settingsBank(): tab==='comp'?settingsComp():`<div class="card"><div class="empty">هذا القسم سيُفعّل مع إطلاق المنتج المقابل.</div></div>`;
   screen.innerHTML=`<div class="card"><div class="eyebrow" data-edit-key="settings.eyebrow">${esc(t('settings.eyebrow','الإعدادات'))}</div><h1 class="h1" data-edit-key="settings.title">${esc(t('settings.title','الإعدادات'))}</h1>
-    <p class="sub" data-edit-key="settings.sub">${esc(t('settings.sub','لكل منتج قسم خاص. المتاح الآن: تحرير فئات وحالات اختبار الدخان.'))}</p>
+    <p class="sub" data-edit-key="settings.sub">${esc(t('settings.sub','لكل منتج قسم خاص. المتاح الآن: تحرير فئات وحالات اختبار الدخان، وبنك الأسئلة، ومعايير تحليل المنافسين.'))}</p>
     <div class="tabbar" style="margin-top:14px;">${tabsHtml}</div></div>${body}`;
   screen.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{app.ctx.settingsTab=b.dataset.tab;render();});
   if(tab==='cases') bindCases();
   if(tab==='bank') bindBank();
+  if(tab==='comp') bindComp();
 }
 function settingsCases(){
   adminCats=adminCats||clone(CATS);
@@ -1069,6 +1331,73 @@ function bindBank(){
   if(document.getElementById('delSelBank'))document.getElementById('delSelBank').onclick=()=>{let n=0;adminBank[win].cats.forEach(c=>{const b=c.tests.length;c.tests=c.tests.filter(t=>!t._sel);n+=b-c.tests.length;});if(n){toast(`حُذف ${n} سؤال`);re();}else toast('لم تحدّد شيئًا');};
   document.getElementById('saveBank').onclick=()=>{persistBank();adminBank=null;toast('تم حفظ التغييرات');go('dashboard');};
   document.getElementById('resetBank').onclick=()=>{if(confirm('استعادة بنك الأسئلة إلى القيم الافتراضية؟ سيُفقد أي تعديل غير محفوظ.')){QBANK=clone(DEF_QBANK);save(K.qbank,QBANK);TAGS=clone(DEF_TAGS);save(K.tags,TAGS);adminBank=null;toast('تمت استعادة بنك الأسئلة الافتراضي');re();}};
+}
+
+/* ===== إدارة تحليل المنافسين ===== */
+let adminComp=null;
+function settingsComp(){
+  adminComp=adminComp||clone(COMP_DEFS);
+  const prod=app.ctx.compAdminProd||'research';
+  const p=adminComp[prod];
+  const prodTabs=Object.entries(adminComp).map(([k,pp])=>`<button class="tab ${prod===k?'on':''}" data-acprod="${k}">${esc(pp.label)}</button>`).join('');
+  const swatches=(ci)=>['law','jud','cir','book'].map(cl=>`<button data-ccatcolor="${ci}|${cl}" class="cat-${cl}" title="${cl}" style="width:26px;height:26px;border-radius:50%;background:var(--cat-ink);border:2px solid ${p.cats[ci].color===cl?'var(--ink-2)':'transparent'};cursor:pointer;"></button>`).join('');
+  const cats=(p.cats||[]).map((c,ci)=>{
+    const items=c.items.map((it,ii)=>{
+      const isScale=it.type==='scale';
+      const optsHtml=isScale?`<div class="lbl-sm">الخيارات</div><div class="row" style="gap:6px;">${(it.options||[]).map((o,oi)=>`<span class="chip" style="display:flex;gap:6px;align-items:center;padding-inline-end:6px;">
+        <input data-coptname="${ci}|${ii}|${oi}" value="${esc(o)}" style="border:none;background:transparent;width:${Math.max(6,o.length)}ch;color:inherit;font:inherit;padding:0;">
+        <button class="iconbtn del" data-delcopt="${ci}|${ii}|${oi}" style="width:20px;height:20px;padding:0;display:grid;place-items:center;"><svg class="icon" style="width:12px;height:12px;"><use href="#ic-x"/></svg></button>
+      </span>`).join('')}<button class="iconbtn" data-addcopt="${ci}|${ii}"><svg class="icon"><use href="#ic-plus"/></svg> خيار</button></div>`:'';
+      return `<div class="subacc ${it._open?'open':''}" data-csub="${ci}|${ii}"><div class="head"><span class="caret">▶</span><span class="title" style="font-size:13.5px;">${esc(it.label)||'(بدون عنوان)'}</span></div>
+        <div class="body">
+          <div class="lbl-sm">عنوان المعيار</div><input data-cf="${ci}|${ii}|label" value="${esc(it.label)}">
+          <div class="lbl-sm">نوع الإجابة</div>
+          <div class="tabbar"><button class="tab ${it.type==='yesno'?'on':''}" data-ctype="${ci}|${ii}|yesno">نعم / لا</button><button class="tab ${isScale?'on':''}" data-ctype="${ci}|${ii}|scale">مستويات مخصّصة</button></div>
+          ${optsHtml}
+          <div class="row" style="margin-top:10px;"><button class="iconbtn del" data-delitem="${ci}|${ii}"><svg class="icon"><use href="#ic-trash"/></svg> حذف المعيار</button></div>
+        </div></div>`;
+    }).join('');
+    return `<div class="acc ${c._open?'open':''}" data-ccat="${ci}"><div class="head"><span class="caret">▶</span><span class="catlabel cat-${c.color||'law'}"><span class="dot"></span>${esc(c.title)||'(فئة)'}</span><span class="sub-c" style="margin-inline-start:auto;">${c.items.length} معيار</span></div>
+      <div class="body">
+        <div class="lbl-sm">عنوان الفئة</div><input data-ccatf="${ci}|title" value="${esc(c.title)}">
+        <div class="lbl-sm">لون الفئة</div>
+        <div class="row" style="gap:8px;">${swatches(ci)}</div>
+        ${items}
+        <div class="toolbar" style="margin-top:12px;"><button class="iconbtn" data-additem="${ci}"><svg class="icon"><use href="#ic-plus"/></svg> إضافة معيار</button><button class="iconbtn del" data-delcat2="${ci}"><svg class="icon"><use href="#ic-trash"/></svg> حذف الفئة</button></div>
+      </div></div>`;
+  }).join('');
+  const body=`${cats||'<div class="muted-note">لا فئات بعد لهذا المنتج.</div>'}<div style="margin-top:14px;"><button class="btn btn-ghost" id="addCcat"><svg class="icon"><use href="#ic-plus"/></svg> إضافة فئة جديدة</button></div>`;
+  return `<div class="card">
+    <div class="toolbar" style="justify-content:space-between;">
+      <h2 class="h2" style="margin:0;">إدارة قائمة معايير تحليل المنافسين</h2>
+      <div class="row"><button class="btn btn-ghost btn-sm" id="resetComp"><svg class="icon"><use href="#ic-refresh"/></svg> استعادة الافتراضي</button><button class="btn btn-primary btn-sm" id="saveComp2"><svg class="icon"><use href="#ic-save"/></svg> حفظ التغييرات</button></div>
+    </div>
+    <p class="sub" style="margin-top:8px;">عدّل الفئات والمعايير لكل منتج. لكل معيار نوع إجابة: نعم/لا، أو مستويات مخصّصة (مثل: لا يوجد، محدود، موسع). إضافة أول فئة لمنتج تُفعّل صفحته في تحليل المنافسين.</p>
+    <div class="tabbar" style="margin-top:14px;">${prodTabs}</div>
+    ${body}
+  </div>`;
+}
+function persistComp(){const cl=clone(adminComp);Object.values(cl).forEach(p=>{(p.cats||[]).forEach(c=>{delete c._open;c.items.forEach(it=>delete it._open);});p.ready=(p.cats||[]).length>0;});COMP_DEFS=cl;save(K.comp,COMP_DEFS);}
+function bindComp(){
+  const prod=app.ctx.compAdminProd||'research';
+  const p=adminComp[prod];
+  const re=()=>renderSettings();
+  document.querySelectorAll('[data-acprod]').forEach(b=>b.onclick=()=>{app.ctx.compAdminProd=b.dataset.acprod;re();});
+  screen.querySelectorAll('[data-ccat]').forEach(a=>a.querySelector('.head').onclick=()=>{const ci=+a.dataset.ccat;const willOpen=!p.cats[ci]._open;p.cats.forEach((c,idx)=>{c._open=idx===ci?willOpen:false;});re();});
+  screen.querySelectorAll('[data-csub]').forEach(a=>a.querySelector('.head').onclick=(e)=>{if(e.target.matches('input,textarea'))return;const[ci,ii]=a.dataset.csub.split('|');const it=p.cats[+ci].items[+ii];it._open=!it._open;a.classList.toggle('open');});
+  screen.querySelectorAll('[data-ccatf]').forEach(el=>el.oninput=e=>{const[ci,f]=el.dataset.ccatf.split('|');p.cats[+ci][f]=e.target.value;});
+  screen.querySelectorAll('[data-ccatcolor]').forEach(b=>b.onclick=()=>{const[ci,cl]=b.dataset.ccatcolor.split('|');p.cats[+ci].color=cl;re();});
+  screen.querySelectorAll('[data-cf]').forEach(el=>el.oninput=e=>{const[ci,ii,f]=el.dataset.cf.split('|');p.cats[+ci].items[+ii][f]=e.target.value;});
+  screen.querySelectorAll('[data-ctype]').forEach(b=>b.onclick=()=>{const[ci,ii,type]=b.dataset.ctype.split('|');const it=p.cats[+ci].items[+ii];it.type=type;if(type==='scale'&&!it.options)it.options=['لا يوجد','محدود','موسع'];re();});
+  screen.querySelectorAll('[data-coptname]').forEach(el=>el.onblur=e=>{const[ci,ii,oi]=el.dataset.coptname.split('|');const v=e.target.value.trim();if(v)p.cats[+ci].items[+ii].options[+oi]=v;else re();});
+  screen.querySelectorAll('[data-addcopt]').forEach(b=>b.onclick=()=>{const[ci,ii]=b.dataset.addcopt.split('|');const it=p.cats[+ci].items[+ii];it.options=it.options||[];it.options.push('خيار جديد');it._open=true;re();});
+  screen.querySelectorAll('[data-delcopt]').forEach(b=>b.onclick=()=>{const[ci,ii,oi]=b.dataset.delcopt.split('|');p.cats[+ci].items[+ii].options.splice(+oi,1);re();});
+  screen.querySelectorAll('[data-additem]').forEach(b=>b.onclick=()=>{const ci=+b.dataset.additem;p.cats.forEach((c,idx)=>{c._open=idx===ci;});p.cats[ci].items.push({key:'item_'+Date.now(),label:'',type:'yesno',_open:true});re();});
+  screen.querySelectorAll('[data-delitem]').forEach(b=>b.onclick=()=>{const[ci,ii]=b.dataset.delitem.split('|');if(confirm('حذف هذا المعيار؟')){p.cats[+ci].items.splice(+ii,1);re();}});
+  screen.querySelectorAll('[data-delcat2]').forEach(b=>b.onclick=()=>{const ci=+b.dataset.delcat2;if(confirm('حذف الفئة وكل معاييرها؟')){p.cats.splice(ci,1);re();}});
+  if(document.getElementById('addCcat'))document.getElementById('addCcat').onclick=()=>{p.cats=p.cats||[];p.cats.forEach(c=>c._open=false);p.cats.push({title:'فئة جديدة',color:'law',items:[],_open:true});re();};
+  document.getElementById('saveComp2').onclick=()=>{persistComp();adminComp=null;toast('تم حفظ التغييرات');go('dashboard');};
+  document.getElementById('resetComp').onclick=()=>{if(confirm('استعادة قائمة معايير تحليل المنافسين إلى القيم الافتراضية؟ لن يتأثر السجل المحفوظ للتحليلات السابقة.')){COMP_DEFS=clone(DEF_COMP);save(K.comp,COMP_DEFS);adminComp=null;toast('تمت استعادة القيم الافتراضية');re();}};
 }
 
 /* ===== الجوال والثيم ===== */
