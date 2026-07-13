@@ -620,10 +620,11 @@ function renderBankResults(win){
     }).join('');
     document.getElementById('bankResults').innerHTML=`<div class="card"><p class="sub" data-edit-bank="${win}" style="margin:0;">${esc(w.sub)}</p>${tagbar}</div>${rows||'<div class="card" style="margin-top:12px;"><div class="empty">لا نتائج مطابقة.</div></div>'}`;
   } else {
+    const allSingle=w.cats.every(c=>c.tests.length===1);
     const cats=w.cats.map((c,ci)=>{
       const tests=c.tests.filter(t=>!q||(t.q+' '+c.title).toLowerCase().includes(q));
       if(!tests.length) return '';
-      if(c.tests.length===1){
+      if(allSingle){
         const ti=c.tests.indexOf(tests[0]);
         return `<div class="qrow"><span class="chip" style="flex:0 0 auto;">${esc(c.title)}</span><span class="qtext">${esc(tests[0].q)}</span><button class="copybtn" data-bcopy="${ci}|${ti}" title="نسخ السؤال"><svg class="icon"><use href="#ic-copy"/></svg></button></div>`;
       }
