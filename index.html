@@ -987,11 +987,28 @@ function renderCompRouter(){
   const s=app.sub;
   if(s==='competitorForm') renderCompetitorForm();
   else if(s==='competitorPage') renderCompetitorPage();
+  else if(s==='runView') renderRunView();
   else if(s==='intro') renderCompIntro();
   else if(s==='form') renderCompForm();
   else if(s==='compareSelect') renderCompareSelect();
   else if(s==='compareView') renderCompareView();
   else renderComp();
+}
+function runActionsHtml(product,gi){
+  return `<div class="row" style="margin-top:8px;flex-wrap:wrap;">
+    <button class="btn btn-ghost btn-sm" data-viewrun="${product}|${gi}"><svg class="icon"><use href="#ic-external-link"/></svg> استعراض</button>
+    <button class="btn btn-ghost btn-sm" data-editrun="${product}|${gi}"><svg class="icon"><use href="#ic-pencil"/></svg> تعديل</button>
+    <button class="iconbtn del" data-delrun="${product}|${gi}"><svg class="icon"><use href="#ic-trash"/></svg> حذف</button>
+  </div>`;
+}
+function bindRunActions(){
+  screen.querySelectorAll('[data-viewrun]').forEach(b=>{const[p,gi]=b.dataset.viewrun.split('|');b.onclick=()=>viewRun(p,+gi);});
+  screen.querySelectorAll('[data-editrun]').forEach(b=>{const[p,gi]=b.dataset.editrun.split('|');b.onclick=()=>compEditRun(p,+gi);});
+  screen.querySelectorAll('[data-delrun]').forEach(b=>b.onclick=()=>{
+    const[p,gi]=b.dataset.delrun.split('|');
+    if(!confirm('حذف هذا التحليل؟'))return;
+    COMP_RUNS[p].splice(+gi,1);save(K.compRuns,COMP_RUNS);render();
+  });
 }
 function renderComp(){
   const product=app.ctx.compProduct||'research';
@@ -1036,7 +1053,7 @@ function compCompetitorCard(product,c){
     return `<div class="rrow">
       <div class="rhead"><b style="color:var(--ink-2);">${esc(r.date)}</b><span class="chip">${esc(r.employee)}</span></div>
       ${r.verdict?`<div class="qq" style="margin-top:6px;">${esc(r.verdict)}</div>`:''}
-      <div class="row" style="margin-top:8px;"><button class="iconbtn del" data-delrun2="${gi}"><svg class="icon"><use href="#ic-trash"/></svg> حذف</button></div>
+      ${runActionsHtml(product,gi)}
     </div>`;
   }).join('');
   return `<div class="platcard">
@@ -1060,7 +1077,7 @@ function compCompetitorCard(product,c){
 function bindCompCompetitorCards(product){
   screen.querySelectorAll('[data-newfor]').forEach(b=>b.onclick=()=>compStart(product,b.dataset.newfor));
   screen.querySelectorAll('[data-toghist]').forEach(b=>b.onclick=()=>{const id=b.dataset.toghist;app.ctx.compOpenCompetitor=app.ctx.compOpenCompetitor===id?null:id;render();});
-  screen.querySelectorAll('[data-delrun2]').forEach(b=>b.onclick=()=>{if(confirm('حذف هذا التحليل؟')){COMP_RUNS[product].splice(+b.dataset.delrun2,1);save(K.compRuns,COMP_RUNS);render();}});
+  bindRunActions();
   screen.querySelectorAll('[data-openpage]').forEach(b=>b.onclick=()=>{app.ctx.competitorId=b.dataset.openpage;app.sub='competitorPage';render();window.scrollTo(0,0);});
   screen.querySelectorAll('[data-editcomp]').forEach(b=>b.onclick=()=>openCompetitorForm(b.dataset.editcomp));
   screen.querySelectorAll('[data-togglepw]').forEach(b=>b.onclick=()=>{const id=b.dataset.togglepw;app.ctx.pwReveal=app.ctx.pwReveal||[];const i=app.ctx.pwReveal.indexOf(id);if(i>-1)app.ctx.pwReveal.splice(i,1);else app.ctx.pwReveal.push(id);render();});
@@ -1122,7 +1139,7 @@ function renderCompetitorPage(){
       return `<div class="rrow">
         <div class="rhead"><b style="color:var(--ink-2);">${esc(r.date)}</b><span class="chip">${esc(r.employee)}</span></div>
         ${r.verdict?`<div class="qq" style="margin-top:6px;">${esc(r.verdict)}</div>`:''}
-        <div class="row" style="margin-top:8px;"><button class="iconbtn del" data-delrun3="${k}|${gi}"><svg class="icon"><use href="#ic-trash"/></svg> حذف</button></div>
+        ${runActionsHtml(k,gi)}
       </div>`;
     }).join('');
     return `<div class="catcard" style="border-color:var(--line);background:var(--card);margin-top:14px;">
@@ -1149,17 +1166,61 @@ function renderCompetitorPage(){
   if(tp)tp.onclick=()=>{app.ctx.pwReveal=app.ctx.pwReveal||[];const i=app.ctx.pwReveal.indexOf(c.id);if(i>-1)app.ctx.pwReveal.splice(i,1);else app.ctx.pwReveal.push(c.id);render();};
   document.getElementById('back').onclick=()=>{app.sub=null;render();};
   screen.querySelectorAll('[data-newforp]').forEach(b=>b.onclick=()=>compStart(b.dataset.newforp,c.id));
-  screen.querySelectorAll('[data-delrun3]').forEach(b=>b.onclick=()=>{const[k,gi]=b.dataset.delrun3.split('|');if(confirm('حذف هذا التحليل؟')){COMP_RUNS[k].splice(+gi,1);save(K.compRuns,COMP_RUNS);render();}});
+  bindRunActions();
 }
 
 function compStart(product,competitorId){
-  app.ctx.compDraft={product,competitorId,employee:'',date:today(),answers:{},verdict:''};
+  app.ctx.compDraft={product,competitorId,employee:'',date:today(),answers:{},verdict:'',editId:null};
   app.sub='intro';render();window.scrollTo(0,0);
 }
-function renderCompIntro(){
-  const d=app.ctx.compDraft,c=competitorById(d.competitorId);setCrumb('تحليل جديد');
+function compEditRun(product,runIndex){
+  const r=compAllRuns(product)[runIndex];
+  if(!r)return;
+  app.ctx.compDraft={product,competitorId:r.competitorId,employee:r.employee,date:r.date,answers:clone(r.answers),verdict:r.verdict||'',editId:r.id};
+  app.sub='intro';render();window.scrollTo(0,0);
+}
+function viewRun(product,runIndex){
+  app.ctx.viewRun={product,runIndex};
+  app.sub='runView';render();window.scrollTo(0,0);
+}
+function renderRunView(){
+  const {product,runIndex}=app.ctx.viewRun;
+  const r=compAllRuns(product)[runIndex];
+  if(!r){app.sub=null;render();return;}
+  setCrumb('استعراض تحليل');
+  const display=v=>Array.isArray(v)?(v.length?v.join('، '):'—'):(v||'—');
+  const cats=(COMP_DEFS[product].cats||[]).map(c=>{
+    const items=c.items.map(it=>{
+      if(it.dependsOn&&r.answers[it.dependsOn.key]!==it.dependsOn.equals)return '';
+      return `<div class="compitem"><span class="clabel">${esc(it.label)}</span><span style="font-weight:600;color:var(--ink-2);">${esc(display(r.answers[it.key]))}</span></div>`;
+    }).join('');
+    return items?`<div class="catcard cat-${c.color||'law'}"><div class="catlabel"><span class="dot"></span>${esc(c.title)}</div>${items}</div>`:'';
+  }).join('');
   screen.innerHTML=`<div class="card">
-    <div class="eyebrow">قبل البدء</div><h1 class="h1">بدء تحليل جديد</h1>
+    <div class="eyebrow">${esc(competitorLabel(r.competitorId))}</div>
+    <h1 class="h1" style="margin-bottom:4px;">استعراض التحليل</h1><p class="sub" style="margin:0;">${esc(r.employee)} · ${esc(r.date)}</p>
+    ${cats}
+    <div class="verdictcard" style="margin-top:18px;"><div class="vh">الرأي النهائي</div>${esc(r.verdict)||'—'}</div>
+    <div class="nav-btns">
+      <button class="btn btn-ghost" id="back">→ رجوع</button>
+      <div class="row">
+        <button class="btn btn-ghost" id="editThis"><svg class="icon"><use href="#ic-pencil"/></svg> تعديل التحليل</button>
+        <button class="btn btn-ghost" id="delThis" style="color:var(--fail);"><svg class="icon"><use href="#ic-trash"/></svg> حذف</button>
+      </div>
+    </div>
+  </div>`;
+  document.getElementById('back').onclick=()=>{app.sub=null;app.ctx.viewRun=null;render();};
+  document.getElementById('editThis').onclick=()=>compEditRun(product,runIndex);
+  document.getElementById('delThis').onclick=()=>{
+    if(!confirm('حذف هذا التحليل؟'))return;
+    COMP_RUNS[product].splice(runIndex,1);save(K.compRuns,COMP_RUNS);
+    app.sub=null;app.ctx.viewRun=null;render();
+  };
+}
+function renderCompIntro(){
+  const d=app.ctx.compDraft,c=competitorById(d.competitorId),isEdit=!!d.editId;setCrumb(isEdit?'تعديل تحليل':'تحليل جديد');
+  screen.innerHTML=`<div class="card">
+    <div class="eyebrow">قبل البدء</div><h1 class="h1">${isEdit?'تعديل تحليل محفوظ':'بدء تحليل جديد'}</h1>
     <p class="sub">المنصة: <b>${esc(c?c.name:'—')}</b>${c&&c.isOurs?' <span class="own-badge">منصتنا</span>':''}</p>
     <div class="grid2" style="margin-top:10px;">
       <div class="field" style="margin-top:0;"><label>اسم الموظف الذي يجري التحليل</label><input id="f_emp" value="${esc(d.employee)}" placeholder="الاسم الكامل"></div>
@@ -1177,7 +1238,7 @@ function renderCompIntro(){
   };
 }
 function renderCompForm(){
-  const d=app.ctx.compDraft,c=competitorById(d.competitorId);setCrumb('تحليل: '+(c?c.name:''));
+  const d=app.ctx.compDraft,c=competitorById(d.competitorId),isEdit=!!d.editId;setCrumb('تحليل: '+(c?c.name:''));
   const cats=(COMP_DEFS[d.product].cats||[]).map(c=>{
     const items=c.items.map(it=>{
       if(it.dependsOn&&d.answers[it.dependsOn.key]!==it.dependsOn.equals)return '';
@@ -1203,7 +1264,7 @@ function renderCompForm(){
     <div class="warnmsg" id="w"></div>
     <div class="nav-btns">
       <button class="btn btn-ghost" id="back">→ رجوع</button>
-      <button class="btn btn-primary" id="saveComp"><svg class="icon"><use href="#ic-save"/></svg> حفظ التحليل</button>
+      <button class="btn btn-primary" id="saveComp"><svg class="icon"><use href="#ic-save"/></svg> ${isEdit?'حفظ التعديلات':'حفظ التحليل'}</button>
     </div>
   </div>`;
   screen.querySelectorAll('[data-cans]').forEach(b=>b.onclick=()=>{const[key,val]=b.dataset.cans.split('|');d.answers[key]=val;renderCompForm();});
@@ -1226,11 +1287,20 @@ function renderCompForm(){
     });
     if(missing.length){w.textContent='حدّد إجابة لكل معيار إلزامي في القائمة قبل الحفظ.';w.classList.add('show');return;}
     if(!d.verdict.trim()){w.textContent='اكتب الرأي النهائي قبل الحفظ.';w.classList.add('show');verdictEl.focus();return;}
-    const run={id:'c'+Date.now()+Math.random().toString(36).slice(2,7),competitorId:d.competitorId,employee:d.employee,date:d.date,answers:clone(d.answers),verdict:d.verdict.trim(),createdAt:new Date().toISOString()};
-    COMP_RUNS[d.product].unshift(run);save(K.compRuns,COMP_RUNS);
+    if(isEdit){
+      const idx=COMP_RUNS[d.product].findIndex(x=>x.id===d.editId);
+      if(idx>-1){
+        const prev=COMP_RUNS[d.product][idx];
+        COMP_RUNS[d.product][idx]={...prev,employee:d.employee,date:d.date,answers:clone(d.answers),verdict:d.verdict.trim()};
+      }
+    }else{
+      const run={id:'c'+Date.now()+Math.random().toString(36).slice(2,7),competitorId:d.competitorId,employee:d.employee,date:d.date,answers:clone(d.answers),verdict:d.verdict.trim(),createdAt:new Date().toISOString()};
+      COMP_RUNS[d.product].unshift(run);
+    }
+    save(K.compRuns,COMP_RUNS);
     app.ctx.compOpenCompetitor=d.competitorId;
     app.sub=null;app.ctx.compDraft=null;
-    toast('تم حفظ التحليل');render();window.scrollTo(0,0);
+    toast(isEdit?'تم حفظ التعديلات':'تم حفظ التحليل');render();window.scrollTo(0,0);
   };
 }
 
