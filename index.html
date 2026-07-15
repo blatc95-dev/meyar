@@ -652,6 +652,7 @@ function render(){buildNav();setCrumb();
   else if(app.sub==='intro') smokeIntro();
   else if(app.sub==='test') smokeTest();
   else if(app.sub==='review') smokeReview();
+  else if(app.sub==='viewRun') renderSmokeRunView();
   else renderDashboard();
   buildToc();
   bindEditable();
@@ -779,6 +780,7 @@ function renderDashboard(){
     ${DRAFTS.length?`<div class="card"><div class="eyebrow" data-edit-key="dash.drafts.eyebrow">${esc(t('dash.drafts.eyebrow','قيد الإكمال'))}</div><h2 class="h2" data-edit-key="dash.drafts.title">${esc(t('dash.drafts.title','المسودات'))}</h2>${draftsHtml}</div>`:''}
     <div class="card"><div class="eyebrow" data-edit-key="dash.history.eyebrow">${esc(t('dash.history.eyebrow','السجل'))}</div><h2 class="h2" data-edit-key="dash.history.title">${esc(t('dash.history.title','الاختبارات السابقة'))}</h2>${runsHtml}</div>`;
   document.getElementById('newRun').onclick=smokeStart;
+  screen.querySelectorAll('[data-viewrun]').forEach(b=>b.onclick=()=>smokeViewRun(+b.dataset.viewrun));
   screen.querySelectorAll('[data-share]').forEach(b=>b.onclick=()=>shareRun(RUNS[+b.dataset.share]));
   screen.querySelectorAll('[data-delrun]').forEach(b=>b.onclick=()=>{if(confirm('حذف هذا الاختبار؟')){RUNS.splice(+b.dataset.delrun,1);save(K.runs,RUNS);render();}});
   screen.querySelectorAll('[data-resume]').forEach(b=>b.onclick=()=>smokeResume(+b.dataset.resume));
@@ -787,7 +789,7 @@ function renderDashboard(){
 function runRow(r,i,isDraft){
   const passed=r.results.filter(x=>x.result==='pass').length,failed=r.results.filter(x=>x.result==='fail').length,done=r.results.filter(x=>x.result).length;
   const badge=isDraft?`<span class="badge draft">مسودة ${done}/${r.tests.length}</span>`:(failed===0?`<span class="badge pass">مجتاز بالكامل</span>`:`<span class="badge fail">${failed} لم تجتَز</span>`);
-  const actions=isDraft?`<button class="btn btn-primary btn-sm" data-resume="${i}">إكمال</button><button class="iconbtn del" data-deldraft="${i}"><svg class="icon"><use href="#ic-trash"/></svg></button>`:`<button class="iconbtn" data-share="${i}"><svg class="icon"><use href="#ic-share"/></svg></button><button class="iconbtn del" data-delrun="${i}"><svg class="icon"><use href="#ic-trash"/></svg></button>`;
+  const actions=isDraft?`<button class="btn btn-primary btn-sm" data-resume="${i}">إكمال</button><button class="iconbtn del" data-deldraft="${i}"><svg class="icon"><use href="#ic-trash"/></svg></button>`:`<button class="btn btn-ghost btn-sm" data-viewrun="${i}"><svg class="icon"><use href="#ic-external-link"/></svg> استعراض</button><button class="iconbtn" data-share="${i}"><svg class="icon"><use href="#ic-share"/></svg></button><button class="iconbtn del" data-delrun="${i}"><svg class="icon"><use href="#ic-trash"/></svg></button>`;
   return `<div class="lrow"><div class="ri"><div class="t">${esc(r.employee||'—')}</div><div class="m">${esc(r.date)} • ${r.tests.length} حالة${isDraft?'':` • مجتاز ${passed} / غير مجتاز ${failed}`}${r.reason?' • '+esc(r.reason):''}</div></div>${badge}${actions}</div>`;
 }
 
@@ -946,16 +948,19 @@ function buildSummaryText(run){
   });
   return L.join('\n');
 }
-function smokeReview(){
-  const run=app.ctx.run;setCrumb('مراجعة');
-  const passed=run.results.filter(r=>r.result==='pass').length,failed=run.results.filter(r=>r.result==='fail').length;
-  const overall=failed===0?'مجتاز بالكامل':`يوجد ${failed} حالة لم تجتَز`;
+function runResultRows(run){
   let rows='';
   run.tests.forEach((t,i)=>{const r=run.results[i],b=r.result==='pass'?'pass':'fail',bt=r.result==='pass'?'مجتاز':'غير مجتاز';const mr=modeResultText(run,i);const qf=chosenQuestionFile(run,i);
     rows+=`<div class="rrow"><div class="rhead"><b style="color:var(--ink-2);">${esc(t.title)}</b><span class="badge ${b}">${bt}</span></div>
     <div class="qq"><b>السؤال المختار:</b> ${esc(chosenQuestion(run,i))}${qf?` · <a href="${esc(qf)}" target="_blank" rel="noopener" class="qfilelink">ملف مساعد <svg class="icon"><use href="#ic-external-link"/></svg></a>`:''}</div>
     <div class="meta"><b>الوضع:</b> ${esc(modeLabel(t))}${mr?' ('+esc(mr)+')':''} • <b>المتوقع:</b> ${esc(t.expected)}</div>
     ${r.result==='fail'?`<div class="rnotes"><b>الملاحظات:</b> ${esc(r.notes)}<br><b>معرّف السؤال/المحادثة:</b> ${esc(r.convId||'—')}</div>`:''}</div>`;});
+  return rows;
+}
+function smokeReview(){
+  const run=app.ctx.run;setCrumb('مراجعة');
+  const passed=run.results.filter(r=>r.result==='pass').length,failed=run.results.filter(r=>r.result==='fail').length;
+  const overall=failed===0?'مجتاز بالكامل':`يوجد ${failed} حالة لم تجتَز`;
   screen.innerHTML=`<div class="card">
     <div class="eyebrow" data-edit-key="review.eyebrow">${esc(t('review.eyebrow','اكتمل التنفيذ'))}</div><h1 class="h1" data-edit-key="review.title">${esc(t('review.title','مراجعة النتيجة'))}</h1>
     <div class="stat-row" style="grid-template-columns:repeat(3,1fr);margin-top:14px;">
@@ -969,7 +974,7 @@ function smokeReview(){
       ${run.reason?` • <b style="color:var(--ink-2)">السبب:</b> ${esc(run.reason)}`:''}
       • <b style="color:var(--ink-2)">النتيجة:</b> ${esc(overall)}
     </div>
-    ${rows}
+    ${runResultRows(run)}
     <div class="nav-btns">
       <button class="btn btn-ghost" id="back">→ رجوع</button>
       <div class="row"><button class="btn btn-ghost" id="copySum"><svg class="icon"><use href="#ic-copy"/></svg> نسخ الملخّص</button><button class="btn btn-primary" id="share"><svg class="icon"><use href="#ic-share"/></svg> حفظ ومشاركة</button></div>
@@ -981,6 +986,40 @@ function smokeReview(){
   document.getElementById('share').onclick=async()=>{const s=persist();await shareRun(s);setTimeout(()=>{app.sub=null;app.ctx={};render();window.scrollTo(0,0);},600);};
 }
 async function shareRun(run){const text=buildSummaryText(run);if(navigator.share){try{await navigator.share({title:'تقرير اختبار الدخان',text});}catch(e){}}else{copyText(text);toast('نُسخ الملخّص لتلصقه');}}
+function smokeViewRun(i){app.ctx.viewRunIndex=i;app.sub='viewRun';render();window.scrollTo(0,0);}
+function renderSmokeRunView(){
+  const i=app.ctx.viewRunIndex,run=RUNS[i];
+  if(!run){app.sub=null;render();return;}
+  setCrumb('استعراض النتيجة');
+  const passed=run.passed!=null?run.passed:run.results.filter(r=>r.result==='pass').length;
+  const failed=run.failed!=null?run.failed:run.results.filter(r=>r.result==='fail').length;
+  const overall=failed===0?'مجتاز بالكامل':`يوجد ${failed} حالة لم تجتَز`;
+  screen.innerHTML=`<div class="card">
+    <div class="eyebrow">استعراض اختبار سابق</div><h1 class="h1" style="margin-bottom:4px;">نتيجة الاختبار</h1>
+    <div class="stat-row" style="grid-template-columns:repeat(3,1fr);margin-top:14px;">
+      <div class="stat"><div class="n">${run.tests.length}</div><div class="l">إجمالي</div></div>
+      <div class="stat"><div class="n" style="color:var(--pass);">${passed}</div><div class="l">مجتاز</div></div>
+      <div class="stat"><div class="n" style="color:var(--fail);">${failed}</div><div class="l">غير مجتاز</div></div>
+    </div>
+    <div style="margin-top:14px;font-size:13.5px;color:var(--muted);">
+      <b style="color:var(--ink-2)">الموظف:</b> ${esc(run.employee)} • <b style="color:var(--ink-2)">التاريخ:</b> ${esc(run.date)}
+      ${run.asana?` • <b style="color:var(--ink-2)">أسانا:</b> <a href="${esc(run.asana)}" target="_blank" style="color:var(--brand);">رابط المهمة</a>`:''}
+      ${run.reason?` • <b style="color:var(--ink-2)">السبب:</b> ${esc(run.reason)}`:''}
+      • <b style="color:var(--ink-2)">النتيجة:</b> ${esc(overall)}
+    </div>
+    ${runResultRows(run)}
+    <div class="nav-btns">
+      <button class="btn btn-ghost" id="back">→ رجوع</button>
+      <div class="row">
+        <button class="btn btn-ghost" id="copySum"><svg class="icon"><use href="#ic-copy"/></svg> نسخ الملخّص</button>
+        <button class="btn btn-primary" id="shareThis"><svg class="icon"><use href="#ic-share"/></svg> مشاركة</button>
+      </div>
+    </div>
+  </div>`;
+  document.getElementById('back').onclick=()=>{app.sub=null;app.ctx.viewRunIndex=null;render();};
+  document.getElementById('copySum').onclick=()=>{copyText(buildSummaryText(run));toast('تم نسخ ملخّص الاختبار');};
+  document.getElementById('shareThis').onclick=()=>shareRun(run);
+}
 
 /* ===== تحليل المنافسين ===== */
 function renderCompRouter(){
