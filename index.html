@@ -364,7 +364,7 @@ const store={mem:{},get(k){try{return localStorage.getItem(k);}catch(e){return (
 const clone=o=>JSON.parse(JSON.stringify(o));
 function load(k,d){const s=store.get(k);if(s){try{return JSON.parse(s);}catch(e){}}return clone(d);}
 function save(k,v){store.set(k,JSON.stringify(v));}
-const K={cats:'m_cats',runs:'m_runs',drafts:'m_drafts',settings:'m_settings',theme:'m_theme',texts:'m_texts',qbank:'m_qbank_v4',tags:'m_tags_v2',comp:'m_comp_defs_v2',compRuns:'m_comp_runs_v1',competitors:'m_competitors_v1'};
+const K={cats:'m_cats',runs:'m_runs',drafts:'m_drafts',settings:'m_settings',theme:'m_theme',texts:'m_texts',qbank:'m_qbank_v4',tags:'m_tags_v2',comp:'m_comp_defs_v2',compRuns:'m_comp_runs_v1',competitors:'m_competitors_v1',updatesRuns:'m_updates_runs_v1'};
 
 /* ===== تحرير النصوص الثابتة ===== */
 let TEXTS=load(K.texts,{});
@@ -609,6 +609,12 @@ function compVisibleItems(product,answers){return compFlatItems(product).filter(
 function compCount(){return Object.values(COMP_RUNS).reduce((n,arr)=>n+arr.length,0);}
 function compAllRuns(product){return COMP_RUNS[product]||[];}
 
+/* ===== متابعة التحديثات ===== */
+const UPDATES_CHECK_TYPES=['التحقق من وصول الملف','التحقق من الفهم والتطبيق'];
+let UPDATES_RUNS=load(K.updatesRuns,[]);
+function updatesCount(){return UPDATES_RUNS.length;}
+function newUpdatesRow(){return {checkType:UPDATES_CHECK_TYPES[0],questionForm:'',questionId:'',aiAnswer:'',result:null,issueDesc:'',recommendation:''};}
+
 /* ===== أدوات ===== */
 const esc=s=>(s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const screen=document.getElementById('screen');
@@ -636,19 +642,21 @@ function buildNav(){
     <button class="navitem ${app.view==='dashboard'?'active':''}" data-nav="dashboard"><span class="ic"><svg class="icon"><use href="#ic-search"/></svg></span> اختبار الدخان<span class="badge-n">${RUNS.length}</span></button>
     <button class="navitem ${app.view==='qbank'?'active':''}" data-nav="qbank"><span class="ic"><svg class="icon"><use href="#ic-question"/></svg></span> بنك الأسئلة<span class="badge-n">${bankCount()}</span></button>
     <button class="navitem ${app.view==='comp'?'active':''}" data-nav="comp"><span class="ic"><svg class="icon"><use href="#ic-chart"/></svg></span> تحليل المنافسين<span class="badge-n">${compCount()}</span></button>
+    <button class="navitem ${app.view==='updates'?'active':''}" data-nav="updates"><span class="ic"><svg class="icon"><use href="#ic-refresh"/></svg></span> متابعة التحديثات<span class="badge-n">${updatesCount()}</span></button>
     ${soonHtml}`;
   el.querySelectorAll('[data-nav]').forEach(b=>b.onclick=()=>go(b.dataset.nav));
   document.querySelector('.foot [data-nav]').onclick=()=>go('settings');
   document.querySelector('.foot .navitem').classList.toggle('active',app.view==='settings');
 }
 function go(v){app.view=v;app.sub=null;app.ctx={};closeSide();render();window.scrollTo(0,0);}
-const CRUMB={dashboard:'اختبار الدخان',qbank:'بنك الأسئلة',comp:'تحليل المنافسين',settings:'الإعدادات'};
+const CRUMB={dashboard:'اختبار الدخان',qbank:'بنك الأسئلة',comp:'تحليل المنافسين',updates:'متابعة التحديثات',settings:'الإعدادات'};
 function setCrumb(x){document.getElementById('crumb').innerHTML=`<b>${CRUMB[app.view]||''}</b>${x?' / '+esc(x):''}`;}
 
 function render(){buildNav();setCrumb();
   if(app.view==='settings') renderSettings();
   else if(app.view==='qbank') renderQBank();
   else if(app.view==='comp') renderCompRouter();
+  else if(app.view==='updates') renderUpdatesRouter();
   else if(app.sub==='intro') smokeIntro();
   else if(app.sub==='test') smokeTest();
   else if(app.sub==='review') smokeReview();
@@ -1391,6 +1399,160 @@ function renderCompareView(){
     <div class="nav-btns"><button class="btn btn-ghost" id="back">→ رجوع</button></div>
   </div>`;
   document.getElementById('back').onclick=()=>{app.sub='compareSelect';render();};
+}
+
+/* ===== متابعة التحديثات ===== */
+function renderUpdatesRouter(){
+  const s=app.sub;
+  if(s==='updatesForm') renderUpdatesForm();
+  else if(s==='updatesView') renderUpdatesRunView();
+  else renderUpdates();
+}
+function updatesRunRow(r,i){
+  const passed=r.rows.filter(x=>x.result==='pass').length,failed=r.rows.filter(x=>x.result==='fail').length;
+  const badge=failed===0?`<span class="badge pass">مجتاز بالكامل</span>`:`<span class="badge fail">${failed} لم تجتَز</span>`;
+  return `<div class="lrow"><div class="ri"><div class="t">${esc(r.employee||'—')}</div><div class="m">${esc(r.date)} • ${r.rows.length} اختبار • مجتاز ${passed} / غير مجتاز ${failed}</div></div>${badge}<button class="btn btn-ghost btn-sm" data-viewupd="${i}"><svg class="icon"><use href="#ic-external-link"/></svg> استعراض</button><button class="iconbtn" data-editupd="${i}"><svg class="icon"><use href="#ic-pencil"/></svg></button><button class="iconbtn del" data-delupd="${i}"><svg class="icon"><use href="#ic-trash"/></svg></button></div>`;
+}
+function renderUpdates(){
+  const listHtml=UPDATES_RUNS.length?UPDATES_RUNS.map((r,i)=>updatesRunRow(r,i)).join(''):`<div class="empty">لا توجد تقارير متابعة بعد.</div>`;
+  screen.innerHTML=`<div class="card hero">
+    <div class="eyebrow" data-edit-key="updates.eyebrow">${esc(t('updates.eyebrow','قسم البنية التحتية القانونية في المنصة'))}</div>
+    <h1 class="h1" data-edit-key="updates.title">${esc(t('updates.title','متابعة التحديثات'))}</h1>
+    <p class="sub" data-edit-key="updates.sub">${esc(t('updates.sub','التحقّق بعد إضافة أي تحديث أو ملف قانوني جديد إلى قاعدة البيانات من أمرين: وصول الملف إلى الذكاء الاصطناعي فعليًا، وفهمه لمضمونه ومدى قدرته على تطبيقه بشكل صحيح.'))}</p>
+    <div class="criteria-box">
+      <span class="lbl" data-edit-key="updates.goal.lbl">${esc(t('updates.goal.lbl','الهدف من المهمة'))}</span>
+      <ul>
+        <li data-edit-key="updates.goal1">${esc(t('updates.goal1','وصول الملف إلى الذكاء الاصطناعي فعليًا (اجتياز/عدم اجتياز الاختبار الأولي).'))}</li>
+        <li data-edit-key="updates.goal2">${esc(t('updates.goal2','فهم الذكاء الاصطناعي لمضمون الملف الجديد، ومدى قدرته على تطبيقه بشكل صحيح.'))}</li>
+      </ul>
+    </div>
+    <div class="tip"><span class="ic"><svg class="icon"><use href="#ic-lamp"/></svg></span><div data-edit-key="updates.tip">${esc(t('updates.tip','تُقسَّم التحديثات القانونية إلى نوعين: النوع الأول (استثناء أو قيد أو تخصيص) يُعدّل السياق القانوني السابق ولا يُسأل عنه مباشرة بل بطريقة غير مباشرة أو عبر سؤال مُغالِط، والنوع الثاني (نظام جديد أو تعديل مادة) لا يُعدّل السياق السابق بل يمثّل قاعدة قانونية جديدة.'))}</div></div>
+    <div class="row" style="margin-top:18px;"><button class="btn btn-primary" id="newUpdRun"><svg class="icon"><use href="#ic-plus"/></svg> تقرير متابعة جديد</button></div>
+  </div>
+  <div class="card"><div class="eyebrow" data-edit-key="updates.history.eyebrow">${esc(t('updates.history.eyebrow','السجل'))}</div><h2 class="h2" data-edit-key="updates.history.title">${esc(t('updates.history.title','التقارير السابقة'))}</h2>${listHtml}</div>`;
+  document.getElementById('newUpdRun').onclick=updatesStart;
+  screen.querySelectorAll('[data-viewupd]').forEach(b=>b.onclick=()=>updatesViewRun(+b.dataset.viewupd));
+  screen.querySelectorAll('[data-editupd]').forEach(b=>b.onclick=()=>updatesEditRun(+b.dataset.editupd));
+  screen.querySelectorAll('[data-delupd]').forEach(b=>b.onclick=()=>{if(confirm('حذف هذا التقرير؟')){UPDATES_RUNS.splice(+b.dataset.delupd,1);save(K.updatesRuns,UPDATES_RUNS);render();}});
+  bindEditable();
+}
+function updatesStart(){app.ctx.updatesDraft={employee:'',date:today(),rows:[newUpdatesRow()],generalRecs:'',editId:null};app.sub='updatesForm';render();window.scrollTo(0,0);}
+function updatesEditRun(i){const r=UPDATES_RUNS[i];app.ctx.updatesDraft={employee:r.employee,date:r.date,rows:clone(r.rows),generalRecs:r.generalRecs||'',editId:r.id};app.sub='updatesForm';render();window.scrollTo(0,0);}
+function updatesViewRun(i){app.ctx.updatesViewIndex=i;app.sub='updatesView';render();window.scrollTo(0,0);}
+function updatesRowCard(row,i,total){
+  const typePills=UPDATES_CHECK_TYPES.map(o=>`<button class="optpill ${row.checkType===o?'on':''}" data-utype="${i}|${esc(o)}">${esc(o)}</button>`).join('');
+  return `<div class="subacc open" data-urow="${i}">
+    <div class="head"><span class="title" style="font-size:13.5px;">اختبار ${i+1}${row.result?' — '+(row.result==='pass'?'مجتاز':'غير مجتاز'):''}</span><span class="sub-c" style="margin-inline-start:auto;">${esc(row.checkType)}</span></div>
+    <div class="body">
+      <div class="lbl-sm">نوع التحقق</div>
+      <div class="optpills">${typePills}</div>
+      <div class="lbl-sm">صيغة السؤال</div><textarea data-uf="${i}|questionForm" placeholder="صيغة السؤال المستخدم">${esc(row.questionForm)}</textarea>
+      <div class="lbl-sm">معرّف السؤال</div><input data-uf="${i}|questionId" placeholder="معرّف السؤال أو المحادثة" value="${esc(row.questionId)}">
+      <div class="lbl-sm">إجابة الذكاء الاصطناعي</div><textarea data-uf="${i}|aiAnswer" placeholder="الصق إجابة الذكاء الاصطناعي هنا">${esc(row.aiAnswer)}</textarea>
+      <div class="lbl-sm">نتيجة الاختبار</div>
+      <div class="verdict">
+        <button class="vbtn pass ${row.result==='pass'?'on':''}" data-uv="${i}|pass"><span class="mk"><svg class="icon"><use href="#ic-check"/></svg></span> مجتاز</button>
+        <button class="vbtn fail ${row.result==='fail'?'on':''}" data-uv="${i}|fail"><span class="mk"><svg class="icon"><use href="#ic-x"/></svg></span> غير مجتاز</button>
+      </div>
+      <div class="notes-block ${row.result==='fail'?'show':''}">
+        <label>وصف المشكلة</label>
+        <textarea class="notes" data-uf="${i}|issueDesc" placeholder="صف المشكلة: سبب عدم الوصول أو عدم الفهم">${esc(row.issueDesc)}</textarea>
+      </div>
+      <div class="lbl-sm">التوصية</div><textarea data-uf="${i}|recommendation" placeholder="التوصية المقترحة لحل المشكلة">${esc(row.recommendation)}</textarea>
+      <div class="row" style="margin-top:10px;"><button class="iconbtn del" data-delurow="${i}" ${total<=1?'disabled':''}><svg class="icon"><use href="#ic-trash"/></svg> حذف الاختبار</button></div>
+    </div></div>`;
+}
+function renderUpdatesForm(){
+  const d=app.ctx.updatesDraft;setCrumb(d.editId?'تعديل تقرير':'تقرير جديد');
+  const rowsHtml=d.rows.map((r,i)=>updatesRowCard(r,i,d.rows.length)).join('');
+  screen.innerHTML=`<div class="card">
+    <div class="eyebrow" data-edit-key="updates.form.eyebrow">${esc(t('updates.form.eyebrow','بيانات التقرير'))}</div>
+    <h1 class="h1">${d.editId?'تعديل تقرير متابعة':'تقرير متابعة جديد'}</h1>
+    <div class="grid2">
+      <div class="field"><label>اسم الموظف</label><input id="u_emp" value="${esc(d.employee)}" placeholder="الاسم الكامل"></div>
+      <div class="field"><label>تاريخ التقرير</label><input id="u_dt" type="date" value="${esc(d.date)}"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="toolbar" style="justify-content:space-between;">
+      <h2 class="h2" style="margin:0;">اختبارات التقرير</h2>
+      <button class="btn btn-ghost btn-sm" id="addUrow"><svg class="icon"><use href="#ic-plus"/></svg> إضافة اختبار</button>
+    </div>
+    ${rowsHtml}
+  </div>
+  <div class="card">
+    <h2 class="h2" data-edit-key="updates.form.recTitle">${esc(t('updates.form.recTitle','التوصيات العامة'))}</h2>
+    <div class="field"><textarea id="u_genrec" placeholder="التوصيات العامة المتعلقة بتطوير المنتج">${esc(d.generalRecs)}</textarea></div>
+    <div class="warnmsg" id="uWarn"></div>
+    <div class="nav-btns"><button class="btn btn-ghost" id="uCancel">إلغاء</button><button class="btn btn-primary" id="uSave"><svg class="icon"><use href="#ic-save"/></svg> حفظ التقرير</button></div>
+  </div>`;
+  bindUpdatesForm();
+  bindEditable();
+}
+function bindUpdatesForm(){
+  const d=app.ctx.updatesDraft;
+  document.getElementById('u_emp').oninput=e=>d.employee=e.target.value;
+  document.getElementById('u_dt').oninput=e=>d.date=e.target.value;
+  screen.querySelectorAll('[data-uf]').forEach(el=>el.oninput=e=>{const[i,f]=el.dataset.uf.split('|');d.rows[+i][f]=e.target.value;});
+  screen.querySelectorAll('[data-utype]').forEach(b=>b.onclick=()=>{const[i,val]=b.dataset.utype.split('|');d.rows[+i].checkType=val;renderUpdatesForm();});
+  screen.querySelectorAll('[data-uv]').forEach(b=>b.onclick=()=>{const[i,val]=b.dataset.uv.split('|');d.rows[+i].result=val;renderUpdatesForm();});
+  screen.querySelectorAll('[data-delurow]').forEach(b=>b.onclick=()=>{const i=+b.dataset.delurow;if(d.rows.length<=1)return;if(confirm('حذف هذا الاختبار من التقرير؟')){d.rows.splice(i,1);renderUpdatesForm();}});
+  document.getElementById('addUrow').onclick=()=>{
+    d.rows.push(newUpdatesRow());renderUpdatesForm();
+    const last=screen.querySelector(`[data-urow="${d.rows.length-1}"]`);
+    if(last)last.scrollIntoView({behavior:'smooth',block:'center'});
+  };
+  document.getElementById('u_genrec').oninput=e=>d.generalRecs=e.target.value;
+  document.getElementById('uCancel').onclick=()=>{app.sub=null;app.ctx.updatesDraft=null;render();};
+  document.getElementById('uSave').onclick=()=>{
+    const w=document.getElementById('uWarn');
+    if(!d.employee.trim()){w.textContent='اكتب اسم الموظف على الأقل للحفظ.';w.classList.add('show');return;}
+    if(d.rows.some(r=>!r.questionForm.trim()||!r.result)){w.textContent='أكمل صيغة السؤال ونتيجة كل اختبار قبل الحفظ.';w.classList.add('show');return;}
+    if(d.rows.some(r=>r.result==='fail'&&!r.issueDesc.trim())){w.textContent='وصف المشكلة إلزامي لكل اختبار غير مجتاز.';w.classList.add('show');return;}
+    const rows=clone(d.rows);
+    if(d.editId){
+      const idx=UPDATES_RUNS.findIndex(x=>x.id===d.editId);
+      if(idx>-1)UPDATES_RUNS[idx]={...UPDATES_RUNS[idx],employee:d.employee.trim(),date:d.date,rows,generalRecs:d.generalRecs.trim()};
+    }else{
+      UPDATES_RUNS.unshift({id:'u'+Date.now()+Math.random().toString(36).slice(2,7),employee:d.employee.trim(),date:d.date,rows,generalRecs:d.generalRecs.trim(),createdAt:new Date().toISOString()});
+    }
+    save(K.updatesRuns,UPDATES_RUNS);
+    app.ctx.updatesDraft=null;app.sub=null;toast('تم حفظ التقرير');render();
+  };
+}
+function renderUpdatesRunView(){
+  const i=app.ctx.updatesViewIndex,run=UPDATES_RUNS[i];
+  if(!run){app.sub=null;render();return;}
+  setCrumb('استعراض التقرير');
+  const passed=run.rows.filter(r=>r.result==='pass').length,failed=run.rows.filter(r=>r.result==='fail').length;
+  const bodyRows=run.rows.map((r,ri)=>`<tr class="${r.result==='fail'?'diff':''}">
+    <td>${ri+1}</td>
+    <td class="rowlabel">${esc(r.checkType)}</td>
+    <td style="white-space:normal;min-width:200px;">${esc(r.questionForm)}</td>
+    <td>${esc(r.questionId||'—')}</td>
+    <td style="white-space:normal;min-width:200px;">${esc(r.aiAnswer||'—')}</td>
+    <td><span class="badge ${r.result==='pass'?'pass':'fail'}">${r.result==='pass'?'مجتاز':'غير مجتاز'}</span></td>
+    <td style="white-space:normal;min-width:160px;">${esc(r.issueDesc||'—')}</td>
+    <td style="white-space:normal;min-width:160px;">${esc(r.recommendation||'—')}</td>
+  </tr>`).join('');
+  screen.innerHTML=`<div class="card">
+    <div class="eyebrow">استعراض تقرير سابق</div><h1 class="h1" style="margin-bottom:4px;">تقرير متابعة التحديثات</h1>
+    <div class="stat-row" style="grid-template-columns:repeat(3,1fr);margin-top:14px;">
+      <div class="stat"><div class="n">${run.rows.length}</div><div class="l">إجمالي الاختبارات</div></div>
+      <div class="stat"><div class="n" style="color:var(--pass);">${passed}</div><div class="l">مجتاز</div></div>
+      <div class="stat"><div class="n" style="color:var(--fail);">${failed}</div><div class="l">غير مجتاز</div></div>
+    </div>
+    <div style="margin-top:14px;font-size:13.5px;color:var(--muted);"><b style="color:var(--ink-2)">الموظف:</b> ${esc(run.employee)} • <b style="color:var(--ink-2)">التاريخ:</b> ${esc(run.date)}</div>
+    <div class="cmpwrap"><table class="cmptable"><thead><tr><th>م</th><th>نوع التحقق</th><th>صيغة السؤال</th><th>معرّف السؤال</th><th>إجابة الذكاء الاصطناعي</th><th>النتيجة</th><th>وصف المشكلة</th><th>التوصية</th></tr></thead><tbody>${bodyRows}</tbody></table></div>
+    ${run.generalRecs?`<div class="criteria-box"><span class="lbl">التوصيات العامة</span>${esc(run.generalRecs)}</div>`:''}
+    <div class="nav-btns">
+      <button class="btn btn-ghost" id="back">→ رجوع</button>
+      <div class="row"><button class="btn btn-ghost" id="editThis"><svg class="icon"><use href="#ic-pencil"/></svg> تعديل</button><button class="btn btn-danger" id="delThis"><svg class="icon"><use href="#ic-trash"/></svg> حذف</button></div>
+    </div>
+  </div>`;
+  document.getElementById('back').onclick=()=>{app.sub=null;app.ctx.updatesViewIndex=null;render();};
+  document.getElementById('editThis').onclick=()=>updatesEditRun(i);
+  document.getElementById('delThis').onclick=()=>{if(confirm('حذف هذا التقرير؟')){UPDATES_RUNS.splice(i,1);save(K.updatesRuns,UPDATES_RUNS);app.sub=null;render();}};
 }
 
 /* ===== الإعدادات (٥ تبويبات) ===== */
