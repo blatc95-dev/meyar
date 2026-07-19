@@ -434,11 +434,18 @@ function cloudSave(key,value,isRetry){
   }).catch(()=>{if(!isRetry)setTimeout(()=>cloudSave(key,value,true),1500);});
 }
 
+let IS_ADMIN=false;
+
 const session=await waitForSession();
 CURRENT_USER_EMAIL=session.user.email;
 hideAuthGate();
 document.getElementById('signedInLabel').textContent=CURRENT_USER_EMAIL;
 document.getElementById('signOutBtn').onclick=()=>sb.auth.signOut().then(()=>location.reload());
+
+try{
+  const{data:me}=await sb.from('allowed_emails').select('role').eq('email',CURRENT_USER_EMAIL).maybeSingle();
+  IS_ADMIN=me?.role==='admin';
+}catch(e){}
 
 try{
   const{data:rows,error}=await sb.from('kv_store').select('key,value');
@@ -729,8 +736,11 @@ function buildNav(){
   el.querySelectorAll('[data-nav]').forEach(b=>b.onclick=()=>go(b.dataset.nav));
   document.querySelector('.foot [data-nav]').onclick=()=>go('settings');
   document.querySelector('.foot .navitem').classList.toggle('active',app.view==='settings');
+  document.querySelector('.foot .navitem').style.display=IS_ADMIN?'':'none';
+  const editBtn=document.getElementById('editBtn');
+  if(editBtn)editBtn.style.display=IS_ADMIN?'':'none';
 }
-function go(v){app.view=v;app.sub=null;app.ctx={};closeSide();render();window.scrollTo(0,0);}
+function go(v){if(v==='settings'&&!IS_ADMIN){toast('هذا القسم متاح للأدمن فقط');return;}app.view=v;app.sub=null;app.ctx={};closeSide();render();window.scrollTo(0,0);}
 const CRUMB={dashboard:'اختبار الدخان',qbank:'بنك الأسئلة',comp:'تحليل المنافسين',updates:'متابعة التحديثات',settings:'الإعدادات'};
 function setCrumb(x){document.getElementById('crumb').innerHTML=`<b>${CRUMB[app.view]||''}</b>${x?' / '+esc(x):''}`;}
 
@@ -1912,8 +1922,8 @@ document.getElementById('scrim').onclick=closeSide;
 document.getElementById('themeBtn').onclick=()=>{THEME=THEME==='light'?'dark':'light';store.set(K.theme,THEME);applyTheme(THEME);};
 document.getElementById('homeBtn').onclick=()=>go('dashboard');
 document.getElementById('copyLinkBtn').onclick=()=>copyText(location.href,'تم نسخ رابط الصفحة');
-function setEditMode(v){EDIT_MODE=v;document.body.classList.toggle('editmode',EDIT_MODE);document.getElementById('editBtn').classList.toggle('on',EDIT_MODE);bindEditable();}
-document.getElementById('editBtn').onclick=()=>{setEditMode(!EDIT_MODE);toast(EDIT_MODE?'وضع التحرير مفعّل':'تم إنهاء التحرير');};
+function setEditMode(v){if(v&&!IS_ADMIN){toast('تعديل النصوص متاح للأدمن فقط');return;}EDIT_MODE=v;document.body.classList.toggle('editmode',EDIT_MODE);document.getElementById('editBtn').classList.toggle('on',EDIT_MODE);bindEditable();}
+document.getElementById('editBtn').onclick=()=>{setEditMode(!EDIT_MODE);if(IS_ADMIN)toast(EDIT_MODE?'وضع التحرير مفعّل':'تم إنهاء التحرير');};
 document.getElementById('exitEdit').onclick=()=>setEditMode(false);
 document.getElementById('resetTexts').onclick=()=>{if(confirm('استعادة كل النصوص إلى قيمها الافتراضية؟')){TEXTS={};save(K.texts,TEXTS);render();toast('تمت استعادة النصوص الافتراضية');}};
 
