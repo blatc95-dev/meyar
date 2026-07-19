@@ -120,6 +120,20 @@
   .iconbtn{border:1px solid var(--line-2);background:var(--card);border-radius:9px;padding:7px 12px;font-size:13px;cursor:pointer;color:var(--brand-2);}
   .iconbtn:hover{border-color:var(--brand-2);}
   .iconbtn.del{color:var(--fail);} .iconbtn.del:hover{border-color:var(--fail);}
+  .auth-gate{min-height:100vh;display:none;align-items:center;justify-content:center;background:var(--bg);padding:20px;}
+  .auth-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:32px 28px;max-width:360px;width:100%;text-align:center;}
+  .auth-card img{width:32px;height:40px;margin-bottom:10px;}
+  .auth-card .logo-dark{display:none;}
+  [data-theme="dark"] .auth-card .logo-light{display:none;}
+  [data-theme="dark"] .auth-card .logo-dark{display:block;}
+  .auth-card h1{margin:0 0 6px;font-size:18px;color:var(--ink-2);}
+  .auth-card p{color:var(--muted);font-size:13px;margin:0 0 16px;line-height:1.6;}
+  .auth-card input{width:100%;margin-bottom:12px;}
+  .auth-card .btn{width:100%;}
+  .auth-note{margin-top:12px;font-size:12.5px;min-height:1em;}
+  .auth-note.err{color:var(--fail);}
+  .auth-note.ok{color:var(--pass);}
+  .signedin{font-size:11px;color:var(--side-muted);padding:0 12px 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .field{margin-top:14px;}
   .field label{display:block;font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:6px;}
   .field input,.field textarea,.field select{width:100%;border:1px solid var(--line-2);border-radius:10px;padding:11px 12px;font-size:14.5px;background:var(--card-2);color:var(--ink);}
@@ -324,7 +338,18 @@
 <symbol id="ic-folder" viewBox="0 0 24 24"><path d="M22 11V17C22 21 21 22 17 22H7C3 22 2 21 2 17V7C2 3 3 2 7 2H8.5C10 2 10.33 2.44 10.9 3.2L12.4 5.2C12.78 5.7 13 6 14 6H17C21 6 22 7 22 11Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
 </defs>
 </svg>
-<div class="layout">
+<div class="auth-gate" id="authGate">
+  <div class="auth-card">
+    <img class="logo-light" src="assets/logos/logo-color-mark.svg" alt="" width="32" height="40">
+    <img class="logo-dark" src="assets/logos/logo-white-mark.svg" alt="" width="32" height="40">
+    <h1>مِعيار</h1>
+    <p>سجّل دخولك بإيميل فريق العمل لمتابعة العمل على البيانات المشتركة.</p>
+    <input type="email" id="authEmail" placeholder="name@qanoniah.com" autocomplete="email">
+    <button class="btn btn-primary" id="authSend">إرسال رابط الدخول</button>
+    <p class="auth-note" id="authNote"></p>
+  </div>
+</div>
+<div class="layout" id="layoutRoot" style="display:none;">
   <aside class="side" id="side">
     <div class="brand">
       <div class="mk">
@@ -335,8 +360,10 @@
     </div>
     <nav class="nav" id="navList"></nav>
     <div class="foot">
+      <div class="signedin" id="signedInLabel"></div>
       <button class="navitem" data-nav="settings"><span class="ic"><svg class="icon"><use href="#ic-settings"/></svg></span> الإعدادات</button>
       <button class="themebtn" id="themeBtn"><span id="themeIc"><svg class="icon"><use href="#ic-moon"/></svg></span> <span id="themeLbl">الوضع الليلي</span></button>
+      <button class="themebtn" id="signOutBtn"><svg class="icon"><use href="#ic-x"/></svg> تسجيل الخروج</button>
     </div>
   </aside>
   <div class="scrim" id="scrim"></div>
@@ -358,13 +385,68 @@
 </div>
 <div class="toast" id="toast"></div>
 
-<script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script type="module">
 /* ===== التخزين ===== */
 const store={mem:{},get(k){try{return localStorage.getItem(k);}catch(e){return (k in this.mem)?this.mem[k]:null;}},set(k,v){try{localStorage.setItem(k,v);}catch(e){this.mem[k]=v;}}};
 const clone=o=>JSON.parse(JSON.stringify(o));
 function load(k,d){const s=store.get(k);if(s){try{return JSON.parse(s);}catch(e){}}return clone(d);}
-function save(k,v){store.set(k,JSON.stringify(v));}
+function save(k,v){store.set(k,JSON.stringify(v));if(k!==K.theme)cloudSave(k,v);}
 const K={cats:'m_cats',runs:'m_runs',drafts:'m_drafts',settings:'m_settings',theme:'m_theme',texts:'m_texts',qbank:'m_qbank_v4',tags:'m_tags_v2',comp:'m_comp_defs_v2',compRuns:'m_comp_runs_v1',competitors:'m_competitors_v1',updatesRuns:'m_updates_runs_v1'};
+applyTheme(store.get(K.theme)||'light');
+
+/* ===== Supabase: مزامنة البيانات مع الفريق ===== */
+const SUPA_URL='https://iupgnizvjhyjusuuhksw.supabase.co';
+const SUPA_ANON_KEY='sb_publishable_AD7srAESU2sOQ0hmuidbfQ_N38gkbXk';
+const sb=supabase.createClient(SUPA_URL,SUPA_ANON_KEY);
+let CURRENT_USER_EMAIL=null;
+let cloudSyncBroken=false;
+
+function setAuthNote(msg,cls){const n=document.getElementById('authNote');if(!n)return;n.textContent=msg||'';n.className='auth-note'+(cls?' '+cls:'');}
+function showAuthGate(){document.getElementById('authGate').style.display='flex';document.getElementById('layoutRoot').style.display='none';}
+function hideAuthGate(){document.getElementById('authGate').style.display='none';document.getElementById('layoutRoot').style.display='flex';}
+
+document.getElementById('authSend').onclick=async()=>{
+  const btn=document.getElementById('authSend');
+  const email=document.getElementById('authEmail').value.trim();
+  if(!email){setAuthNote('أدخل الإيميل أولاً','err');return;}
+  btn.disabled=true;
+  const{error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.href}});
+  btn.disabled=false;
+  setAuthNote(error?'حدث خطأ، حاول مرة أخرى':'تم إرسال رابط الدخول إلى بريدك — افتحه من نفس الجهاز',error?'err':'ok');
+};
+
+async function waitForSession(){
+  const{data:{session}}=await sb.auth.getSession();
+  if(session)return session;
+  showAuthGate();
+  return new Promise(resolve=>{
+    const{data:sub}=sb.auth.onAuthStateChange((event,session)=>{if(session){sub.subscription.unsubscribe();resolve(session);}});
+  });
+}
+
+function cloudSave(key,value,isRetry){
+  sb.from('kv_store').upsert({key,value,updated_by:CURRENT_USER_EMAIL,updated_at:new Date().toISOString()}).then(({error})=>{
+    if(error){
+      if(isRetry){if(!cloudSyncBroken){cloudSyncBroken=true;toast('تعذّر الحفظ السحابي، سيُعاد المحاولة عند الحفظ القادم');}}
+      else{setTimeout(()=>cloudSave(key,value,true),1500);}
+    }else{cloudSyncBroken=false;}
+  }).catch(()=>{if(!isRetry)setTimeout(()=>cloudSave(key,value,true),1500);});
+}
+
+const session=await waitForSession();
+CURRENT_USER_EMAIL=session.user.email;
+hideAuthGate();
+document.getElementById('signedInLabel').textContent=CURRENT_USER_EMAIL;
+document.getElementById('signOutBtn').onclick=()=>sb.auth.signOut().then(()=>location.reload());
+
+try{
+  const{data:rows,error}=await sb.from('kv_store').select('key,value');
+  if(error)throw error;
+  (rows||[]).forEach(r=>store.set(r.key,JSON.stringify(r.value)));
+}catch(e){
+  toast('تعذّر تحميل البيانات السحابية — يُعرض آخر نسخة محفوظة على هذا الجهاز');
+}
 
 /* ===== تحرير النصوص الثابتة ===== */
 let TEXTS=load(K.texts,{});
