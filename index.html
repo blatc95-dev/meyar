@@ -466,33 +466,40 @@ function cloudSave(key,value,isRetry){
 
 let IS_ADMIN=false;
 
-const session=await waitForLogin();
-CURRENT_USER_EMAIL=session.user.email;
-
-let myRow=null;
 try{
-  const{data}=await sb.from('allowed_emails').select('role,active,must_reset_password').eq('email',CURRENT_USER_EMAIL).maybeSingle();
-  myRow=data;
-}catch(e){}
+  const session=await waitForLogin();
+  CURRENT_USER_EMAIL=session.user.email;
 
-if(!myRow||myRow.active===false){
-  await sb.auth.signOut();
-  setAuthNote('هذا الحساب غير مفعّل، تواصل مع مسؤول الفريق','err');
-  throw new Error('access denied');
-}
+  const{data:myRow,error:rowError}=await sb.from('allowed_emails').select('role,active,must_reset_password').eq('email',CURRENT_USER_EMAIL).maybeSingle();
+  if(rowError)throw rowError;
 
-await runPasswordResetIfNeeded(myRow.must_reset_password);
-IS_ADMIN=myRow.role==='admin';
-hideAuthGate();
-document.getElementById('signedInLabel').textContent=CURRENT_USER_EMAIL;
-document.getElementById('signOutBtn').onclick=()=>sb.auth.signOut().then(()=>location.reload());
+  if(!myRow||myRow.active===false){
+    await sb.auth.signOut();
+    showAuthGate();
+    setAuthNote('هذا الحساب غير مفعّل، تواصل مع مسؤول الفريق','err');
+    throw new Error('access denied');
+  }
 
-try{
-  const{data:rows,error}=await sb.from('kv_store').select('key,value');
-  if(error)throw error;
-  (rows||[]).forEach(r=>store.set(r.key,JSON.stringify(r.value)));
+  await runPasswordResetIfNeeded(myRow.must_reset_password);
+  IS_ADMIN=myRow.role==='admin';
+  hideAuthGate();
+  document.getElementById('signedInLabel').textContent=CURRENT_USER_EMAIL;
+  document.getElementById('signOutBtn').onclick=()=>sb.auth.signOut().then(()=>location.reload());
+
+  try{
+    const{data:rows,error}=await sb.from('kv_store').select('key,value');
+    if(error)throw error;
+    (rows||[]).forEach(r=>store.set(r.key,JSON.stringify(r.value)));
+  }catch(e){
+    toast('تعذّر تحميل البيانات السحابية — يُعرض آخر نسخة محفوظة على هذا الجهاز');
+  }
 }catch(e){
-  toast('تعذّر تحميل البيانات السحابية — يُعرض آخر نسخة محفوظة على هذا الجهاز');
+  if(e.message!=='access denied'){
+    await sb.auth.signOut().catch(()=>{});
+    showAuthGate();
+    setAuthNote('حدث خطأ غير متوقع، سجّل الدخول من جديد. ('+(e.message||e)+')','err');
+  }
+  throw e;
 }
 
 /* ===== تحرير النصوص الثابتة ===== */
