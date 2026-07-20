@@ -238,6 +238,7 @@
   .lbl-sm{font-size:11.5px;font-weight:600;color:var(--muted);margin:10px 0 4px;}
   .qline{display:flex;gap:8px;margin-top:6px;}
   .qline textarea{width:100%;min-height:44px;border:1px solid var(--line-2);border-radius:9px;padding:8px 10px;font-size:13.5px;resize:vertical;background:var(--card-2);color:var(--ink);}
+  .upd-box{width:100%;min-height:130px;border:1px solid var(--line-2);border-radius:9px;padding:10px 12px;font-size:13.5px;resize:vertical;background:var(--card-2);color:var(--ink);}
   .qline input{width:100%;border:1px solid var(--line-2);border-radius:9px;padding:6px 10px;font-size:12.5px;background:var(--card-2);color:var(--ink);}
   .qrow{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line-2);border-radius:10px;margin-top:8px;background:var(--card-2);}
   .qrow .qtext{flex:1;font-size:13.5px;color:var(--ink-2);}
@@ -401,7 +402,7 @@ const store={mem:{},get(k){try{return localStorage.getItem(k);}catch(e){return (
 const clone=o=>JSON.parse(JSON.stringify(o));
 function load(k,d){const s=store.get(k);if(s){try{return JSON.parse(s);}catch(e){}}return clone(d);}
 function save(k,v){store.set(k,JSON.stringify(v));if(k!==K.theme)cloudSave(k,v);}
-const K={cats:'m_cats',runs:'m_runs',drafts:'m_drafts',settings:'m_settings',theme:'m_theme',texts:'m_texts',qbank:'m_qbank_v4',tags:'m_tags_v2',comp:'m_comp_defs_v2',compRuns:'m_comp_runs_v1',competitors:'m_competitors_v1',updatesRuns:'m_updates_runs_v1'};
+const K={cats:'m_cats',runs:'m_runs',drafts:'m_drafts',settings:'m_settings',theme:'m_theme',texts:'m_texts',qbank:'m_qbank_v4',tags:'m_tags_v2',comp:'m_comp_defs_v2',compRuns:'m_comp_runs_v1',competitors:'m_competitors_v1',updatesRuns:'m_updates_runs_v1',models:'m_models_v1'};
 applyTheme(store.get(K.theme)||'light');
 
 /* ===== Supabase: مزامنة البيانات مع الفريق ===== */
@@ -745,11 +746,15 @@ function compVisibleItems(product,answers){return compFlatItems(product).filter(
 function compCount(){return Object.values(COMP_RUNS).reduce((n,arr)=>n+arr.length,0);}
 function compAllRuns(product){return COMP_RUNS[product]||[];}
 
+/* ===== نماذج الذكاء الاصطناعي (للاختبار) ===== */
+let MODELS=load(K.models,[]);
+function saveModels(){save(K.models,MODELS);}
+
 /* ===== متابعة التحديثات ===== */
 const UPDATES_CHECK_TYPES=['التحقق من وصول الملف','التحقق من الفهم والتطبيق'];
 let UPDATES_RUNS=load(K.updatesRuns,[]);
 function updatesCount(){return UPDATES_RUNS.length;}
-function newUpdatesRow(){return {checkType:UPDATES_CHECK_TYPES[0],questionForm:'',questionId:'',aiAnswer:'',result:null,issueDesc:'',recommendation:''};}
+function newUpdatesRow(){return {checkType:UPDATES_CHECK_TYPES[0],questionForm:'',questionId:'',aiAnswer:'',issueDesc:'',recommendation:''};}
 
 /* ===== أدوات ===== */
 const esc=s=>(s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -937,14 +942,14 @@ function runRow(r,i,isDraft){
   const passed=r.results.filter(x=>x.result==='pass').length,failed=r.results.filter(x=>x.result==='fail').length,done=r.results.filter(x=>x.result).length;
   const badge=isDraft?`<span class="badge draft">مسودة ${done}/${r.tests.length}</span>`:(failed===0?`<span class="badge pass">مجتاز بالكامل</span>`:`<span class="badge fail">${failed} لم تجتَز</span>`);
   const actions=isDraft?`<button class="btn btn-primary btn-sm" data-resume="${i}">إكمال</button><button class="iconbtn del" data-deldraft="${i}"><svg class="icon"><use href="#ic-trash"/></svg></button>`:`<button class="btn btn-ghost btn-sm" data-viewrun="${i}"><svg class="icon"><use href="#ic-external-link"/></svg> استعراض</button><button class="iconbtn" data-share="${i}"><svg class="icon"><use href="#ic-share"/></svg></button><button class="iconbtn del" data-delrun="${i}"><svg class="icon"><use href="#ic-trash"/></svg></button>`;
-  return `<div class="lrow"><div class="ri"><div class="t">${esc(r.employee||'—')}</div><div class="m">${esc(r.date)} • ${r.tests.length} حالة${isDraft?'':` • مجتاز ${passed} / غير مجتاز ${failed}`}${r.reason?' • '+esc(r.reason):''}</div></div>${badge}${actions}</div>`;
+  return `<div class="lrow"><div class="ri"><div class="t">${esc(r.employee||'—')}</div><div class="m">${esc(r.date)} • ${r.tests.length} حالة${isDraft?'':` • مجتاز ${passed} / غير مجتاز ${failed}`}${r.model?' • المودل: '+esc(r.model):''}${r.reason?' • '+esc(r.reason):''}</div></div>${badge}${actions}</div>`;
 }
 
 /* ===== تدفّق الاختبار ===== */
 function smokeStart(){
   const tests=flatten(CATS);
   if(!tests.length){alert('لا توجد حالات نشطة. أضِف حالات من الإعدادات.');return;}
-  app.ctx.run={employee:'',date:today(),asana:'',reason:'',tests,results:tests.map(()=>({qIndex:null,customText:'',result:null,notes:'',convId:'',modeResults:{}})),step:0};
+  app.ctx.run={employee:'',date:today(),asana:'',reason:'',model:'',tests,results:tests.map(()=>({qIndex:null,customText:'',result:null,notes:'',convId:'',modeResults:{}})),step:0};
   app.ctx.draftIndex=null;app.sub='intro';render();window.scrollTo(0,0);
 }
 function smokeResume(i){app.ctx.run=clone(DRAFTS[i]);app.ctx.draftIndex=i;app.sub='test';render();window.scrollTo(0,0);}
@@ -959,6 +964,13 @@ function smokeIntro(){
     </div>
     <div class="field"><label>رابط أسانا (Asana)</label><input id="f_as" value="${esc(r.asana)}" placeholder="https://app.asana.com/..."></div>
     <div class="field"><label>سبب الاختبار</label><textarea id="f_rs" placeholder="مثال: التحقق بعد تحديث نموذج الاسترجاع">${esc(r.reason)}</textarea></div>
+    <div class="field"><label>المودل المُختبَر</label>
+      <select id="f_model" ${MODELS.length?'':'disabled'}>
+        <option value="">${MODELS.length?'اختر المودل':'لا توجد نماذج مضافة بعد'}</option>
+        ${MODELS.map(m=>`<option value="${esc(m)}" ${r.model===m?'selected':''}>${esc(m)}</option>`).join('')}
+      </select>
+      ${MODELS.length?'':'<div class="muted-note" style="margin-top:6px;">أضِف نماذج من الإعدادات ← عام قبل بدء الاختبار.</div>'}
+    </div>
     <div class="warnmsg" id="w">اكتب اسم الموظف على الأقل للبدء.</div>
     <div class="nav-btns"><button class="btn btn-ghost" id="cancel">إلغاء</button><button class="btn btn-primary" id="start">بدء الاختبار ←</button></div>
   </div>`;
@@ -966,7 +978,9 @@ function smokeIntro(){
   document.getElementById('start').onclick=()=>{
     r.employee=document.getElementById('f_emp').value.trim();r.date=document.getElementById('f_dt').value||today();
     r.asana=document.getElementById('f_as').value.trim();r.reason=document.getElementById('f_rs').value.trim();
+    r.model=document.getElementById('f_model').value;
     if(!r.employee){document.getElementById('w').classList.add('show');return;}
+    if(MODELS.length&&!r.model){const w=document.getElementById('w');w.textContent='اختر المودل المُختبَر أولًا.';w.classList.add('show');return;}
     r.step=0;app.sub='test';render();window.scrollTo(0,0);
   };
 }
@@ -1083,6 +1097,7 @@ function buildSummaryText(run){
   const passed=run.results.filter(r=>r.result==='pass').length,failed=run.results.filter(r=>r.result==='fail').length;
   const overall=failed===0?'مجتاز بالكامل':`يوجد ${failed} حالة لم تجتَز`;
   let L=['📋 تقرير اختبار الدخان — منصة مِعيار',`${SETTINGS.team} — ${SETTINGS.product}`,'———————————————',`الموظف: ${run.employee}`,`التاريخ: ${run.date}`];
+  if(run.model)L.push(`المودل: ${run.model}`);
   if(run.reason)L.push(`سبب الاختبار: ${run.reason}`);
   if(run.asana)L.push(`أسانا: ${run.asana}`);
   L.push(`النتيجة: ${overall}  (مجتاز ${passed} / غير مجتاز ${failed} من ${run.tests.length})`,'———————————————');
@@ -1117,6 +1132,7 @@ function smokeReview(){
     </div>
     <div style="margin-top:14px;font-size:13.5px;color:var(--muted);">
       <b style="color:var(--ink-2)">الموظف:</b> ${esc(run.employee)} • <b style="color:var(--ink-2)">التاريخ:</b> ${esc(run.date)}
+      ${run.model?` • <b style="color:var(--ink-2)">المودل:</b> ${esc(run.model)}`:''}
       ${run.asana?` • <b style="color:var(--ink-2)">أسانا:</b> <a href="${esc(run.asana)}" target="_blank" style="color:var(--brand);">رابط المهمة</a>`:''}
       ${run.reason?` • <b style="color:var(--ink-2)">السبب:</b> ${esc(run.reason)}`:''}
       • <b style="color:var(--ink-2)">النتيجة:</b> ${esc(overall)}
@@ -1128,7 +1144,7 @@ function smokeReview(){
     </div>
   </div>`;
   document.getElementById('back').onclick=()=>{app.sub='test';run.step=run.tests.length-1;render();window.scrollTo(0,0);};
-  const persist=()=>{if(!app.ctx._saved){const saved={employee:run.employee,date:run.date,asana:run.asana,reason:run.reason,savedAt:new Date().toISOString(),tests:clone(run.tests),results:clone(run.results),passed,failed};RUNS.unshift(saved);save(K.runs,RUNS);if(app.ctx.draftIndex!=null){DRAFTS.splice(app.ctx.draftIndex,1);save(K.drafts,DRAFTS);app.ctx.draftIndex=null;}app.ctx._saved=saved;toast('تم حفظ الاختبار');}return app.ctx._saved;};
+  const persist=()=>{if(!app.ctx._saved){const saved={employee:run.employee,date:run.date,asana:run.asana,reason:run.reason,model:run.model,savedAt:new Date().toISOString(),tests:clone(run.tests),results:clone(run.results),passed,failed};RUNS.unshift(saved);save(K.runs,RUNS);if(app.ctx.draftIndex!=null){DRAFTS.splice(app.ctx.draftIndex,1);save(K.drafts,DRAFTS);app.ctx.draftIndex=null;}app.ctx._saved=saved;toast('تم حفظ الاختبار');}return app.ctx._saved;};
   document.getElementById('copySum').onclick=()=>{const s=persist();copyText(buildSummaryText(s));toast('تم نسخ ملخّص الاختبار');};
   document.getElementById('share').onclick=async()=>{const s=persist();await shareRun(s);setTimeout(()=>{app.sub=null;app.ctx={};render();window.scrollTo(0,0);},600);};
 }
@@ -1150,6 +1166,7 @@ function renderSmokeRunView(){
     </div>
     <div style="margin-top:14px;font-size:13.5px;color:var(--muted);">
       <b style="color:var(--ink-2)">الموظف:</b> ${esc(run.employee)} • <b style="color:var(--ink-2)">التاريخ:</b> ${esc(run.date)}
+      ${run.model?` • <b style="color:var(--ink-2)">المودل:</b> ${esc(run.model)}`:''}
       ${run.asana?` • <b style="color:var(--ink-2)">أسانا:</b> <a href="${esc(run.asana)}" target="_blank" style="color:var(--brand);">رابط المهمة</a>`:''}
       ${run.reason?` • <b style="color:var(--ink-2)">السبب:</b> ${esc(run.reason)}`:''}
       • <b style="color:var(--ink-2)">النتيجة:</b> ${esc(overall)}
@@ -1548,9 +1565,7 @@ function renderUpdatesRouter(){
   else renderUpdates();
 }
 function updatesRunRow(r,i){
-  const passed=r.rows.filter(x=>x.result==='pass').length,failed=r.rows.filter(x=>x.result==='fail').length;
-  const badge=failed===0?`<span class="badge pass">مجتاز بالكامل</span>`:`<span class="badge fail">${failed} لم تجتَز</span>`;
-  return `<div class="lrow"><div class="ri"><div class="t">${esc(r.employee||'—')}</div><div class="m">${esc(r.date)} • ${r.rows.length} اختبار • مجتاز ${passed} / غير مجتاز ${failed}</div></div>${badge}<button class="btn btn-ghost btn-sm" data-viewupd="${i}"><svg class="icon"><use href="#ic-external-link"/></svg> استعراض</button><button class="iconbtn" data-editupd="${i}"><svg class="icon"><use href="#ic-pencil"/></svg></button><button class="iconbtn del" data-delupd="${i}"><svg class="icon"><use href="#ic-trash"/></svg></button></div>`;
+  return `<div class="lrow"><div class="ri"><div class="t">${esc(r.employee||'—')}</div><div class="m">${esc(r.date)}${r.updatesWeek?' • أسبوع '+esc(r.updatesWeek):''} • ${r.rows.length} حالة</div></div><button class="btn btn-ghost btn-sm" data-viewupd="${i}"><svg class="icon"><use href="#ic-external-link"/></svg> استعراض</button><button class="iconbtn" data-editupd="${i}"><svg class="icon"><use href="#ic-pencil"/></svg></button><button class="iconbtn del" data-delupd="${i}"><svg class="icon"><use href="#ic-trash"/></svg></button></div>`;
 }
 function renderUpdates(){
   const listHtml=UPDATES_RUNS.length?UPDATES_RUNS.map((r,i)=>updatesRunRow(r,i)).join(''):`<div class="empty">لا توجد تقارير متابعة بعد.</div>`;
@@ -1575,29 +1590,21 @@ function renderUpdates(){
   screen.querySelectorAll('[data-delupd]').forEach(b=>b.onclick=()=>{if(confirm('حذف هذا التقرير؟')){UPDATES_RUNS.splice(+b.dataset.delupd,1);save(K.updatesRuns,UPDATES_RUNS);render();}});
   bindEditable();
 }
-function updatesStart(){app.ctx.updatesDraft={employee:'',date:today(),rows:[newUpdatesRow()],generalRecs:'',editId:null};app.sub='updatesForm';render();window.scrollTo(0,0);}
-function updatesEditRun(i){const r=UPDATES_RUNS[i];app.ctx.updatesDraft={employee:r.employee,date:r.date,rows:clone(r.rows),generalRecs:r.generalRecs||'',editId:r.id};app.sub='updatesForm';render();window.scrollTo(0,0);}
+function updatesStart(){app.ctx.updatesDraft={employee:'',date:today(),updatesWeek:'',rows:[newUpdatesRow()],editId:null};app.sub='updatesForm';render();window.scrollTo(0,0);}
+function updatesEditRun(i){const r=UPDATES_RUNS[i];app.ctx.updatesDraft={employee:r.employee,date:r.date,updatesWeek:r.updatesWeek||'',rows:clone(r.rows),editId:r.id};app.sub='updatesForm';render();window.scrollTo(0,0);}
 function updatesViewRun(i){app.ctx.updatesViewIndex=i;app.sub='updatesView';render();window.scrollTo(0,0);}
 function updatesRowCard(row,i,total){
   const typePills=UPDATES_CHECK_TYPES.map(o=>`<button class="optpill ${row.checkType===o?'on':''}" data-utype="${i}|${esc(o)}">${esc(o)}</button>`).join('');
   return `<div class="subacc open" data-urow="${i}">
-    <div class="head"><span class="title" style="font-size:13.5px;">اختبار ${i+1}${row.result?' — '+(row.result==='pass'?'مجتاز':'غير مجتاز'):''}</span><span class="sub-c" style="margin-inline-start:auto;">${esc(row.checkType)}</span></div>
+    <div class="head"><span class="title" style="font-size:13.5px;">اختبار ${i+1}</span><span class="sub-c" style="margin-inline-start:auto;">${esc(row.checkType)}</span></div>
     <div class="body">
       <div class="lbl-sm">نوع التحقق</div>
       <div class="optpills">${typePills}</div>
-      <div class="lbl-sm">صيغة السؤال</div><textarea data-uf="${i}|questionForm" placeholder="صيغة السؤال المستخدم">${esc(row.questionForm)}</textarea>
+      <div class="lbl-sm">صيغة السؤال</div><textarea class="upd-box" data-uf="${i}|questionForm" placeholder="صيغة السؤال المستخدم">${esc(row.questionForm)}</textarea>
       <div class="lbl-sm">معرّف السؤال</div><input data-uf="${i}|questionId" placeholder="معرّف السؤال أو المحادثة" value="${esc(row.questionId)}">
-      <div class="lbl-sm">إجابة الذكاء الاصطناعي</div><textarea data-uf="${i}|aiAnswer" placeholder="الصق إجابة الذكاء الاصطناعي هنا">${esc(row.aiAnswer)}</textarea>
-      <div class="lbl-sm">نتيجة الاختبار</div>
-      <div class="verdict">
-        <button class="vbtn pass ${row.result==='pass'?'on':''}" data-uv="${i}|pass"><span class="mk"><svg class="icon"><use href="#ic-check"/></svg></span> مجتاز</button>
-        <button class="vbtn fail ${row.result==='fail'?'on':''}" data-uv="${i}|fail"><span class="mk"><svg class="icon"><use href="#ic-x"/></svg></span> غير مجتاز</button>
-      </div>
-      <div class="notes-block ${row.result==='fail'?'show':''}">
-        <label>وصف المشكلة</label>
-        <textarea class="notes" data-uf="${i}|issueDesc" placeholder="صف المشكلة: سبب عدم الوصول أو عدم الفهم">${esc(row.issueDesc)}</textarea>
-      </div>
-      <div class="lbl-sm">التوصية</div><textarea data-uf="${i}|recommendation" placeholder="التوصية المقترحة لحل المشكلة">${esc(row.recommendation)}</textarea>
+      <div class="lbl-sm">إجابة الذكاء الاصطناعي</div><textarea class="upd-box" data-uf="${i}|aiAnswer" placeholder="الصق إجابة الذكاء الاصطناعي هنا">${esc(row.aiAnswer)}</textarea>
+      <div class="lbl-sm">وصف المشكلة</div><textarea class="upd-box" data-uf="${i}|issueDesc" placeholder="صف المشكلة: سبب عدم الوصول أو عدم الفهم">${esc(row.issueDesc)}</textarea>
+      <div class="lbl-sm">التوصية</div><textarea class="upd-box" data-uf="${i}|recommendation" placeholder="التوصية المقترحة لحل المشكلة">${esc(row.recommendation)}</textarea>
       <div class="row" style="margin-top:10px;"><button class="iconbtn del" data-delurow="${i}" ${total<=1?'disabled':''}><svg class="icon"><use href="#ic-trash"/></svg> حذف الاختبار</button></div>
     </div></div>`;
 }
@@ -1611,6 +1618,7 @@ function renderUpdatesForm(){
       <div class="field"><label>اسم الموظف</label><input id="u_emp" value="${esc(d.employee)}" placeholder="الاسم الكامل"></div>
       <div class="field"><label>تاريخ التقرير</label><input id="u_dt" type="date" value="${esc(d.date)}"></div>
     </div>
+    <div class="field"><label>أسبوع التحديثات</label><input id="u_week" value="${esc(d.updatesWeek)}" placeholder="مثال: من 2026-07-13 إلى 2026-07-19"></div>
   </div>
   <div class="card">
     <div class="toolbar" style="justify-content:space-between;">
@@ -1618,10 +1626,6 @@ function renderUpdatesForm(){
       <button class="btn btn-ghost btn-sm" id="addUrow"><svg class="icon"><use href="#ic-plus"/></svg> إضافة اختبار</button>
     </div>
     ${rowsHtml}
-  </div>
-  <div class="card">
-    <h2 class="h2" data-edit-key="updates.form.recTitle">${esc(t('updates.form.recTitle','التوصيات العامة'))}</h2>
-    <div class="field"><textarea id="u_genrec" placeholder="التوصيات العامة المتعلقة بتطوير المنتج">${esc(d.generalRecs)}</textarea></div>
     <div class="warnmsg" id="uWarn"></div>
     <div class="nav-btns"><button class="btn btn-ghost" id="uCancel">إلغاء</button><button class="btn btn-primary" id="uSave"><svg class="icon"><use href="#ic-save"/></svg> حفظ التقرير</button></div>
   </div>`;
@@ -1632,28 +1636,27 @@ function bindUpdatesForm(){
   const d=app.ctx.updatesDraft;
   document.getElementById('u_emp').oninput=e=>d.employee=e.target.value;
   document.getElementById('u_dt').oninput=e=>d.date=e.target.value;
+  document.getElementById('u_week').oninput=e=>d.updatesWeek=e.target.value;
   screen.querySelectorAll('[data-uf]').forEach(el=>el.oninput=e=>{const[i,f]=el.dataset.uf.split('|');d.rows[+i][f]=e.target.value;});
   screen.querySelectorAll('[data-utype]').forEach(b=>b.onclick=()=>{const[i,val]=b.dataset.utype.split('|');d.rows[+i].checkType=val;renderUpdatesForm();});
-  screen.querySelectorAll('[data-uv]').forEach(b=>b.onclick=()=>{const[i,val]=b.dataset.uv.split('|');d.rows[+i].result=val;renderUpdatesForm();});
   screen.querySelectorAll('[data-delurow]').forEach(b=>b.onclick=()=>{const i=+b.dataset.delurow;if(d.rows.length<=1)return;if(confirm('حذف هذا الاختبار من التقرير؟')){d.rows.splice(i,1);renderUpdatesForm();}});
   document.getElementById('addUrow').onclick=()=>{
     d.rows.push(newUpdatesRow());renderUpdatesForm();
     const last=screen.querySelector(`[data-urow="${d.rows.length-1}"]`);
     if(last)last.scrollIntoView({behavior:'smooth',block:'center'});
   };
-  document.getElementById('u_genrec').oninput=e=>d.generalRecs=e.target.value;
   document.getElementById('uCancel').onclick=()=>{app.sub=null;app.ctx.updatesDraft=null;render();};
   document.getElementById('uSave').onclick=()=>{
     const w=document.getElementById('uWarn');
     if(!d.employee.trim()){w.textContent='اكتب اسم الموظف على الأقل للحفظ.';w.classList.add('show');return;}
-    if(d.rows.some(r=>!r.questionForm.trim()||!r.result)){w.textContent='أكمل صيغة السؤال ونتيجة كل اختبار قبل الحفظ.';w.classList.add('show');return;}
-    if(d.rows.some(r=>r.result==='fail'&&!r.issueDesc.trim())){w.textContent='وصف المشكلة إلزامي لكل اختبار غير مجتاز.';w.classList.add('show');return;}
+    if(!d.updatesWeek.trim()){w.textContent='حدّد أسبوع التحديثات قبل الحفظ.';w.classList.add('show');return;}
+    if(d.rows.some(r=>!r.questionForm.trim()||!r.issueDesc.trim()||!r.recommendation.trim())){w.textContent='أكمل صيغة السؤال ووصف المشكلة والتوصية لكل اختبار قبل الحفظ.';w.classList.add('show');return;}
     const rows=clone(d.rows);
     if(d.editId){
       const idx=UPDATES_RUNS.findIndex(x=>x.id===d.editId);
-      if(idx>-1)UPDATES_RUNS[idx]={...UPDATES_RUNS[idx],employee:d.employee.trim(),date:d.date,rows,generalRecs:d.generalRecs.trim()};
+      if(idx>-1)UPDATES_RUNS[idx]={...UPDATES_RUNS[idx],employee:d.employee.trim(),date:d.date,updatesWeek:d.updatesWeek.trim(),rows};
     }else{
-      UPDATES_RUNS.unshift({id:'u'+Date.now()+Math.random().toString(36).slice(2,7),employee:d.employee.trim(),date:d.date,rows,generalRecs:d.generalRecs.trim(),createdAt:new Date().toISOString()});
+      UPDATES_RUNS.unshift({id:'u'+Date.now()+Math.random().toString(36).slice(2,7),employee:d.employee.trim(),date:d.date,updatesWeek:d.updatesWeek.trim(),rows,createdAt:new Date().toISOString()});
     }
     save(K.updatesRuns,UPDATES_RUNS);
     app.ctx.updatesDraft=null;app.sub=null;toast('تم حفظ التقرير');render();
@@ -1663,27 +1666,22 @@ function renderUpdatesRunView(){
   const i=app.ctx.updatesViewIndex,run=UPDATES_RUNS[i];
   if(!run){app.sub=null;render();return;}
   setCrumb('استعراض التقرير');
-  const passed=run.rows.filter(r=>r.result==='pass').length,failed=run.rows.filter(r=>r.result==='fail').length;
-  const bodyRows=run.rows.map((r,ri)=>`<tr class="${r.result==='fail'?'diff':''}">
+  const bodyRows=run.rows.map((r,ri)=>`<tr>
     <td>${ri+1}</td>
     <td class="rowlabel">${esc(r.checkType)}</td>
     <td style="white-space:normal;min-width:200px;">${esc(r.questionForm)}</td>
     <td>${esc(r.questionId||'—')}</td>
     <td style="white-space:normal;min-width:200px;">${esc(r.aiAnswer||'—')}</td>
-    <td><span class="badge ${r.result==='pass'?'pass':'fail'}">${r.result==='pass'?'مجتاز':'غير مجتاز'}</span></td>
     <td style="white-space:normal;min-width:160px;">${esc(r.issueDesc||'—')}</td>
     <td style="white-space:normal;min-width:160px;">${esc(r.recommendation||'—')}</td>
   </tr>`).join('');
   screen.innerHTML=`<div class="card">
     <div class="eyebrow">استعراض تقرير سابق</div><h1 class="h1" style="margin-bottom:4px;">تقرير متابعة التحديثات</h1>
-    <div class="stat-row" style="grid-template-columns:repeat(3,1fr);margin-top:14px;">
+    <div class="stat-row" style="grid-template-columns:repeat(1,1fr);max-width:220px;margin-top:14px;">
       <div class="stat"><div class="n">${run.rows.length}</div><div class="l">إجمالي الاختبارات</div></div>
-      <div class="stat"><div class="n" style="color:var(--pass);">${passed}</div><div class="l">مجتاز</div></div>
-      <div class="stat"><div class="n" style="color:var(--fail);">${failed}</div><div class="l">غير مجتاز</div></div>
     </div>
-    <div style="margin-top:14px;font-size:13.5px;color:var(--muted);"><b style="color:var(--ink-2)">الموظف:</b> ${esc(run.employee)} • <b style="color:var(--ink-2)">التاريخ:</b> ${esc(run.date)}</div>
-    <div class="cmpwrap"><table class="cmptable"><thead><tr><th>م</th><th>نوع التحقق</th><th>صيغة السؤال</th><th>معرّف السؤال</th><th>إجابة الذكاء الاصطناعي</th><th>النتيجة</th><th>وصف المشكلة</th><th>التوصية</th></tr></thead><tbody>${bodyRows}</tbody></table></div>
-    ${run.generalRecs?`<div class="criteria-box"><span class="lbl">التوصيات العامة</span>${esc(run.generalRecs)}</div>`:''}
+    <div style="margin-top:14px;font-size:13.5px;color:var(--muted);"><b style="color:var(--ink-2)">الموظف:</b> ${esc(run.employee)} • <b style="color:var(--ink-2)">التاريخ:</b> ${esc(run.date)}${run.updatesWeek?` • <b style="color:var(--ink-2)">أسبوع التحديثات:</b> ${esc(run.updatesWeek)}`:''}</div>
+    <div class="cmpwrap"><table class="cmptable"><thead><tr><th>م</th><th>نوع التحقق</th><th>صيغة السؤال</th><th>معرّف السؤال</th><th>إجابة الذكاء الاصطناعي</th><th>وصف المشكلة</th><th>التوصية</th></tr></thead><tbody>${bodyRows}</tbody></table></div>
     <div class="nav-btns">
       <button class="btn btn-ghost" id="back">→ رجوع</button>
       <div class="row"><button class="btn btn-ghost" id="editThis"><svg class="icon"><use href="#ic-pencil"/></svg> تعديل</button><button class="btn btn-danger" id="delThis"><svg class="icon"><use href="#ic-trash"/></svg> حذف</button></div>
@@ -1696,19 +1694,20 @@ function renderUpdatesRunView(){
 
 /* ===== الإعدادات (٦ تبويبات) ===== */
 let adminCats=null;
-const SETTABS=[['cases','اختبار الدخان',false],['comp','تحليل المنافسين',false],['bank','بنك الأسئلة',false],['users','إدارة المستخدمين',false],['files','الملفات المساندة',true],['general','عام',true]];
+const SETTABS=[['cases','اختبار الدخان',false],['comp','تحليل المنافسين',false],['bank','بنك الأسئلة',false],['users','إدارة المستخدمين',false],['files','الملفات المساندة',true],['general','عام',false]];
 function renderSettings(){
   const tab=app.ctx.settingsTab||'cases';
   const tabsHtml=SETTABS.map(([k,l,soon])=>`<button class="tab ${tab===k?'on':''} ${soon?'soon':''}" ${soon?'':`data-tab="${k}"`}>${l}${soon?' · قريبًا':''}</button>`).join('');
-  let body= tab==='cases'?settingsCases(): tab==='bank'?settingsBank(): tab==='comp'?settingsComp(): tab==='users'?settingsUsers():`<div class="card"><div class="empty">هذا القسم سيُفعّل مع إطلاق المنتج المقابل.</div></div>`;
+  let body= tab==='cases'?settingsCases(): tab==='bank'?settingsBank(): tab==='comp'?settingsComp(): tab==='users'?settingsUsers(): tab==='general'?settingsGeneral():`<div class="card"><div class="empty">هذا القسم سيُفعّل مع إطلاق المنتج المقابل.</div></div>`;
   screen.innerHTML=`<div class="card"><div class="eyebrow" data-edit-key="settings.eyebrow">${esc(t('settings.eyebrow','الإعدادات'))}</div><h1 class="h1" data-edit-key="settings.title">${esc(t('settings.title','الإعدادات'))}</h1>
-    <p class="sub" data-edit-key="settings.sub">${esc(t('settings.sub','لكل منتج قسم خاص. المتاح الآن: تحرير فئات وحالات اختبار الدخان، وبنك الأسئلة، ومعايير تحليل المنافسين.'))}</p>
+    <p class="sub" data-edit-key="settings.sub">${esc(t('settings.sub','لكل منتج قسم خاص. المتاح الآن: تحرير فئات وحالات اختبار الدخان، وبنك الأسئلة، ومعايير تحليل المنافسين، ونماذج الذكاء الاصطناعي المتاحة للاختبار.'))}</p>
     <div class="tabbar" style="margin-top:14px;">${tabsHtml}</div></div>${body}`;
   screen.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{app.ctx.settingsTab=b.dataset.tab;render();});
   if(tab==='cases') bindCases();
   if(tab==='bank') bindBank();
   if(tab==='comp') bindComp();
   if(tab==='users') bindUsers();
+  if(tab==='general') bindGeneral();
 }
 
 let ALLOWED_USERS=null;
@@ -2024,6 +2023,41 @@ function bindComp(){
   if(document.getElementById('addCcat'))document.getElementById('addCcat').onclick=()=>{p.cats=p.cats||[];p.cats.forEach(c=>c._open=false);p.cats.push({title:'فئة جديدة',color:'law',items:[],_open:true});re();};
   document.getElementById('saveComp2').onclick=()=>{persistComp();adminComp=null;toast('تم حفظ التغييرات');go('dashboard');};
   document.getElementById('resetComp').onclick=()=>{if(confirm('استعادة قائمة معايير تحليل المنافسين إلى القيم الافتراضية؟ لن يتأثر السجل المحفوظ للتحليلات السابقة.')){COMP_DEFS=clone(DEF_COMP);save(K.comp,COMP_DEFS);adminComp=null;toast('تمت استعادة القيم الافتراضية');re();}};
+}
+
+/* ===== إدارة نماذج الذكاء الاصطناعي ===== */
+function settingsGeneral(){
+  const rows=MODELS.map((m,mi)=>`<span class="chip" style="display:flex;gap:6px;align-items:center;padding-inline-end:6px;">
+    <input data-modelname="${mi}" value="${esc(m)}" style="border:none;background:transparent;width:${Math.max(6,m.length)}ch;color:inherit;font:inherit;padding:0;">
+    <button class="iconbtn del" data-delmodel="${mi}" style="width:20px;height:20px;padding:0;display:grid;place-items:center;"><svg class="icon" style="width:12px;height:12px;"><use href="#ic-x"/></svg></button>
+  </span>`).join('');
+  return `<div class="card">
+    <h2 class="h2" style="margin:0;">نماذج الذكاء الاصطناعي</h2>
+    <p class="sub" style="margin-top:8px;">أضِف هنا أسماء النماذج المتاحة للاختبار. تظهر هذه القائمة كخيارات عند بدء اختبار دخان جديد ليختار الموظف النموذج الذي يختبره.</p>
+    <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:14px;">
+      ${rows||'<div class="muted-note">لا نماذج بعد.</div>'}
+      <button class="iconbtn" id="addModel"><svg class="icon"><use href="#ic-plus"/></svg> نموذج جديد</button>
+    </div>
+  </div>`;
+}
+function bindGeneral(){
+  const re=()=>renderSettings();
+  screen.querySelectorAll('[data-modelname]').forEach(el=>{el.onblur=e=>{
+    const i=+el.dataset.modelname;const oldName=MODELS[i];const newName=e.target.value.trim();
+    if(!newName){MODELS.splice(i,1);saveModels();toast('تم حذف النموذج');re();return;}
+    if(newName===oldName)return;
+    if(MODELS.includes(newName)){toast('النموذج موجود مسبقًا');e.target.value=oldName;return;}
+    MODELS[i]=newName;saveModels();toast('تم تعديل الاسم');re();
+  };});
+  screen.querySelectorAll('[data-delmodel]').forEach(b=>b.onclick=()=>{
+    const i=+b.dataset.delmodel;
+    if(!confirm(`حذف النموذج "${MODELS[i]}"؟`))return;
+    MODELS.splice(i,1);saveModels();toast('تم حذف النموذج');re();
+  });
+  document.getElementById('addModel').onclick=()=>{
+    let name='نموذج جديد',n=1;while(MODELS.includes(name)){n++;name=`نموذج جديد ${n}`;}
+    MODELS.push(name);saveModels();re();
+  };
 }
 
 /* ===== الجوال والثيم ===== */
