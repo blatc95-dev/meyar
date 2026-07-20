@@ -339,14 +339,23 @@
 </defs>
 </svg>
 <div class="auth-gate" id="authGate">
-  <div class="auth-card">
+  <div class="auth-card" id="loginCard">
     <img class="logo-light" src="assets/logos/logo-color-mark.svg" alt="" width="32" height="40">
     <img class="logo-dark" src="assets/logos/logo-white-mark.svg" alt="" width="32" height="40">
     <h1>مِعيار</h1>
-    <p>سجّل دخولك بإيميل فريق العمل لمتابعة العمل على البيانات المشتركة.</p>
+    <p>سجّل دخولك ببيانات حسابك اللي أعطاك إياها مسؤول الفريق.</p>
     <input type="email" id="authEmail" placeholder="name@qanoniah.com" autocomplete="email">
-    <button class="btn btn-primary" id="authSend">إرسال رابط الدخول</button>
+    <input type="password" id="authPassword" placeholder="كلمة المرور" autocomplete="current-password">
+    <button class="btn btn-primary" id="authSend">تسجيل الدخول</button>
     <p class="auth-note" id="authNote"></p>
+  </div>
+  <div class="auth-card" id="resetCard" style="display:none;margin-top:16px;">
+    <h1 style="font-size:15px;">غيّر كلمة المرور</h1>
+    <p>هذا أول تسجيل دخول لك — اختر كلمة مرور جديدة خاصة بك (٦ أحرف على الأقل).</p>
+    <input type="password" id="resetPassword1" placeholder="كلمة المرور الجديدة" autocomplete="new-password">
+    <input type="password" id="resetPassword2" placeholder="تأكيد كلمة المرور" autocomplete="new-password">
+    <button class="btn btn-primary" id="resetSend">حفظ كلمة المرور والمتابعة</button>
+    <p class="auth-note" id="resetNote"></p>
   </div>
 </div>
 <div class="layout" id="layoutRoot" style="display:none;">
@@ -403,25 +412,46 @@ let CURRENT_USER_EMAIL=null;
 let cloudSyncBroken=false;
 
 function setAuthNote(msg,cls){const n=document.getElementById('authNote');if(!n)return;n.textContent=msg||'';n.className='auth-note'+(cls?' '+cls:'');}
+function setResetNote(msg,cls){const n=document.getElementById('resetNote');if(!n)return;n.textContent=msg||'';n.className='auth-note'+(cls?' '+cls:'');}
 function showAuthGate(){document.getElementById('authGate').style.display='flex';document.getElementById('layoutRoot').style.display='none';}
 function hideAuthGate(){document.getElementById('authGate').style.display='none';document.getElementById('layoutRoot').style.display='flex';}
+function showResetCard(){document.getElementById('loginCard').style.display='none';document.getElementById('resetCard').style.display='block';}
 
-document.getElementById('authSend').onclick=async()=>{
-  const btn=document.getElementById('authSend');
-  const email=document.getElementById('authEmail').value.trim();
-  if(!email){setAuthNote('أدخل الإيميل أولاً','err');return;}
-  btn.disabled=true;
-  const{error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.href}});
-  btn.disabled=false;
-  setAuthNote(error?'حدث خطأ، حاول مرة أخرى':'تم إرسال رابط الدخول إلى بريدك — افتحه من نفس الجهاز',error?'err':'ok');
-};
-
-async function waitForSession(){
-  const{data:{session}}=await sb.auth.getSession();
-  if(session)return session;
+async function waitForLogin(){
+  const{data:{session:existing}}=await sb.auth.getSession();
+  if(existing)return existing;
   showAuthGate();
   return new Promise(resolve=>{
-    const{data:sub}=sb.auth.onAuthStateChange((event,session)=>{if(session){sub.subscription.unsubscribe();resolve(session);}});
+    document.getElementById('authSend').onclick=async()=>{
+      const btn=document.getElementById('authSend');
+      const email=document.getElementById('authEmail').value.trim();
+      const password=document.getElementById('authPassword').value;
+      if(!email||!password){setAuthNote('أدخل الإيميل وكلمة المرور','err');return;}
+      btn.disabled=true;
+      const{data,error}=await sb.auth.signInWithPassword({email,password});
+      btn.disabled=false;
+      if(error){setAuthNote('بيانات الدخول غير صحيحة، حاول مرة أخرى','err');return;}
+      resolve(data.session);
+    };
+  });
+}
+
+async function runPasswordResetIfNeeded(mustReset){
+  if(!mustReset)return;
+  showResetCard();
+  await new Promise(resolve=>{
+    document.getElementById('resetSend').onclick=async()=>{
+      const btn=document.getElementById('resetSend');
+      const p1=document.getElementById('resetPassword1').value;
+      const p2=document.getElementById('resetPassword2').value;
+      if(p1.length<6){setResetNote('كلمة المرور لازم تكون ٦ أحرف على الأقل','err');return;}
+      if(p1!==p2){setResetNote('كلمتا المرور غير متطابقتين','err');return;}
+      btn.disabled=true;
+      const{error}=await sb.auth.updateUser({password:p1});
+      if(error){btn.disabled=false;setResetNote('تعذّر حفظ كلمة المرور، حاول مرة أخرى','err');return;}
+      await sb.rpc('mark_password_reset_done');
+      resolve();
+    };
   });
 }
 
@@ -436,16 +466,26 @@ function cloudSave(key,value,isRetry){
 
 let IS_ADMIN=false;
 
-const session=await waitForSession();
+const session=await waitForLogin();
 CURRENT_USER_EMAIL=session.user.email;
+
+let myRow=null;
+try{
+  const{data}=await sb.from('allowed_emails').select('role,active,must_reset_password').eq('email',CURRENT_USER_EMAIL).maybeSingle();
+  myRow=data;
+}catch(e){}
+
+if(!myRow||myRow.active===false){
+  await sb.auth.signOut();
+  setAuthNote('هذا الحساب غير مفعّل، تواصل مع مسؤول الفريق','err');
+  throw new Error('access denied');
+}
+
+await runPasswordResetIfNeeded(myRow.must_reset_password);
+IS_ADMIN=myRow.role==='admin';
 hideAuthGate();
 document.getElementById('signedInLabel').textContent=CURRENT_USER_EMAIL;
 document.getElementById('signOutBtn').onclick=()=>sb.auth.signOut().then(()=>location.reload());
-
-try{
-  const{data:me}=await sb.from('allowed_emails').select('role').eq('email',CURRENT_USER_EMAIL).maybeSingle();
-  IS_ADMIN=me?.role==='admin';
-}catch(e){}
 
 try{
   const{data:rows,error}=await sb.from('kv_store').select('key,value');
@@ -1647,13 +1687,13 @@ function renderUpdatesRunView(){
   document.getElementById('delThis').onclick=()=>{if(confirm('حذف هذا التقرير؟')){UPDATES_RUNS.splice(i,1);save(K.updatesRuns,UPDATES_RUNS);app.sub=null;render();}};
 }
 
-/* ===== الإعدادات (٥ تبويبات) ===== */
+/* ===== الإعدادات (٦ تبويبات) ===== */
 let adminCats=null;
-const SETTABS=[['cases','اختبار الدخان',false],['comp','تحليل المنافسين',false],['bank','بنك الأسئلة',false],['files','الملفات المساندة',true],['general','عام',true]];
+const SETTABS=[['cases','اختبار الدخان',false],['comp','تحليل المنافسين',false],['bank','بنك الأسئلة',false],['users','إدارة المستخدمين',false],['files','الملفات المساندة',true],['general','عام',true]];
 function renderSettings(){
   const tab=app.ctx.settingsTab||'cases';
   const tabsHtml=SETTABS.map(([k,l,soon])=>`<button class="tab ${tab===k?'on':''} ${soon?'soon':''}" ${soon?'':`data-tab="${k}"`}>${l}${soon?' · قريبًا':''}</button>`).join('');
-  let body= tab==='cases'?settingsCases(): tab==='bank'?settingsBank(): tab==='comp'?settingsComp():`<div class="card"><div class="empty">هذا القسم سيُفعّل مع إطلاق المنتج المقابل.</div></div>`;
+  let body= tab==='cases'?settingsCases(): tab==='bank'?settingsBank(): tab==='comp'?settingsComp(): tab==='users'?settingsUsers():`<div class="card"><div class="empty">هذا القسم سيُفعّل مع إطلاق المنتج المقابل.</div></div>`;
   screen.innerHTML=`<div class="card"><div class="eyebrow" data-edit-key="settings.eyebrow">${esc(t('settings.eyebrow','الإعدادات'))}</div><h1 class="h1" data-edit-key="settings.title">${esc(t('settings.title','الإعدادات'))}</h1>
     <p class="sub" data-edit-key="settings.sub">${esc(t('settings.sub','لكل منتج قسم خاص. المتاح الآن: تحرير فئات وحالات اختبار الدخان، وبنك الأسئلة، ومعايير تحليل المنافسين.'))}</p>
     <div class="tabbar" style="margin-top:14px;">${tabsHtml}</div></div>${body}`;
@@ -1661,6 +1701,70 @@ function renderSettings(){
   if(tab==='cases') bindCases();
   if(tab==='bank') bindBank();
   if(tab==='comp') bindComp();
+  if(tab==='users') bindUsers();
+}
+
+let ALLOWED_USERS=null;
+async function loadAllowedUsers(){
+  const{data,error}=await sb.from('allowed_emails').select('email,role,active,must_reset_password').order('email');
+  ALLOWED_USERS=error?[]:data;
+  if(app.view==='settings'&&app.ctx.settingsTab==='users')render();
+}
+function settingsUsers(){
+  if(ALLOWED_USERS===null){loadAllowedUsers();return `<div class="card"><div class="empty">جاري التحميل...</div></div>`;}
+  const rows=ALLOWED_USERS.map(u=>{
+    const self=u.email===CURRENT_USER_EMAIL;
+    return `<tr>
+      <td>${esc(u.email)}${self?' <span class="muted-note">(أنت)</span>':''}</td>
+      <td><select data-urole="${esc(u.email)}" ${self?'disabled':''}><option value="member" ${u.role==='member'?'selected':''}>عضو</option><option value="admin" ${u.role==='admin'?'selected':''}>أدمن</option></select></td>
+      <td><button class="iconbtn ${u.active?'':'del'}" data-utoggle="${esc(u.email)}" ${self?'disabled':''}>${u.active?'إيقاف':'تفعيل'}</button></td>
+      <td>${u.must_reset_password?'بانتظار تغيير كلمة المرور':'—'}</td>
+      <td><button class="iconbtn del" data-udel="${esc(u.email)}" ${self?'disabled':''}><svg class="icon"><use href="#ic-trash"/></svg></button></td>
+    </tr>`;
+  }).join('');
+  return `<div class="card">
+    <div class="h2">إدارة المستخدمين</div>
+    <p class="sub">أضف هنا إيميل العضو ليصير له وصول للبيانات. الحساب الفعلي (إيميل + كلمة مرور مؤقتة) يُنشأ أولاً من لوحة تحكم Supabase.</p>
+    <div class="row" style="margin-top:14px;">
+      <input type="email" id="newUserEmail" placeholder="إيميل العضو الجديد" style="flex:1;min-width:220px;">
+      <select id="newUserRole"><option value="member">عضو</option><option value="admin">أدمن</option></select>
+      <button class="btn btn-primary btn-sm" id="addUserBtn">إضافة</button>
+    </div>
+    <table style="width:100%;margin-top:16px;border-collapse:collapse;">
+      <thead><tr><th>الإيميل</th><th>الدور</th><th>الحالة</th><th>كلمة المرور</th><th></th></tr></thead>
+      <tbody>${rows||'<tr><td colspan="5">لا يوجد مستخدمون بعد</td></tr>'}</tbody>
+    </table>
+  </div>`;
+}
+function bindUsers(){
+  if(!ALLOWED_USERS)return;
+  document.getElementById('addUserBtn').onclick=async()=>{
+    const email=document.getElementById('newUserEmail').value.trim();
+    const role=document.getElementById('newUserRole').value;
+    if(!email)return;
+    const{error}=await sb.from('allowed_emails').insert({email,role,must_reset_password:true,active:true});
+    if(error){toast('تعذّرت الإضافة: '+error.message);return;}
+    toast('أُضيف العضو — لا تنسَ إنشاء حسابه من لوحة Supabase (Authentication → Users → Add user)');
+    ALLOWED_USERS=null;render();
+  };
+  screen.querySelectorAll('[data-urole]').forEach(el=>el.onchange=async()=>{
+    const{error}=await sb.from('allowed_emails').update({role:el.value}).eq('email',el.dataset.urole);
+    toast(error?'تعذّر تحديث الدور':'تم تحديث الدور');
+  });
+  screen.querySelectorAll('[data-utoggle]').forEach(b=>b.onclick=async()=>{
+    const email=b.dataset.utoggle;
+    const u=ALLOWED_USERS.find(x=>x.email===email);
+    const{error}=await sb.from('allowed_emails').update({active:!u.active}).eq('email',email);
+    if(error){toast('تعذّر التحديث');return;}
+    ALLOWED_USERS=null;render();
+  });
+  screen.querySelectorAll('[data-udel]').forEach(b=>b.onclick=async()=>{
+    const email=b.dataset.udel;
+    if(!confirm(`حذف وصول ${email}؟`))return;
+    const{error}=await sb.from('allowed_emails').delete().eq('email',email);
+    if(error){toast('تعذّر الحذف');return;}
+    ALLOWED_USERS=null;render();
+  });
 }
 function settingsCases(){
   adminCats=adminCats||clone(CATS);
