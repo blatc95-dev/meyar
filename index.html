@@ -242,6 +242,12 @@
   .qline input{width:100%;border:1px solid var(--line-2);border-radius:9px;padding:6px 10px;font-size:12.5px;background:var(--card-2);color:var(--ink);}
   .qrow{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line-2);border-radius:10px;margin-top:8px;background:var(--card-2);}
   .qrow .qtext{flex:1;font-size:13.5px;color:var(--ink-2);}
+  .conv-flow{display:flex;flex-direction:column;}
+  .conv-msg,.conv-msg-edit{display:flex;align-items:flex-start;gap:10px;padding:9px 11px;border:1px solid var(--line-2);border-radius:9px;background:var(--card-2);}
+  .conv-num{flex:0 0 auto;width:22px;height:22px;border-radius:50%;background:var(--brand-2);color:#fff;font-size:11.5px;font-weight:700;display:grid;place-items:center;margin-top:1px;}
+  .conv-text{flex:1;font-size:13.5px;color:var(--ink-2);padding-top:2px;}
+  .conv-arrow{text-align:center;color:var(--muted);font-size:15px;line-height:1;padding:3px 0;}
+  .conv-msg-edit{align-items:flex-start;}
   .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
   .selbox{width:16px;height:16px;accent-color:var(--fail);}
   .tabbar{display:flex;gap:8px;flex-wrap:wrap;}
@@ -557,6 +563,7 @@ let DRAFTS=load(K.drafts,[]);
 /* ===== بنك الأسئلة ===== */
 const DEF_TAGS=['حالات السريان والإلغاء','القدرات التحليلية','قدرات الصياغة','الاستحضار وعدم الهلوسة','التحليل القضائي','شمول قاعدة البيانات','تعديلات المواد'];
 let TAGS=load(K.tags,DEF_TAGS);
+const FILE_TYPE_LABELS={word:'Word',pdf:'PDF'};
 const DEF_QBANK={
   general:{
     label:'الأسئلة العامة',
@@ -694,6 +701,18 @@ const DEF_QBANK={
       {title:'طلب معقد متعدد العناصر',tests:[{q:{ar:`أحتاج عقد مقاولة لإنشاء مبنى إداري من أربعة طوابق. قيمة المشروع 18 مليون ريال، ومدة التنفيذ 16 شهرًا. أريد أن يتضمن نطاق الأعمال، المواصفات الفنية، البرنامج الزمني، أوامر التغيير، التأمينات، الضمانات البنكية، غرامات التأخير، الاستلام الابتدائي والنهائي، مسؤولية المقاول عن العيوب، القوة القاهرة، فض المنازعات، مع الالتزام بالأنظمة السعودية وإدراج أي بنود نظامية جوهرية يجب ألا يخلو منها العقد.`,en:`I need a construction contract for a four-story administrative building. The project value is 18 million riyals, and the implementation period is 16 months. I want it to include the scope of work, technical specifications, the timeline, change orders, insurance, bank guarantees, delay penalties, provisional and final handover, the contractor's liability for defects, force majeure, dispute resolution, compliance with Saudi laws, and the inclusion of any essential statutory clauses the contract must not lack.`}}]},
     ],
   },
+  conversations:{
+    label:'سياق محادثة',
+    type:'conversation',
+    sub:'محادثات متسلسلة تحاكي تبادل الأسئلة الحقيقي مع المنتج ضمن سياق واحد، بدل سؤال وجواب منفصلين — كل سؤال يبني على ما قبله، ولكل محادثة معايير تحدد متى تُعتبر ناجحة بمجملها.',
+    cats:[{title:'كل المحادثات',tests:[]}],
+  },
+  fileUpload:{
+    label:'اختبار رفع الملفات',
+    type:'fileupload',
+    sub:'اختبارات ترفق ملفًا فعليًا (Word أو PDF) مع طلب مرافق، لفحص قدرة المنتج على قراءة الملف المرفوع وفهم محتواه والتعامل معه بدقة.',
+    cats:[{title:'كل الاختبارات',tests:[]}],
+  },
 };
 let QBANK=load(K.qbank,DEF_QBANK);
 
@@ -748,6 +767,11 @@ function compAllRuns(product){return COMP_RUNS[product]||[];}
 
 /* ===== نماذج الذكاء الاصطناعي (للاختبار) ===== */
 let MODELS=load(K.models,[]);
+if(MODELS.some(m=>typeof m==='string')){
+  MODELS=MODELS.map(m=>typeof m==='string'?{name:m,dateAdded:'',notes:'',versions:[]}:m);
+  save(K.models,MODELS);
+}
+let adminModels=null;
 function saveModels(){save(K.models,MODELS);}
 
 /* ===== متابعة التحديثات ===== */
@@ -881,7 +905,7 @@ function renderQBank(){
       <div class="field" style="margin-top:14px;margin-bottom:0;"><input id="bankSearch" placeholder="ابحث في الأسئلة..." value="${esc(app.ctx.bankSearch||'')}"></div>
     </div>
     <div id="bankResults"></div>`;
-  document.querySelectorAll('[data-bwin]').forEach(b=>b.onclick=()=>{app.ctx.bankWin=b.dataset.bwin;app.ctx.bankSearch='';app.ctx.bankTagFilter=[];render();});
+  document.querySelectorAll('[data-bwin]').forEach(b=>b.onclick=()=>{app.ctx.bankWin=b.dataset.bwin;app.ctx.bankSearch='';app.ctx.bankTagFilter=[];app.ctx.bankFileFilter=[];render();});
   document.querySelectorAll('[data-blang]').forEach(b=>b.onclick=()=>{app.ctx.bankLang=b.dataset.blang;render();});
   const s=document.getElementById('bankSearch');
   s.oninput=e=>{app.ctx.bankSearch=e.target.value;renderBankResults(win);};
@@ -918,6 +942,55 @@ function renderBankResults(win){
       </div>`;
     }).join('');
     document.getElementById('bankResults').innerHTML=`<div class="card"><p class="sub" data-edit-bank="${win}" style="margin:0;">${esc(w.sub)}</p>${tagbar}</div>${rows||'<div class="card" style="margin-top:12px;"><div class="empty">لا نتائج مطابقة.</div></div>'}`;
+  } else if(w.type==='conversation'){
+    const all=w.cats[0].tests;
+    const tests=all.filter(t=>{
+      if(!q) return true;
+      const hay=(t.title||'')+' '+(t.messages||[]).map(m=>bilingualText(m.q,lang)).join(' ');
+      return hay.toLowerCase().includes(q);
+    });
+    const rows=tests.map(t=>{
+      const ti=all.indexOf(t);
+      const msgs=(t.messages||[]).map((m,mi,arr)=>{
+        const arrow=mi<arr.length-1?`<div class="conv-arrow">↓</div>`:'';
+        return `<div class="conv-msg"><span class="conv-num">${mi+1}</span><span class="conv-text">${esc(bilingualText(m.q,lang))}</span></div>${arrow}`;
+      }).join('');
+      return `<div class="subacc ${t._open?'open':''}" data-bq="0|${ti}">
+        <div class="head"><span class="caret">▶</span><span class="title" style="font-size:13.5px;flex:1;font-weight:500;">${esc(t.title)||'محادثة '+(ti+1)}</span><span class="badge-n" style="margin-inline-start:8px;">${(t.messages||[]).length} سؤال</span>
+        <button class="copybtn" data-bcopyconv="0|${ti}" title="نسخ المحادثة كاملة"><svg class="icon"><use href="#ic-copy"/></svg></button></div>
+        <div class="body">
+          <div class="conv-flow">${msgs||'<div class="muted-note">لا أسئلة بعد.</div>'}</div>
+          <div class="criteria-box"><span class="lbl">معايير المحادثة الناجحة</span><p style="margin:0;">${esc(t.criteria)||'<span class="muted-note">لم تُحدَّد بعد.</span>'}</p></div>
+        </div>
+      </div>`;
+    }).join('');
+    document.getElementById('bankResults').innerHTML=`<div class="card"><p class="sub" data-edit-bank="${win}" style="margin:0;">${esc(w.sub)}</p></div>${rows||'<div class="card" style="margin-top:12px;"><div class="empty">لا نتائج مطابقة.</div></div>'}`;
+  } else if(w.type==='fileupload'){
+    const active=app.ctx.bankFileFilter||[];
+    const all=w.cats[0].tests;
+    const filterBar=`<div class="tabbar" style="margin-top:12px;">
+      <button class="tab ${!active.length?'on':''}" data-filef="__all__">الكل<span class="badge-n" style="margin-inline-start:8px;">${all.length}</span></button>
+      ${Object.keys(FILE_TYPE_LABELS).map(ft=>{const n=all.filter(t=>t.fileType===ft).length;return n?`<button class="tab ${active.includes(ft)?'on':''}" data-filef="${ft}">${esc(FILE_TYPE_LABELS[ft])}<span class="badge-n" style="margin-inline-start:8px;">${n}</span></button>`:'';}).join('')}
+    </div>`;
+    const tests=all.filter(t=>{
+      const matchesQ=!q||(bilingualText(t.q,lang)+' '+(t.goal||'')).toLowerCase().includes(q);
+      const matchesFt=!active.length||active.includes(t.fileType);
+      return matchesQ&&matchesFt;
+    });
+    const rows=tests.map(t=>{
+      const ti=all.indexOf(t);
+      const criteria=(t.criteria||[]).map(x=>`<li>${esc(x)}</li>`).join('');
+      return `<div class="subacc ${t._open?'open':''}" data-bq="0|${ti}">
+        <div class="head"><span class="caret">▶</span><span class="chip" style="flex:0 0 auto;">${esc(FILE_TYPE_LABELS[t.fileType]||'—')}</span><span class="title" style="font-size:13.5px;flex:1;font-weight:500;">${esc(bilingualText(t.q,lang))}</span>
+        <button class="copybtn" data-bcopy="0|${ti}" title="نسخ الطلب"><svg class="icon"><use href="#ic-copy"/></svg></button></div>
+        <div class="body">
+          ${t.fileLink?`<div class="row" style="margin-bottom:10px;"><a href="${esc(t.fileLink)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm"><svg class="icon"><use href="#ic-external-link"/></svg> فتح الملف</a></div>`:'<div class="muted-note" style="margin-bottom:10px;">لا يوجد رابط ملف.</div>'}
+          ${t.goal?`<div class="tip"><span class="ic"><svg class="icon"><use href="#ic-lamp"/></svg></span><div><b>الهدف من الاختبار:</b> ${esc(t.goal)}</div></div>`:''}
+          <div class="criteria-box"><span class="lbl">معايير التقييم</span><ul>${criteria}</ul></div>
+        </div>
+      </div>`;
+    }).join('');
+    document.getElementById('bankResults').innerHTML=`<div class="card"><p class="sub" data-edit-bank="${win}" style="margin:0;">${esc(w.sub)}</p>${filterBar}</div>${rows||'<div class="card" style="margin-top:12px;"><div class="empty">لا نتائج مطابقة.</div></div>'}`;
   } else {
     const allSingle=w.cats.every(c=>c.tests.length===1);
     const cats=w.cats.map((c,ci)=>{
@@ -942,13 +1015,21 @@ function renderBankResults(win){
 function bindBankResults(win,lang){
   const w=QBANK[win];
   screen.querySelectorAll('[data-bcat]').forEach(a=>a.querySelector('.head').onclick=()=>{const ci=+a.dataset.bcat;w.cats[ci]._open=!w.cats[ci]._open;renderBankResults(win);});
-  screen.querySelectorAll('[data-bq]').forEach(a=>a.querySelector('.head').onclick=(e)=>{if(e.target.closest('[data-bcopy]'))return;const[ci,ti]=a.dataset.bq.split('|');w.cats[+ci].tests[+ti]._open=!w.cats[+ci].tests[+ti]._open;a.classList.toggle('open');});
+  screen.querySelectorAll('[data-bq]').forEach(a=>a.querySelector('.head').onclick=(e)=>{if(e.target.closest('[data-bcopy],[data-bcopyconv]'))return;const[ci,ti]=a.dataset.bq.split('|');w.cats[+ci].tests[+ti]._open=!w.cats[+ci].tests[+ti]._open;a.classList.toggle('open');});
   screen.querySelectorAll('[data-bcopy]').forEach(b=>b.onclick=(e)=>{e.stopPropagation();const[ci,ti]=b.dataset.bcopy.split('|');copyText(bilingualText(w.cats[+ci].tests[+ti].q,lang));});
+  screen.querySelectorAll('[data-bcopyconv]').forEach(b=>b.onclick=(e)=>{e.stopPropagation();const[ci,ti]=b.dataset.bcopyconv.split('|');const conv=w.cats[+ci].tests[+ti];copyText((conv.messages||[]).map(m=>bilingualText(m.q,lang)).join('\n\n'),'تم نسخ المحادثة');});
   screen.querySelectorAll('[data-tagf]').forEach(b=>b.onclick=()=>{
     const tag=b.dataset.tagf;
     app.ctx.bankTagFilter=app.ctx.bankTagFilter||[];
     if(tag==='__all__'){app.ctx.bankTagFilter=[];}
     else{const i=app.ctx.bankTagFilter.indexOf(tag);if(i>-1)app.ctx.bankTagFilter.splice(i,1);else app.ctx.bankTagFilter.push(tag);}
+    renderBankResults(win);
+  });
+  screen.querySelectorAll('[data-filef]').forEach(b=>b.onclick=()=>{
+    const ft=b.dataset.filef;
+    app.ctx.bankFileFilter=app.ctx.bankFileFilter||[];
+    if(ft==='__all__'){app.ctx.bankFileFilter=[];}
+    else{const i=app.ctx.bankFileFilter.indexOf(ft);if(i>-1)app.ctx.bankFileFilter.splice(i,1);else app.ctx.bankFileFilter.push(ft);}
     renderBankResults(win);
   });
 }
@@ -1020,7 +1101,7 @@ function smokeIntro(){
     <div class="field"><label>المودل المُختبَر</label>
       <select id="f_model" ${MODELS.length?'':'disabled'}>
         <option value="">${MODELS.length?'اختر المودل':'لا توجد نماذج مضافة بعد'}</option>
-        ${MODELS.map(m=>`<option value="${esc(m)}" ${r.model===m?'selected':''}>${esc(m)}</option>`).join('')}
+        ${MODELS.map(m=>`<option value="${esc(m.name)}" ${r.model===m.name?'selected':''}>${esc(m.name)}</option>`).join('')}
       </select>
       ${MODELS.length?'':'<div class="muted-note" style="margin-top:6px;">أضِف نماذج من الإعدادات ← عام قبل بدء الاختبار.</div>'}
     </div>
@@ -1928,6 +2009,59 @@ function settingsBankTagged(w){
   return `${tagsMgr}<div class="lbl-sm" style="margin-top:16px;">الأسئلة</div>${tests}
     <div style="margin-top:14px;"><button class="btn btn-ghost" id="addBankTest"><svg class="icon"><use href="#ic-plus"/></svg> إضافة سؤال</button></div>`;
 }
+function settingsBankConversation(w){
+  const cat=w.cats[0];
+  const tests=cat.tests.map((t,ti)=>{
+    const msgs=(t.messages||[]).map((m,mi,arr)=>{
+      const arrow=mi<arr.length-1?`<div class="conv-arrow">↓</div>`:'';
+      return `<div class="conv-msg-edit"><span class="conv-num">${mi+1}</span>
+        <div style="flex:1;">
+          <textarea data-bconvmsg="${ti}|${mi}|ar" placeholder="نص السؤال (عربي)">${esc(bilingualExact(m.q,'ar'))}</textarea>
+          <textarea data-bconvmsg="${ti}|${mi}|en" placeholder="Question text (English, optional)" style="margin-top:6px;">${esc(bilingualExact(m.q,'en'))}</textarea>
+        </div>
+        <button class="iconbtn del" data-delconvmsg="${ti}|${mi}"><svg class="icon"><use href="#ic-x"/></svg></button>
+      </div>${arrow}`;
+    }).join('');
+    return `<div class="subacc ${t._open?'open':''}" data-bsub="0|${ti}"><div class="head">
+      <span class="caret">▶</span>
+      <input type="checkbox" class="selbox" data-bsel="0|${ti}" ${t._sel?'checked':''} onclick="event.stopPropagation()">
+      <span class="title" style="font-size:13.5px;">${esc(t.title)||'محادثة بلا اسم'}</span></div>
+      <div class="body">
+        <div class="lbl-sm">اسم المحادثة</div><input data-bf="0|${ti}|title" value="${esc(t.title||'')}" placeholder="مثال: محادثة إنهاء عقد عمل">
+        <div class="lbl-sm" style="margin-top:10px;">أسئلة المحادثة (بالترتيب)</div>
+        <div class="conv-flow">${msgs||'<div class="muted-note">لا أسئلة بعد.</div>'}</div>
+        <button class="iconbtn" data-addconvmsg="${ti}" style="margin-top:8px;"><svg class="icon"><use href="#ic-plus"/></svg> سؤال</button>
+        <div class="lbl-sm" style="margin-top:14px;">معايير المحادثة الناجحة</div>
+        <textarea data-bf="0|${ti}|criteria" placeholder="اكتب العناصر التي يجب أن تتوفر لتُعتبر المحادثة ناجحة">${esc(t.criteria||'')}</textarea>
+        <div class="row" style="margin-top:10px;"><button class="btn btn-primary btn-sm" data-bsavetest="0|${ti}"><svg class="icon"><use href="#ic-save"/></svg> حفظ المحادثة</button><button class="iconbtn del" data-bdeltest="0|${ti}"><svg class="icon"><use href="#ic-trash"/></svg> حذف المحادثة</button></div>
+      </div></div>`;
+  }).join('');
+  return `<div class="lbl-sm">المحادثات</div>${tests}
+    <div style="margin-top:14px;"><button class="btn btn-ghost" id="addBankTest"><svg class="icon"><use href="#ic-plus"/></svg> إضافة محادثة</button></div>`;
+}
+function settingsBankFileUpload(w){
+  const cat=w.cats[0];
+  const tests=cat.tests.map((t,ti)=>{
+    const criteria=(t.criteria||[]).map((x,xi)=>`<div class="qline"><textarea data-bcrit="0|${ti}|${xi}" placeholder="معيار تقييم">${esc(x)}</textarea><button class="iconbtn del" data-delcrit="0|${ti}|${xi}"><svg class="icon"><use href="#ic-x"/></svg></button></div>`).join('');
+    const ftToggles=Object.keys(FILE_TYPE_LABELS).map(ft=>`<button class="tab ${t.fileType===ft?'on':''}" data-bft="${ti}|${ft}">${esc(FILE_TYPE_LABELS[ft])}</button>`).join('');
+    return `<div class="subacc ${t._open?'open':''}" data-bsub="0|${ti}"><div class="head">
+      <span class="caret">▶</span>
+      <input type="checkbox" class="selbox" data-bsel="0|${ti}" ${t._sel?'checked':''} onclick="event.stopPropagation()">
+      <span class="title" style="font-size:13.5px;">${esc(bilingualText(t.q,'ar'))||'(بدون نص)'}</span></div>
+      <div class="body">
+        <div class="lbl-sm">نص الطلب المرافق للملف (عربي)</div><textarea data-bqlang="0|${ti}|ar">${esc(bilingualExact(t.q,'ar'))}</textarea>
+        <div class="lbl-sm">Accompanying request text (English, optional)</div><textarea data-bqlang="0|${ti}|en">${esc(bilingualExact(t.q,'en'))}</textarea>
+        <div class="lbl-sm">رابط الملف</div><input data-bf="0|${ti}|fileLink" value="${esc(t.fileLink||'')}" placeholder="رابط الملف (Google Drive مثلًا)">
+        <div class="lbl-sm">نوع الملف</div><div class="tabbar">${ftToggles}</div>
+        <div class="lbl-sm">الهدف من الاختبار</div><textarea data-bf="0|${ti}|goal" placeholder="ما الذي يهدف هذا الاختبار للتحقق منه؟">${esc(t.goal||'')}</textarea>
+        <div class="lbl-sm">معايير التقييم</div>${criteria||'<div class="muted-note">لا معايير بعد.</div>'}
+        <button class="iconbtn" data-addcrit="0|${ti}" style="margin-top:6px;"><svg class="icon"><use href="#ic-plus"/></svg> معيار</button>
+        <div class="row" style="margin-top:10px;"><button class="btn btn-primary btn-sm" data-bsavetest="0|${ti}"><svg class="icon"><use href="#ic-save"/></svg> حفظ الاختبار</button><button class="iconbtn del" data-bdeltest="0|${ti}"><svg class="icon"><use href="#ic-trash"/></svg> حذف الاختبار</button></div>
+      </div></div>`;
+  }).join('');
+  return `<div class="lbl-sm">الاختبارات</div>${tests}
+    <div style="margin-top:14px;"><button class="btn btn-ghost" id="addBankTest"><svg class="icon"><use href="#ic-plus"/></svg> إضافة اختبار</button></div>`;
+}
 function settingsBankTyped(w){
   const cats=w.cats.map((c,ci)=>{
     const tests=c.tests.map((t,ti)=>`<div class="qline"><div style="flex:1;"><textarea data-bqlang="${ci}|${ti}|ar" placeholder="نص السؤال (عربي)">${esc(bilingualExact(t.q,'ar'))}</textarea><textarea data-bqlang="${ci}|${ti}|en" placeholder="Question text (English, optional)" style="margin-top:6px;">${esc(bilingualExact(t.q,'en'))}</textarea></div><button class="iconbtn del" data-bdeltest="${ci}|${ti}"><svg class="icon"><use href="#ic-x"/></svg></button></div>`).join('');
@@ -1943,16 +2077,18 @@ function settingsBank(){
   const win=app.ctx.bankAdminWin||'general';
   const w=adminBank[win];
   const tagged=w.type==='tagged';
+  const isConv=w.type==='conversation';
+  const isFile=w.type==='fileupload';
   const winTabs=Object.entries(adminBank).map(([k,ww])=>`<button class="tab ${win===k?'on':''}" data-abwin="${k}">${esc(ww.label)}</button>`).join('');
   return `<div class="card">
     <div class="toolbar" style="justify-content:space-between;">
       <h2 class="h2" style="margin:0;">إدارة بنك الأسئلة</h2>
-      <div class="row"><button class="btn btn-ghost btn-sm" id="resetBank"><svg class="icon"><use href="#ic-refresh"/></svg> استعادة الافتراضي</button>${tagged?`<button class="btn btn-ghost btn-sm" id="delSelBank"><svg class="icon"><use href="#ic-trash"/></svg> حذف المحدد</button>`:''}<button class="btn btn-primary btn-sm" id="saveBank"><svg class="icon"><use href="#ic-save"/></svg> حفظ التغييرات</button></div>
+      <div class="row"><button class="btn btn-ghost btn-sm" id="resetBank"><svg class="icon"><use href="#ic-refresh"/></svg> استعادة الافتراضي</button>${(tagged||isConv||isFile)?`<button class="btn btn-ghost btn-sm" id="delSelBank"><svg class="icon"><use href="#ic-trash"/></svg> حذف المحدد</button>`:''}<button class="btn btn-primary btn-sm" id="saveBank"><svg class="icon"><use href="#ic-save"/></svg> حفظ التغييرات</button></div>
     </div>
-    <p class="sub" style="margin-top:8px;">${tagged?'أضِف أو عدّل أو احذف المعيار (الوسوم) والأسئلة وعناصر الإجابة الصحيحة.':'أضِف أو عدّل أو احذف أنواع السؤال وأسئلتها، وعدّل نص التنبيه أعلى الصفحة.'}</p>
+    <p class="sub" style="margin-top:8px;">${tagged?'أضِف أو عدّل أو احذف المعيار (الوسوم) والأسئلة وعناصر الإجابة الصحيحة.':isConv?'أضِف أو عدّل أو احذف المحادثات وأسئلتها المتسلسلة ومعايير نجاحها.':isFile?'أضِف أو عدّل أو احذف اختبارات رفع الملفات، رابط كل ملف ونوعه وهدفه ومعايير تقييمه.':'أضِف أو عدّل أو احذف أنواع السؤال وأسئلتها، وعدّل نص التنبيه أعلى الصفحة.'}</p>
     <div class="tabbar" style="margin-top:14px;">${winTabs}</div>
-    <div class="lbl-sm">${tagged?'مقدّمة الصفحة':'نص التنبيه أعلى الصفحة'}</div><input data-bwinf="${win}" value="${esc(w.sub)}">
-    ${tagged?settingsBankTagged(w):settingsBankTyped(w)}
+    <div class="lbl-sm">${tagged||isConv||isFile?'مقدّمة الصفحة':'نص التنبيه أعلى الصفحة'}</div><input data-bwinf="${win}" value="${esc(w.sub)}">
+    ${tagged?settingsBankTagged(w):isConv?settingsBankConversation(w):isFile?settingsBankFileUpload(w):settingsBankTyped(w)}
   </div>`;
 }
 function persistBank(){const cl=clone(adminBank);Object.values(cl).forEach(w=>w.cats.forEach(c=>{delete c._open;c.tests.forEach(t=>{delete t._open;delete t._sel;});}));QBANK=cl;save(K.qbank,QBANK);}
@@ -1990,7 +2126,17 @@ function bindBank(){
     let name='وسم جديد',n=1;while(TAGS.includes(name)){n++;name=`وسم جديد ${n}`;}
     TAGS.push(name);save(K.tags,TAGS);re();
   };
-  if(document.getElementById('addBankTest'))document.getElementById('addBankTest').onclick=()=>{adminBank[win].cats[0].tests.push({q:'',tags:[],criteria:[''],_open:true});re();};
+  if(document.getElementById('addBankTest'))document.getElementById('addBankTest').onclick=()=>{
+    const w=adminBank[win];
+    if(w.type==='conversation')w.cats[0].tests.push({title:'',messages:[{q:''}],criteria:'',_open:true});
+    else if(w.type==='fileupload')w.cats[0].tests.push({q:'',fileLink:'',fileType:'word',goal:'',criteria:[''],_open:true});
+    else w.cats[0].tests.push({q:'',tags:[],criteria:[''],_open:true});
+    re();
+  };
+  screen.querySelectorAll('[data-bconvmsg]').forEach(el=>el.oninput=e=>{const[ti,mi,lang]=el.dataset.bconvmsg.split('|');bqSetLang(adminBank[win].cats[0].tests[+ti].messages[+mi],lang,e.target.value);});
+  screen.querySelectorAll('[data-addconvmsg]').forEach(b=>b.onclick=()=>{const ti=+b.dataset.addconvmsg;const t=adminBank[win].cats[0].tests[ti];t.messages=t.messages||[];t.messages.push({q:''});t._open=true;re();});
+  screen.querySelectorAll('[data-delconvmsg]').forEach(b=>b.onclick=()=>{const[ti,mi]=b.dataset.delconvmsg.split('|');const t=adminBank[win].cats[0].tests[+ti];t.messages.splice(+mi,1);t._open=true;re();});
+  screen.querySelectorAll('[data-bft]').forEach(b=>b.onclick=()=>{const[ti,ft]=b.dataset.bft.split('|');adminBank[win].cats[0].tests[+ti].fileType=ft;re();});
   screen.querySelectorAll('[data-baddtest]').forEach(b=>b.onclick=()=>{const ci=+b.dataset.baddtest;adminBank[win].cats[ci].tests.push({q:''});re();});
   screen.querySelectorAll('[data-bsavetest]').forEach(b=>b.onclick=()=>{persistBank();toast('تم حفظ السؤال');});
   screen.querySelectorAll('[data-bdeltest]').forEach(b=>b.onclick=()=>{const[ci,ti]=b.dataset.bdeltest.split('|');if(confirm('حذف السؤال؟')){adminBank[win].cats[+ci].tests.splice(+ti,1);re();}});
@@ -2088,36 +2234,67 @@ function bindComp(){
 
 /* ===== إدارة نماذج الذكاء الاصطناعي ===== */
 function settingsGeneral(){
-  const rows=MODELS.map((m,mi)=>`<span class="chip" style="display:flex;gap:6px;align-items:center;padding-inline-end:6px;">
-    <input data-modelname="${mi}" value="${esc(m)}" style="border:none;background:transparent;width:${Math.max(6,m.length)}ch;color:inherit;font:inherit;padding:0;">
-    <button class="iconbtn del" data-delmodel="${mi}" style="width:20px;height:20px;padding:0;display:grid;place-items:center;"><svg class="icon" style="width:12px;height:12px;"><use href="#ic-x"/></svg></button>
-  </span>`).join('');
-  return `<div class="card">
-    <h2 class="h2" style="margin:0;">نماذج الذكاء الاصطناعي</h2>
-    <p class="sub" style="margin-top:8px;">أضِف هنا أسماء النماذج المتاحة للاختبار. تظهر هذه القائمة كخيارات عند بدء اختبار دخان جديد ليختار الموظف النموذج الذي يختبره.</p>
-    <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:14px;">
-      ${rows||'<div class="muted-note">لا نماذج بعد.</div>'}
-      <button class="iconbtn" id="addModel"><svg class="icon"><use href="#ic-plus"/></svg> نموذج جديد</button>
+  adminModels=adminModels||clone(MODELS);
+  const rows=adminModels.map((m,mi)=>{
+    const versions=(m.versions||[]).map((v,vi)=>`<div class="qline">
+        <input data-mver="${mi}|${vi}|number" value="${esc(v.number||'')}" placeholder="رقم الإصدار" style="max-width:110px;">
+        <input data-mver="${mi}|${vi}|date" type="date" value="${esc(v.date||'')}" style="max-width:150px;">
+        <input data-mver="${mi}|${vi}|note" value="${esc(v.note||'')}" placeholder="ملاحظة الإصدار" style="flex:1;">
+        <button class="iconbtn del" data-delver="${mi}|${vi}"><svg class="icon"><use href="#ic-x"/></svg></button>
+      </div>`).join('');
+    return `<div class="subacc ${m._open?'open':''}" data-msub="${mi}"><div class="head">
+      <span class="caret">▶</span>
+      <span class="title" style="font-size:13.5px;flex:1;">${esc(m.name)||'نموذج بلا اسم'}</span>
+      <span class="sub-c">أُضيف ${esc(m.dateAdded||'—')}</span>
     </div>
+    <div class="body">
+      <div class="lbl-sm">اسم النموذج</div><input data-mf="${mi}|name" value="${esc(m.name||'')}" placeholder="مثال: GPT-5">
+      <div class="lbl-sm">ملاحظات</div><textarea data-mf="${mi}|notes" placeholder="ملاحظات عامة على هذا النموذج">${esc(m.notes||'')}</textarea>
+      <div class="lbl-sm" style="margin-top:12px;">الإصدارات</div>${versions||'<div class="muted-note">لا إصدارات بعد.</div>'}
+      <button class="iconbtn" data-addver="${mi}" style="margin-top:6px;"><svg class="icon"><use href="#ic-plus"/></svg> إصدار</button>
+      <div class="row" style="margin-top:12px;"><button class="btn btn-primary btn-sm" data-savemodel="${mi}"><svg class="icon"><use href="#ic-save"/></svg> حفظ النموذج</button><button class="iconbtn del" data-delmodel="${mi}"><svg class="icon"><use href="#ic-trash"/></svg> حذف النموذج</button></div>
+    </div></div>`;
+  }).join('');
+  return `<div class="card">
+    <div class="toolbar" style="justify-content:space-between;">
+      <h2 class="h2" style="margin:0;">نماذج الذكاء الاصطناعي</h2>
+      <button class="btn btn-primary btn-sm" id="saveModels"><svg class="icon"><use href="#ic-save"/></svg> حفظ التغييرات</button>
+    </div>
+    <p class="sub" style="margin-top:8px;">أضِف هنا النماذج المتاحة للاختبار مع إصداراتها وملاحظاتها. تظهر أسماء النماذج كخيارات عند بدء اختبار دخان جديد ليختار الموظف النموذج الذي يختبره.</p>
+    <div style="margin-top:14px;">${rows||'<div class="muted-note">لا نماذج بعد.</div>'}</div>
+    <div class="row" style="margin-top:14px;"><button class="btn btn-ghost" id="addModel"><svg class="icon"><use href="#ic-plus"/></svg> نموذج جديد</button></div>
   </div>`;
 }
 function bindGeneral(){
   const re=()=>renderSettings();
-  screen.querySelectorAll('[data-modelname]').forEach(el=>{el.onblur=e=>{
-    const i=+el.dataset.modelname;const oldName=MODELS[i];const newName=e.target.value.trim();
-    if(!newName){MODELS.splice(i,1);saveModels();toast('تم حذف النموذج');re();return;}
-    if(newName===oldName)return;
-    if(MODELS.includes(newName)){toast('النموذج موجود مسبقًا');e.target.value=oldName;return;}
-    MODELS[i]=newName;saveModels();toast('تم تعديل الاسم');re();
-  };});
-  screen.querySelectorAll('[data-delmodel]').forEach(b=>b.onclick=()=>{
-    const i=+b.dataset.delmodel;
-    if(!confirm(`حذف النموذج "${MODELS[i]}"؟`))return;
-    MODELS.splice(i,1);saveModels();toast('تم حذف النموذج');re();
+  const persist=()=>{const cl=clone(adminModels);cl.forEach(m=>delete m._open);MODELS=cl;saveModels();};
+  screen.querySelectorAll('[data-msub]').forEach(a=>a.querySelector('.head').onclick=(e)=>{if(e.target.matches('input,textarea'))return;const mi=+a.dataset.msub;adminModels[mi]._open=!adminModels[mi]._open;a.classList.toggle('open');});
+  screen.querySelectorAll('[data-mf]').forEach(el=>el.oninput=e=>{const[mi,f]=el.dataset.mf.split('|');adminModels[+mi][f]=e.target.value;});
+  screen.querySelectorAll('[data-mver]').forEach(el=>el.oninput=e=>{const[mi,vi,f]=el.dataset.mver.split('|');adminModels[+mi].versions[+vi][f]=e.target.value;});
+  screen.querySelectorAll('[data-addver]').forEach(b=>b.onclick=()=>{const mi=+b.dataset.addver;const m=adminModels[mi];m.versions=m.versions||[];m.versions.push({number:'',date:today(),note:''});m._open=true;re();});
+  screen.querySelectorAll('[data-delver]').forEach(b=>b.onclick=()=>{const[mi,vi]=b.dataset.delver.split('|');adminModels[+mi].versions.splice(+vi,1);adminModels[+mi]._open=true;re();});
+  screen.querySelectorAll('[data-savemodel]').forEach(b=>b.onclick=()=>{
+    const mi=+b.dataset.savemodel;const name=(adminModels[mi].name||'').trim();
+    if(!name){toast('اكتب اسم النموذج أولًا');return;}
+    if(adminModels.some((m,idx)=>idx!==mi&&(m.name||'').trim()===name)){toast('النموذج موجود مسبقًا');return;}
+    adminModels[mi].name=name;
+    persist();toast('تم حفظ النموذج');re();
   });
-  document.getElementById('addModel').onclick=()=>{
-    let name='نموذج جديد',n=1;while(MODELS.includes(name)){n++;name=`نموذج جديد ${n}`;}
-    MODELS.push(name);saveModels();re();
+  screen.querySelectorAll('[data-delmodel]').forEach(b=>b.onclick=()=>{
+    const mi=+b.dataset.delmodel;
+    if(!confirm(`حذف النموذج "${adminModels[mi].name||'بلا اسم'}"؟`))return;
+    adminModels.splice(mi,1);re();
+  });
+  document.getElementById('addModel').onclick=()=>{adminModels.forEach(m=>m._open=false);adminModels.push({name:'',dateAdded:today(),notes:'',versions:[],_open:true});re();};
+  document.getElementById('saveModels').onclick=()=>{
+    const before=adminModels.length;
+    adminModels=adminModels.filter(m=>(m.name||'').trim());
+    const dropped=before-adminModels.length;
+    const names=adminModels.map(m=>m.name.trim());
+    if(new Set(names).size!==names.length){toast('توجد أسماء نماذج مكررة، عدّلها أولًا');return;}
+    persist();
+    toast(dropped?'تم الحفظ (حُذفت نماذج بلا اسم)':'تم حفظ التغييرات');
+    re();
   };
 }
 
