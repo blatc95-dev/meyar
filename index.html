@@ -1861,7 +1861,7 @@ function settingsSectionBody(k){
   return k==='cases'?settingsCases(): k==='bank'?settingsBank(): k==='comp'?settingsComp(): k==='users'?settingsUsers(): k==='general'?settingsGeneral(): k==='updates'?settingsUpdates():'';
 }
 function settingsUpdates(){
-  return `<div class="h2" style="margin:0;">متابعة التحديثات</div><p class="sub" style="margin-top:8px;">لا توجد إعدادات إضافية لهذا المنتج حاليًا. استخدم خيار الإظهار/الإخفاء بجانب اسم المنتج أعلاه للتحكم في وصول بقية الأعضاء إليه.</p>`;
+  return `<div class="h2" style="margin:0;">متابعة التحديثات</div><p class="sub" data-edit-key="settings.updates.note" style="margin-top:8px;">${esc(t('settings.updates.note','لا توجد إعدادات إضافية لهذا المنتج حاليًا. استخدم خيار الإظهار/الإخفاء بجانب اسم المنتج أعلاه للتحكم في وصول بقية الأعضاء إليه.'))}</p>`;
 }
 function prodVisToggleHtml(key){
   const vis=PRODUCT_VIS[key]!==false;
@@ -1906,6 +1906,7 @@ function renderSettings(){
   if(open.comp) bindComp();
   if(open.users) bindUsers();
   if(open.general) bindGeneral();
+  bindEditable();
 }
 
 let ALLOWED_USERS=null;
