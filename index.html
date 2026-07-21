@@ -408,7 +408,7 @@ const store={mem:{},get(k){try{return localStorage.getItem(k);}catch(e){return (
 const clone=o=>JSON.parse(JSON.stringify(o));
 function load(k,d){const s=store.get(k);if(s){try{return JSON.parse(s);}catch(e){}}return clone(d);}
 function save(k,v){store.set(k,JSON.stringify(v));if(k!==K.theme)cloudSave(k,v);}
-const K={cats:'m_cats',runs:'m_runs',drafts:'m_drafts',settings:'m_settings',theme:'m_theme',texts:'m_texts',qbank:'m_qbank_v4',tags:'m_tags_v2',comp:'m_comp_defs_v2',compRuns:'m_comp_runs_v1',competitors:'m_competitors_v1',updatesRuns:'m_updates_runs_v1',models:'m_models_v1'};
+const K={cats:'m_cats',runs:'m_runs',drafts:'m_drafts',settings:'m_settings',theme:'m_theme',texts:'m_texts',qbank:'m_qbank_v4',tags:'m_tags_v2',comp:'m_comp_defs_v2',compRuns:'m_comp_runs_v1',competitors:'m_competitors_v1',updatesRuns:'m_updates_runs_v1',models:'m_models_v1',productVis:'m_product_vis_v1'};
 applyTheme(store.get(K.theme)||'light');
 
 /* ===== Supabase: مزامنة البيانات مع الفريق ===== */
@@ -531,6 +531,10 @@ let THEME=store.get(K.theme)||'light';
 const DEF_SETTINGS={team:'الفريق القانوني',product:'قانونية AI'};
 let SETTINGS=load(K.settings,DEF_SETTINGS);
 
+const DEF_PRODUCT_VIS={dashboard:true,qbank:true,comp:true,updates:true};
+let PRODUCT_VIS=Object.assign({},DEF_PRODUCT_VIS,load(K.productVis,{}));
+function saveProductVis(){save(K.productVis,PRODUCT_VIS);}
+
 /* ===== الفئات والحالات (mode الآن كائن: {normal:bool, detailed:bool}) ===== */
 const DEF_CATS=[
   {title:"الفئة الأولى — البحث المباشر",note:"أسئلة الاسترجاع المباشر للأنظمة والمواد، تُجرى في الوضعين العادي والتفصيلي.",tests:[
@@ -563,7 +567,7 @@ let DRAFTS=load(K.drafts,[]);
 /* ===== بنك الأسئلة ===== */
 const DEF_TAGS=['حالات السريان والإلغاء','القدرات التحليلية','قدرات الصياغة','الاستحضار وعدم الهلوسة','التحليل القضائي','شمول قاعدة البيانات','تعديلات المواد'];
 let TAGS=load(K.tags,DEF_TAGS);
-const FILE_TYPE_LABELS={word:'Word',pdf:'PDF'};
+const TEST_TYPE_LABELS={read:'قراءة الملف',guardian:'ليقال قارديان',analysis:'التحليل'};
 const DEF_QBANK={
   general:{
     label:'الأسئلة العامة',
@@ -710,7 +714,7 @@ const DEF_QBANK={
   fileUpload:{
     label:'اختبار رفع الملفات',
     type:'fileupload',
-    sub:'اختبارات ترفق ملفًا فعليًا (Word أو PDF) مع طلب مرافق، لفحص قدرة المنتج على قراءة الملف المرفوع وفهم محتواه والتعامل معه بدقة.',
+    sub:'اختبارات ترفق ملفًا فعليًا مع طلب مرافق، لفحص قدرة المنتج على قراءة الملف المرفوع وفهم محتواه والتعامل معه بدقة.',
     cats:[{title:'كل الاختبارات',tests:[]}],
   },
 };
@@ -850,15 +854,20 @@ const SOON_PRODUCTS=[
   {icon:'folder',label:'الملفات المساندة'},
 ];
 function bankCount(){return Object.values(QBANK).reduce((n,w)=>n+w.cats.reduce((m,c)=>m+c.tests.length,0),0);}
+const NAV_PRODUCTS=[
+  {key:'dashboard',icon:'search',label:'اختبار الدخان',count:()=>RUNS.length},
+  {key:'qbank',icon:'question',label:'بنك الأسئلة',count:()=>bankCount()},
+  {key:'comp',icon:'chart',label:'تحليل المنافسين',count:()=>compCount()},
+  {key:'updates',icon:'refresh',label:'متابعة التحديثات',count:()=>updatesCount()},
+];
 function buildNav(){
   const el=document.getElementById('navList');
   const soonHtml=SOON_PRODUCTS.map(p=>`<button class="navitem soon" disabled><span class="ic"><svg class="icon"><use href="#ic-${p.icon}"/></svg></span> ${p.label}<span class="soon-badge">قريبًا</span></button>`).join('');
-  el.innerHTML=`<div class="grp">المنتجات</div>
-    <button class="navitem ${app.view==='dashboard'?'active':''}" data-nav="dashboard"><span class="ic"><svg class="icon"><use href="#ic-search"/></svg></span> اختبار الدخان<span class="badge-n">${RUNS.length}</span></button>
-    <button class="navitem ${app.view==='qbank'?'active':''}" data-nav="qbank"><span class="ic"><svg class="icon"><use href="#ic-question"/></svg></span> بنك الأسئلة<span class="badge-n">${bankCount()}</span></button>
-    <button class="navitem ${app.view==='comp'?'active':''}" data-nav="comp"><span class="ic"><svg class="icon"><use href="#ic-chart"/></svg></span> تحليل المنافسين<span class="badge-n">${compCount()}</span></button>
-    <button class="navitem ${app.view==='updates'?'active':''}" data-nav="updates"><span class="ic"><svg class="icon"><use href="#ic-refresh"/></svg></span> متابعة التحديثات<span class="badge-n">${updatesCount()}</span></button>
-    ${soonHtml}`;
+  const navHtml=NAV_PRODUCTS.filter(p=>IS_ADMIN||PRODUCT_VIS[p.key]!==false).map(p=>{
+    const hidden=PRODUCT_VIS[p.key]===false;
+    return `<button class="navitem ${app.view===p.key?'active':''}" data-nav="${p.key}"><span class="ic"><svg class="icon"><use href="#ic-${p.icon}"/></svg></span> ${p.label}${hidden?'<span class="soon-badge" title="مخفي عن الأعضاء">مخفي</span>':`<span class="badge-n">${p.count()}</span>`}</button>`;
+  }).join('');
+  el.innerHTML=`<div class="grp">المنتجات</div>${navHtml}${soonHtml}`;
   el.querySelectorAll('[data-nav]').forEach(b=>b.onclick=()=>go(b.dataset.nav));
   document.querySelector('.foot [data-nav]').onclick=()=>go('settings');
   document.querySelector('.foot .navitem').classList.toggle('active',app.view==='settings');
@@ -866,7 +875,7 @@ function buildNav(){
   const editBtn=document.getElementById('editBtn');
   if(editBtn)editBtn.style.display=IS_ADMIN?'':'none';
 }
-function go(v){if(v==='settings'&&!IS_ADMIN){toast('هذا القسم متاح للأدمن فقط');return;}app.view=v;app.sub=null;app.ctx={};closeSide();render();window.scrollTo(0,0);}
+function go(v){if(v==='settings'&&!IS_ADMIN){toast('هذا القسم متاح للأدمن فقط');return;}if(!IS_ADMIN&&PRODUCT_VIS[v]===false){toast('هذا المنتج غير متاح حاليًا');return;}app.view=v;app.sub=null;app.ctx={};closeSide();render();window.scrollTo(0,0);}
 const CRUMB={dashboard:'اختبار الدخان',qbank:'بنك الأسئلة',comp:'تحليل المنافسين',updates:'متابعة التحديثات',settings:'الإعدادات'};
 function setCrumb(x){document.getElementById('crumb').innerHTML=`<b>${CRUMB[app.view]||''}</b>${x?' / '+esc(x):''}`;}
 
@@ -905,7 +914,7 @@ function renderQBank(){
       <div class="field" style="margin-top:14px;margin-bottom:0;"><input id="bankSearch" placeholder="ابحث في الأسئلة..." value="${esc(app.ctx.bankSearch||'')}"></div>
     </div>
     <div id="bankResults"></div>`;
-  document.querySelectorAll('[data-bwin]').forEach(b=>b.onclick=()=>{app.ctx.bankWin=b.dataset.bwin;app.ctx.bankSearch='';app.ctx.bankTagFilter=[];app.ctx.bankFileFilter=[];render();});
+  document.querySelectorAll('[data-bwin]').forEach(b=>b.onclick=()=>{app.ctx.bankWin=b.dataset.bwin;app.ctx.bankSearch='';app.ctx.bankTagFilter=[];app.ctx.bankTestTypeFilter=[];render();});
   document.querySelectorAll('[data-blang]').forEach(b=>b.onclick=()=>{app.ctx.bankLang=b.dataset.blang;render();});
   const s=document.getElementById('bankSearch');
   s.oninput=e=>{app.ctx.bankSearch=e.target.value;renderBankResults(win);};
@@ -953,7 +962,7 @@ function renderBankResults(win){
       const ti=all.indexOf(t);
       const msgs=(t.messages||[]).map((m,mi,arr)=>{
         const arrow=mi<arr.length-1?`<div class="conv-arrow">↓</div>`:'';
-        return `<div class="conv-msg"><span class="conv-num">${mi+1}</span><span class="conv-text">${esc(bilingualText(m.q,lang))}</span></div>${arrow}`;
+        return `<div class="conv-msg"><span class="conv-num">${mi+1}</span><span class="conv-text">${esc(bilingualText(m.q,lang))}</span><button class="copybtn" data-bcopymsg="0|${ti}|${mi}" title="نسخ هذا السؤال"><svg class="icon"><use href="#ic-copy"/></svg></button></div>${arrow}`;
       }).join('');
       return `<div class="subacc ${t._open?'open':''}" data-bq="0|${ti}">
         <div class="head"><span class="caret">▶</span><span class="title" style="font-size:13.5px;flex:1;font-weight:500;">${esc(t.title)||'محادثة '+(ti+1)}</span><span class="badge-n" style="margin-inline-start:8px;">${(t.messages||[]).length} سؤال</span>
@@ -966,22 +975,22 @@ function renderBankResults(win){
     }).join('');
     document.getElementById('bankResults').innerHTML=`<div class="card"><p class="sub" data-edit-bank="${win}" style="margin:0;">${esc(w.sub)}</p></div>${rows||'<div class="card" style="margin-top:12px;"><div class="empty">لا نتائج مطابقة.</div></div>'}`;
   } else if(w.type==='fileupload'){
-    const active=app.ctx.bankFileFilter||[];
+    const active=app.ctx.bankTestTypeFilter||[];
     const all=w.cats[0].tests;
     const filterBar=`<div class="tabbar" style="margin-top:12px;">
-      <button class="tab ${!active.length?'on':''}" data-filef="__all__">الكل<span class="badge-n" style="margin-inline-start:8px;">${all.length}</span></button>
-      ${Object.keys(FILE_TYPE_LABELS).map(ft=>{const n=all.filter(t=>t.fileType===ft).length;return n?`<button class="tab ${active.includes(ft)?'on':''}" data-filef="${ft}">${esc(FILE_TYPE_LABELS[ft])}<span class="badge-n" style="margin-inline-start:8px;">${n}</span></button>`:'';}).join('')}
+      <button class="tab ${!active.length?'on':''}" data-ttf="__all__">الكل<span class="badge-n" style="margin-inline-start:8px;">${all.length}</span></button>
+      ${Object.keys(TEST_TYPE_LABELS).map(tt=>{const n=all.filter(t=>t.testType===tt).length;return n?`<button class="tab ${active.includes(tt)?'on':''}" data-ttf="${tt}">${esc(TEST_TYPE_LABELS[tt])}<span class="badge-n" style="margin-inline-start:8px;">${n}</span></button>`:'';}).join('')}
     </div>`;
     const tests=all.filter(t=>{
       const matchesQ=!q||(bilingualText(t.q,lang)+' '+(t.goal||'')).toLowerCase().includes(q);
-      const matchesFt=!active.length||active.includes(t.fileType);
-      return matchesQ&&matchesFt;
+      const matchesTt=!active.length||active.includes(t.testType);
+      return matchesQ&&matchesTt;
     });
     const rows=tests.map(t=>{
       const ti=all.indexOf(t);
       const criteria=(t.criteria||[]).map(x=>`<li>${esc(x)}</li>`).join('');
       return `<div class="subacc ${t._open?'open':''}" data-bq="0|${ti}">
-        <div class="head"><span class="caret">▶</span><span class="chip" style="flex:0 0 auto;">${esc(FILE_TYPE_LABELS[t.fileType]||'—')}</span><span class="title" style="font-size:13.5px;flex:1;font-weight:500;">${esc(bilingualText(t.q,lang))}</span>
+        <div class="head"><span class="caret">▶</span><span class="chip" style="flex:0 0 auto;">${esc(TEST_TYPE_LABELS[t.testType]||'—')}</span><span class="title" style="font-size:13.5px;flex:1;font-weight:500;">${esc(bilingualText(t.q,lang))}</span>
         <button class="copybtn" data-bcopy="0|${ti}" title="نسخ الطلب"><svg class="icon"><use href="#ic-copy"/></svg></button></div>
         <div class="body">
           ${t.fileLink?`<div class="row" style="margin-bottom:10px;"><a href="${esc(t.fileLink)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm"><svg class="icon"><use href="#ic-external-link"/></svg> فتح الملف</a></div>`:'<div class="muted-note" style="margin-bottom:10px;">لا يوجد رابط ملف.</div>'}
@@ -1018,6 +1027,7 @@ function bindBankResults(win,lang){
   screen.querySelectorAll('[data-bq]').forEach(a=>a.querySelector('.head').onclick=(e)=>{if(e.target.closest('[data-bcopy],[data-bcopyconv]'))return;const[ci,ti]=a.dataset.bq.split('|');w.cats[+ci].tests[+ti]._open=!w.cats[+ci].tests[+ti]._open;a.classList.toggle('open');});
   screen.querySelectorAll('[data-bcopy]').forEach(b=>b.onclick=(e)=>{e.stopPropagation();const[ci,ti]=b.dataset.bcopy.split('|');copyText(bilingualText(w.cats[+ci].tests[+ti].q,lang));});
   screen.querySelectorAll('[data-bcopyconv]').forEach(b=>b.onclick=(e)=>{e.stopPropagation();const[ci,ti]=b.dataset.bcopyconv.split('|');const conv=w.cats[+ci].tests[+ti];copyText((conv.messages||[]).map(m=>bilingualText(m.q,lang)).join('\n\n'),'تم نسخ المحادثة');});
+  screen.querySelectorAll('[data-bcopymsg]').forEach(b=>b.onclick=(e)=>{e.stopPropagation();const[ci,ti,mi]=b.dataset.bcopymsg.split('|');const conv=w.cats[+ci].tests[+ti];copyText(bilingualText(conv.messages[+mi].q,lang));});
   screen.querySelectorAll('[data-tagf]').forEach(b=>b.onclick=()=>{
     const tag=b.dataset.tagf;
     app.ctx.bankTagFilter=app.ctx.bankTagFilter||[];
@@ -1025,11 +1035,11 @@ function bindBankResults(win,lang){
     else{const i=app.ctx.bankTagFilter.indexOf(tag);if(i>-1)app.ctx.bankTagFilter.splice(i,1);else app.ctx.bankTagFilter.push(tag);}
     renderBankResults(win);
   });
-  screen.querySelectorAll('[data-filef]').forEach(b=>b.onclick=()=>{
-    const ft=b.dataset.filef;
-    app.ctx.bankFileFilter=app.ctx.bankFileFilter||[];
-    if(ft==='__all__'){app.ctx.bankFileFilter=[];}
-    else{const i=app.ctx.bankFileFilter.indexOf(ft);if(i>-1)app.ctx.bankFileFilter.splice(i,1);else app.ctx.bankFileFilter.push(ft);}
+  screen.querySelectorAll('[data-ttf]').forEach(b=>b.onclick=()=>{
+    const tt=b.dataset.ttf;
+    app.ctx.bankTestTypeFilter=app.ctx.bankTestTypeFilter||[];
+    if(tt==='__all__'){app.ctx.bankTestTypeFilter=[];}
+    else{const i=app.ctx.bankTestTypeFilter.indexOf(tt);if(i>-1)app.ctx.bankTestTypeFilter.splice(i,1);else app.ctx.bankTestTypeFilter.push(tt);}
     renderBankResults(win);
   });
 }
@@ -1834,30 +1844,79 @@ function renderUpdatesRunView(){
 
 /* ===== الإعدادات (٦ تبويبات) ===== */
 let adminCats=null;
-const SETTABS=[['cases','اختبار الدخان',false],['comp','تحليل المنافسين',false],['bank','بنك الأسئلة',false],['users','إدارة المستخدمين',false],['files','الملفات المساندة',true],['general','عام',false]];
+const SETTAB_GROUPS=[
+  {label:'إعدادات المنتجات',items:[
+    ['cases','اختبار الدخان',false,'dashboard'],
+    ['bank','بنك الأسئلة',false,'qbank'],
+    ['comp','تحليل المنافسين',false,'comp'],
+    ['updates','متابعة التحديثات',false,'updates'],
+    ['files','الملفات المساندة',true,null],
+  ]},
+  {label:'الإعدادات العامة',items:[
+    ['users','إدارة المستخدمين',false,null],
+    ['general','عام',false,null],
+  ]},
+];
+function settingsSectionBody(k){
+  return k==='cases'?settingsCases(): k==='bank'?settingsBank(): k==='comp'?settingsComp(): k==='users'?settingsUsers(): k==='general'?settingsGeneral(): k==='updates'?settingsUpdates():'';
+}
+function settingsUpdates(){
+  return `<div class="h2" style="margin:0;">متابعة التحديثات</div><p class="sub" data-edit-key="settings.updates.note" style="margin-top:8px;">${esc(t('settings.updates.note','لا توجد إعدادات إضافية لهذا المنتج حاليًا. استخدم خيار الإظهار/الإخفاء بجانب اسم المنتج أعلاه للتحكم في وصول بقية الأعضاء إليه.'))}</p>`;
+}
+function prodVisToggleHtml(key){
+  const vis=PRODUCT_VIS[key]!==false;
+  return `<button class="iconbtn ${vis?'':'del'}" data-prodvis="${key}" style="margin-inline-start:auto;flex:0 0 auto;"><svg class="icon"><use href="#ic-eye${vis?'':'-slash'}"/></svg> ${vis?'إخفاء عن الأعضاء':'إظهار للأعضاء'}</button>`;
+}
 function renderSettings(){
-  const tab=app.ctx.settingsTab||'cases';
-  const tabsHtml=SETTABS.map(([k,l,soon])=>`<button class="tab ${tab===k?'on':''} ${soon?'soon':''}" ${soon?'':`data-tab="${k}"`}>${l}${soon?' · قريبًا':''}</button>`).join('');
-  let body= tab==='cases'?settingsCases(): tab==='bank'?settingsBank(): tab==='comp'?settingsComp(): tab==='users'?settingsUsers(): tab==='general'?settingsGeneral():`<div class="card"><div class="empty">هذا القسم سيُفعّل مع إطلاق المنتج المقابل.</div></div>`;
+  const open=app.ctx.settingsOpen=app.ctx.settingsOpen||{};
+  const groupsHtml=SETTAB_GROUPS.map(g=>{
+    const itemsHtml=g.items.map(([k,l,soon,prodKey])=>{
+      const isOpen=!soon&&!!open[k];
+      const bodyHtml=soon?`<div class="empty">هذا القسم سيُفعّل مع إطلاق المنتج المقابل.</div>`:(isOpen?settingsSectionBody(k):'');
+      return `<div class="acc ${isOpen?'open':''}">
+        <div class="head" ${soon?'':`data-sechead="${k}"`}>
+          <span class="caret">▶</span>
+          <span class="title">${esc(l)}${soon?' · قريبًا':''}</span>
+          ${prodKey?prodVisToggleHtml(prodKey):''}
+        </div>
+        <div class="body">${bodyHtml}</div>
+      </div>`;
+    }).join('');
+    return `<div style="margin-top:18px;"><div class="eyebrow">${esc(g.label)}</div>${itemsHtml}</div>`;
+  }).join('');
   screen.innerHTML=`<div class="card"><div class="eyebrow" data-edit-key="settings.eyebrow">${esc(t('settings.eyebrow','الإعدادات'))}</div><h1 class="h1" data-edit-key="settings.title">${esc(t('settings.title','الإعدادات'))}</h1>
     <p class="sub" data-edit-key="settings.sub">${esc(t('settings.sub','لكل منتج قسم خاص. المتاح الآن: تحرير فئات وحالات اختبار الدخان، وبنك الأسئلة، ومعايير تحليل المنافسين، ونماذج الذكاء الاصطناعي المتاحة للاختبار.'))}</p>
-    <div class="tabbar" style="margin-top:14px;">${tabsHtml}</div></div>${body}`;
-  screen.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{app.ctx.settingsTab=b.dataset.tab;render();});
-  if(tab==='cases') bindCases();
-  if(tab==='bank') bindBank();
-  if(tab==='comp') bindComp();
-  if(tab==='users') bindUsers();
-  if(tab==='general') bindGeneral();
+    </div>${groupsHtml}`;
+  screen.querySelectorAll('[data-sechead]').forEach(h=>h.onclick=(e)=>{
+    if(e.target.closest('[data-prodvis]'))return;
+    const k=h.dataset.sechead;
+    open[k]=!open[k];
+    render();
+  });
+  screen.querySelectorAll('[data-prodvis]').forEach(b=>b.onclick=(e)=>{
+    e.stopPropagation();
+    const k=b.dataset.prodvis;
+    PRODUCT_VIS[k]=PRODUCT_VIS[k]===false?true:false;
+    saveProductVis();
+    toast(PRODUCT_VIS[k]?'المنتج ظاهر الآن لبقية الأعضاء':'المنتج مخفي الآن عن بقية الأعضاء');
+    render();
+  });
+  if(open.cases) bindCases();
+  if(open.bank) bindBank();
+  if(open.comp) bindComp();
+  if(open.users) bindUsers();
+  if(open.general) bindGeneral();
+  bindEditable();
 }
 
 let ALLOWED_USERS=null;
 async function loadAllowedUsers(){
   const{data,error}=await sb.from('allowed_emails').select('email,role,active,must_reset_password').order('email');
   ALLOWED_USERS=error?[]:data;
-  if(app.view==='settings'&&app.ctx.settingsTab==='users')render();
+  if(app.view==='settings'&&app.ctx.settingsOpen&&app.ctx.settingsOpen.users)render();
 }
 function settingsUsers(){
-  if(ALLOWED_USERS===null){loadAllowedUsers();return `<div class="card"><div class="empty">جاري التحميل...</div></div>`;}
+  if(ALLOWED_USERS===null){loadAllowedUsers();return `<div class="empty">جاري التحميل...</div>`;}
   const rows=ALLOWED_USERS.map(u=>{
     const self=u.email===CURRENT_USER_EMAIL;
     return `<tr>
@@ -1868,8 +1927,7 @@ function settingsUsers(){
       <td><button class="iconbtn del" data-udel="${esc(u.email)}" ${self?'disabled':''}><svg class="icon"><use href="#ic-trash"/></svg></button></td>
     </tr>`;
   }).join('');
-  return `<div class="card">
-    <div class="h2">إدارة المستخدمين</div>
+  return `<div class="h2">إدارة المستخدمين</div>
     <p class="sub">أضف هنا إيميل العضو ليصير له وصول للبيانات. الحساب الفعلي (إيميل + كلمة مرور مؤقتة) يُنشأ أولاً من لوحة تحكم Supabase.</p>
     <div class="row" style="margin-top:14px;">
       <input type="email" id="newUserEmail" placeholder="إيميل العضو الجديد" style="flex:1;min-width:220px;">
@@ -1879,8 +1937,7 @@ function settingsUsers(){
     <table style="width:100%;margin-top:16px;border-collapse:collapse;">
       <thead><tr><th>الإيميل</th><th>الدور</th><th>الحالة</th><th>كلمة المرور</th><th></th></tr></thead>
       <tbody>${rows||'<tr><td colspan="5">لا يوجد مستخدمون بعد</td></tr>'}</tbody>
-    </table>
-  </div>`;
+    </table>`;
 }
 function bindUsers(){
   if(!ALLOWED_USERS)return;
@@ -1941,15 +1998,13 @@ function settingsCases(){
       ${tests}
       <div class="toolbar" style="margin-top:12px;"><button class="iconbtn" data-addtest="${ci}"><svg class="icon"><use href="#ic-plus"/></svg> إضافة حالة</button><button class="iconbtn del" data-delcat="${ci}"><svg class="icon"><use href="#ic-trash"/></svg> حذف الفئة</button></div></div></div>`;
   }).join('');
-  return `<div class="card">
-    <div class="toolbar" style="justify-content:space-between;">
+  return `<div class="toolbar" style="justify-content:space-between;">
       <h2 class="h2" style="margin:0;">فئات وحالات اختبار الدخان</h2>
       <div class="row"><button class="btn btn-ghost btn-sm" id="resetCats"><svg class="icon"><use href="#ic-refresh"/></svg> استعادة الافتراضي</button><button class="btn btn-ghost btn-sm" id="delSel"><svg class="icon"><use href="#ic-trash"/></svg> حذف المحدد</button><button class="btn btn-primary btn-sm" id="saveCats"><svg class="icon"><use href="#ic-save"/></svg> حفظ التغييرات</button></div>
     </div>
     <p class="sub" style="margin-top:8px;">اضغط على الفئة لفتحها ثم على الحالة لتحريرها. لكل حالة تحدّد الأوضاع المطلوبة (عادي/تفصيلي).</p>
     ${cats}
-    <div style="margin-top:14px;"><button class="btn btn-ghost" id="addCat"><svg class="icon"><use href="#ic-plus"/></svg> إضافة فئة جديدة</button></div>
-  </div>`;
+    <div style="margin-top:14px;"><button class="btn btn-ghost" id="addCat"><svg class="icon"><use href="#ic-plus"/></svg> إضافة فئة جديدة</button></div>`;
 }
 function persistCats(){const cl=clone(adminCats);cl.forEach(c=>{delete c._open;c.tests.forEach(t=>{delete t._sel;delete t._open;});});CATS=cl;save(K.cats,CATS);}
 function bindCases(){
@@ -2043,7 +2098,7 @@ function settingsBankFileUpload(w){
   const cat=w.cats[0];
   const tests=cat.tests.map((t,ti)=>{
     const criteria=(t.criteria||[]).map((x,xi)=>`<div class="qline"><textarea data-bcrit="0|${ti}|${xi}" placeholder="معيار تقييم">${esc(x)}</textarea><button class="iconbtn del" data-delcrit="0|${ti}|${xi}"><svg class="icon"><use href="#ic-x"/></svg></button></div>`).join('');
-    const ftToggles=Object.keys(FILE_TYPE_LABELS).map(ft=>`<button class="tab ${t.fileType===ft?'on':''}" data-bft="${ti}|${ft}">${esc(FILE_TYPE_LABELS[ft])}</button>`).join('');
+    const ttToggles=Object.keys(TEST_TYPE_LABELS).map(tt=>`<button class="tab ${t.testType===tt?'on':''}" data-btesttype="${ti}|${tt}">${esc(TEST_TYPE_LABELS[tt])}</button>`).join('');
     return `<div class="subacc ${t._open?'open':''}" data-bsub="0|${ti}"><div class="head">
       <span class="caret">▶</span>
       <input type="checkbox" class="selbox" data-bsel="0|${ti}" ${t._sel?'checked':''} onclick="event.stopPropagation()">
@@ -2052,7 +2107,7 @@ function settingsBankFileUpload(w){
         <div class="lbl-sm">نص الطلب المرافق للملف (عربي)</div><textarea data-bqlang="0|${ti}|ar">${esc(bilingualExact(t.q,'ar'))}</textarea>
         <div class="lbl-sm">Accompanying request text (English, optional)</div><textarea data-bqlang="0|${ti}|en">${esc(bilingualExact(t.q,'en'))}</textarea>
         <div class="lbl-sm">رابط الملف</div><input data-bf="0|${ti}|fileLink" value="${esc(t.fileLink||'')}" placeholder="رابط الملف (Google Drive مثلًا)">
-        <div class="lbl-sm">نوع الملف</div><div class="tabbar">${ftToggles}</div>
+        <div class="lbl-sm">نوع الاختبار</div><div class="tabbar">${ttToggles}</div>
         <div class="lbl-sm">الهدف من الاختبار</div><textarea data-bf="0|${ti}|goal" placeholder="ما الذي يهدف هذا الاختبار للتحقق منه؟">${esc(t.goal||'')}</textarea>
         <div class="lbl-sm">معايير التقييم</div>${criteria||'<div class="muted-note">لا معايير بعد.</div>'}
         <button class="iconbtn" data-addcrit="0|${ti}" style="margin-top:6px;"><svg class="icon"><use href="#ic-plus"/></svg> معيار</button>
@@ -2080,16 +2135,14 @@ function settingsBank(){
   const isConv=w.type==='conversation';
   const isFile=w.type==='fileupload';
   const winTabs=Object.entries(adminBank).map(([k,ww])=>`<button class="tab ${win===k?'on':''}" data-abwin="${k}">${esc(ww.label)}</button>`).join('');
-  return `<div class="card">
-    <div class="toolbar" style="justify-content:space-between;">
+  return `<div class="toolbar" style="justify-content:space-between;">
       <h2 class="h2" style="margin:0;">إدارة بنك الأسئلة</h2>
       <div class="row"><button class="btn btn-ghost btn-sm" id="resetBank"><svg class="icon"><use href="#ic-refresh"/></svg> استعادة الافتراضي</button>${(tagged||isConv||isFile)?`<button class="btn btn-ghost btn-sm" id="delSelBank"><svg class="icon"><use href="#ic-trash"/></svg> حذف المحدد</button>`:''}<button class="btn btn-primary btn-sm" id="saveBank"><svg class="icon"><use href="#ic-save"/></svg> حفظ التغييرات</button></div>
     </div>
     <p class="sub" style="margin-top:8px;">${tagged?'أضِف أو عدّل أو احذف المعيار (الوسوم) والأسئلة وعناصر الإجابة الصحيحة.':isConv?'أضِف أو عدّل أو احذف المحادثات وأسئلتها المتسلسلة ومعايير نجاحها.':isFile?'أضِف أو عدّل أو احذف اختبارات رفع الملفات، رابط كل ملف ونوعه وهدفه ومعايير تقييمه.':'أضِف أو عدّل أو احذف أنواع السؤال وأسئلتها، وعدّل نص التنبيه أعلى الصفحة.'}</p>
     <div class="tabbar" style="margin-top:14px;">${winTabs}</div>
     <div class="lbl-sm">${tagged||isConv||isFile?'مقدّمة الصفحة':'نص التنبيه أعلى الصفحة'}</div><input data-bwinf="${win}" value="${esc(w.sub)}">
-    ${tagged?settingsBankTagged(w):isConv?settingsBankConversation(w):isFile?settingsBankFileUpload(w):settingsBankTyped(w)}
-  </div>`;
+    ${tagged?settingsBankTagged(w):isConv?settingsBankConversation(w):isFile?settingsBankFileUpload(w):settingsBankTyped(w)}`;
 }
 function persistBank(){const cl=clone(adminBank);Object.values(cl).forEach(w=>w.cats.forEach(c=>{delete c._open;c.tests.forEach(t=>{delete t._open;delete t._sel;});}));QBANK=cl;save(K.qbank,QBANK);}
 function bindBank(){
@@ -2129,14 +2182,14 @@ function bindBank(){
   if(document.getElementById('addBankTest'))document.getElementById('addBankTest').onclick=()=>{
     const w=adminBank[win];
     if(w.type==='conversation')w.cats[0].tests.push({title:'',messages:[{q:''}],criteria:'',_open:true});
-    else if(w.type==='fileupload')w.cats[0].tests.push({q:'',fileLink:'',fileType:'word',goal:'',criteria:[''],_open:true});
+    else if(w.type==='fileupload')w.cats[0].tests.push({q:'',fileLink:'',testType:'read',goal:'',criteria:[''],_open:true});
     else w.cats[0].tests.push({q:'',tags:[],criteria:[''],_open:true});
     re();
   };
   screen.querySelectorAll('[data-bconvmsg]').forEach(el=>el.oninput=e=>{const[ti,mi,lang]=el.dataset.bconvmsg.split('|');bqSetLang(adminBank[win].cats[0].tests[+ti].messages[+mi],lang,e.target.value);});
   screen.querySelectorAll('[data-addconvmsg]').forEach(b=>b.onclick=()=>{const ti=+b.dataset.addconvmsg;const t=adminBank[win].cats[0].tests[ti];t.messages=t.messages||[];t.messages.push({q:''});t._open=true;re();});
   screen.querySelectorAll('[data-delconvmsg]').forEach(b=>b.onclick=()=>{const[ti,mi]=b.dataset.delconvmsg.split('|');const t=adminBank[win].cats[0].tests[+ti];t.messages.splice(+mi,1);t._open=true;re();});
-  screen.querySelectorAll('[data-bft]').forEach(b=>b.onclick=()=>{const[ti,ft]=b.dataset.bft.split('|');adminBank[win].cats[0].tests[+ti].fileType=ft;re();});
+  screen.querySelectorAll('[data-btesttype]').forEach(b=>b.onclick=()=>{const[ti,tt]=b.dataset.btesttype.split('|');adminBank[win].cats[0].tests[+ti].testType=tt;re();});
   screen.querySelectorAll('[data-baddtest]').forEach(b=>b.onclick=()=>{const ci=+b.dataset.baddtest;adminBank[win].cats[ci].tests.push({q:''});re();});
   screen.querySelectorAll('[data-bsavetest]').forEach(b=>b.onclick=()=>{persistBank();toast('تم حفظ السؤال');});
   screen.querySelectorAll('[data-bdeltest]').forEach(b=>b.onclick=()=>{const[ci,ti]=b.dataset.bdeltest.split('|');if(confirm('حذف السؤال؟')){adminBank[win].cats[+ci].tests.splice(+ti,1);re();}});
@@ -2196,15 +2249,13 @@ function settingsComp(){
       </div></div>`;
   }).join('');
   const body=`${cats||'<div class="muted-note">لا فئات بعد لهذا المنتج.</div>'}<div style="margin-top:14px;"><button class="btn btn-ghost" id="addCcat"><svg class="icon"><use href="#ic-plus"/></svg> إضافة فئة جديدة</button></div>`;
-  return `<div class="card">
-    <div class="toolbar" style="justify-content:space-between;">
+  return `<div class="toolbar" style="justify-content:space-between;">
       <h2 class="h2" style="margin:0;">إدارة قائمة معايير تحليل المنافسين</h2>
       <div class="row"><button class="btn btn-ghost btn-sm" id="resetComp"><svg class="icon"><use href="#ic-refresh"/></svg> استعادة الافتراضي</button><button class="btn btn-primary btn-sm" id="saveComp2"><svg class="icon"><use href="#ic-save"/></svg> حفظ التغييرات</button></div>
     </div>
     <p class="sub" style="margin-top:8px;">عدّل الفئات والمعايير لكل منتج. لكل معيار نوع إجابة: نعم/لا، مستويات مخصّصة، متعدد الاختيار، أو نص حر. اربط أي معيار بشرط ظهور مبني على إجابة معيار آخر في نفس الفئة (مثال: صندوق نص يظهر فقط عند اختيار «نعم»). إضافة أول فئة لمنتج تُفعّل صفحته في تحليل المنافسين.</p>
     <div class="tabbar" style="margin-top:14px;">${prodTabs}</div>
-    ${body}
-  </div>`;
+    ${body}`;
 }
 function persistComp(){const cl=clone(adminComp);Object.values(cl).forEach(p=>{(p.cats||[]).forEach(c=>{delete c._open;c.items.forEach(it=>delete it._open);});p.ready=(p.cats||[]).length>0;});COMP_DEFS=cl;save(K.comp,COMP_DEFS);}
 function bindComp(){
@@ -2255,15 +2306,13 @@ function settingsGeneral(){
       <div class="row" style="margin-top:12px;"><button class="btn btn-primary btn-sm" data-savemodel="${mi}"><svg class="icon"><use href="#ic-save"/></svg> حفظ النموذج</button><button class="iconbtn del" data-delmodel="${mi}"><svg class="icon"><use href="#ic-trash"/></svg> حذف النموذج</button></div>
     </div></div>`;
   }).join('');
-  return `<div class="card">
-    <div class="toolbar" style="justify-content:space-between;">
+  return `<div class="toolbar" style="justify-content:space-between;">
       <h2 class="h2" style="margin:0;">نماذج الذكاء الاصطناعي</h2>
       <button class="btn btn-primary btn-sm" id="saveModels"><svg class="icon"><use href="#ic-save"/></svg> حفظ التغييرات</button>
     </div>
     <p class="sub" style="margin-top:8px;">أضِف هنا النماذج المتاحة للاختبار مع إصداراتها وملاحظاتها. تظهر أسماء النماذج كخيارات عند بدء اختبار دخان جديد ليختار الموظف النموذج الذي يختبره.</p>
     <div style="margin-top:14px;">${rows||'<div class="muted-note">لا نماذج بعد.</div>'}</div>
-    <div class="row" style="margin-top:14px;"><button class="btn btn-ghost" id="addModel"><svg class="icon"><use href="#ic-plus"/></svg> نموذج جديد</button></div>
-  </div>`;
+    <div class="row" style="margin-top:14px;"><button class="btn btn-ghost" id="addModel"><svg class="icon"><use href="#ic-plus"/></svg> نموذج جديد</button></div>`;
 }
 function bindGeneral(){
   const re=()=>renderSettings();
