@@ -408,7 +408,7 @@ const store={mem:{},get(k){try{return localStorage.getItem(k);}catch(e){return (
 const clone=o=>JSON.parse(JSON.stringify(o));
 function load(k,d){const s=store.get(k);if(s){try{return JSON.parse(s);}catch(e){}}return clone(d);}
 function save(k,v){store.set(k,JSON.stringify(v));if(k!==K.theme)cloudSave(k,v);}
-const K={cats:'m_cats',runs:'m_runs',drafts:'m_drafts',settings:'m_settings',theme:'m_theme',texts:'m_texts',qbank:'m_qbank_v4',tags:'m_tags_v2',comp:'m_comp_defs_v2',compRuns:'m_comp_runs_v1',competitors:'m_competitors_v1',updatesRuns:'m_updates_runs_v1',models:'m_models_v1',productVis:'m_product_vis_v1'};
+const K={cats:'m_cats',runs:'m_runs',drafts:'m_drafts',settings:'m_settings',theme:'m_theme',texts:'m_texts',qbank:'m_qbank_v4',tags:'m_tags_v2',comp:'m_comp_defs_v2',compRuns:'m_comp_runs_v1',competitors:'m_competitors_v1',updatesRuns:'m_updates_runs_v1',models:'m_models_v1',productVis:'m_product_vis_v1',qualityRuns:'m_quality_runs_v1',qualityDrafts:'m_quality_drafts_v1'};
 applyTheme(store.get(K.theme)||'light');
 
 /* ===== Supabase: مزامنة البيانات مع الفريق ===== */
@@ -563,6 +563,8 @@ const DEF_CATS=[
 let CATS=load(K.cats,DEF_CATS);
 let RUNS=load(K.runs,[]);
 let DRAFTS=load(K.drafts,[]);
+let QUALITY_RUNS=load(K.qualityRuns,[]);
+let QUALITY_DRAFTS=load(K.qualityDrafts,[]);
 
 /* ===== بنك الأسئلة ===== */
 const DEF_TAGS=['حالات السريان والإلغاء','القدرات التحليلية','قدرات الصياغة','الاستحضار وعدم الهلوسة','التحليل القضائي','شمول قاعدة البيانات','تعديلات المواد'];
@@ -792,6 +794,32 @@ function toast(m){const t=document.getElementById('toast');t.textContent=m;t.cla
 function copyText(t,msg){msg=msg||'تم نسخ السؤال';if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(()=>toast(msg)).catch(()=>fb(t));}else fb(t);
   function fb(x){const a=document.createElement('textarea');a.value=x;a.style.position='fixed';a.style.left='-9999px';document.body.appendChild(a);a.select();try{document.execCommand('copy');toast(msg);}catch(e){}document.body.removeChild(a);}}
 function flatten(cats){const f=[];cats.forEach((c,ci)=>c.tests.forEach(t=>f.push({...t,cat:c.title,catIdx:ci})));return f;}
+/* ===== استيراد اختبار الجودة من بنك الأسئلة ===== */
+function qualityTypeOptions(){
+  const opts=TAGS.map(tag=>({key:'tag:'+tag,label:tag,n:QBANK.general.cats[0].tests.filter(x=>(x.tags||[]).includes(tag)).length}));
+  ['commands','contracts','conversations','fileUpload'].forEach(w=>opts.push({key:'win:'+w,label:QBANK[w].label,n:QBANK[w].cats.reduce((m,c)=>m+c.tests.length,0)}));
+  return opts.filter(o=>o.n>0);
+}
+function normalizeQItem(win,t){
+  const type=QBANK[win].type;
+  if(type==='conversation')return {kind:'conversation',title:t.title,messages:clone(t.messages||[]),criteria:t.criteria,srcWin:win};
+  if(type==='fileupload')return {kind:'fileupload',q:t.q,testType:t.testType,fileLink:t.fileLink,goal:t.goal,criteria:t.criteria,srcWin:win};
+  return {kind:'single',q:t.q,tags:t.tags,criteria:t.criteria,srcWin:win};
+}
+function qualityPool(typeKeys){
+  const items=[];
+  const pushWin=(w)=>QBANK[w].cats.forEach(c=>c.tests.forEach(t=>items.push(normalizeQItem(w,t))));
+  if(typeKeys.includes('__all__')){
+    QBANK.general.cats[0].tests.forEach(t=>items.push(normalizeQItem('general',t)));
+    ['commands','contracts','conversations','fileUpload'].forEach(pushWin);
+    return items;
+  }
+  const seen=new Set();
+  const pushGeneral=(tag)=>QBANK.general.cats[0].tests.forEach((t,i)=>{if((t.tags||[]).includes(tag)&&!seen.has(i)){seen.add(i);items.push(normalizeQItem('general',t));}});
+  typeKeys.forEach(k=>k.startsWith('tag:')?pushGeneral(k.slice(4)):pushWin(k.slice(4)));
+  return items;
+}
+function sample(arr,n){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return n?a.slice(0,n):a;}
 function modeList(t){const m=t.modes||{normal:true,detailed:false};const a=[];if(m.normal)a.push('normal');if(m.detailed)a.push('detailed');return a.length?a:['normal'];}
 function modeLabel(t){const l=modeList(t);return l.map(x=>x==='normal'?'عادي':'تفصيلي').join(' + ');}
 function isDual(t){const m=t.modes||{};return m.normal&&m.detailed;}
@@ -855,7 +883,7 @@ const SOON_PRODUCTS=[
 ];
 function bankCount(){return Object.values(QBANK).reduce((n,w)=>n+w.cats.reduce((m,c)=>m+c.tests.length,0),0);}
 const NAV_PRODUCTS=[
-  {key:'dashboard',icon:'search',label:'اختبار الدخان',count:()=>RUNS.length},
+  {key:'dashboard',icon:'search',label:'اختبار الدخان',count:()=>RUNS.length+QUALITY_RUNS.length},
   {key:'qbank',icon:'question',label:'بنك الأسئلة',count:()=>bankCount()},
   {key:'comp',icon:'chart',label:'تحليل المنافسين',count:()=>compCount()},
   {key:'updates',icon:'refresh',label:'متابعة التحديثات',count:()=>updatesCount()},
@@ -888,6 +916,11 @@ function render(){buildNav();setCrumb();
   else if(app.sub==='test') smokeTest();
   else if(app.sub==='review') smokeReview();
   else if(app.sub==='viewRun') renderSmokeRunView();
+  else if(app.sub==='qImport') qualityImport();
+  else if(app.sub==='qIntro') qualityIntro();
+  else if(app.sub==='qTest') qualityTest();
+  else if(app.sub==='qReview') qualityReview();
+  else if(app.sub==='qViewRun') renderQualityRunView();
   else renderDashboard();
   buildToc();
   bindEditable();
@@ -1046,11 +1079,21 @@ function bindBankResults(win,lang){
 
 /* ===== الداشبورد ===== */
 function renderDashboard(){
+  const tab=app.ctx.smokeTab||'initial';
+  const tabsHtml=`<div class="tabbar" style="margin-bottom:16px;">
+    <button class="tab ${tab==='initial'?'on':''}" data-stab="initial">اختبار أولي<span class="badge-n" style="margin-inline-start:8px;">${RUNS.length}</span></button>
+    <button class="tab ${tab==='quality'?'on':''}" data-stab="quality">اختبار جودة<span class="badge-n" style="margin-inline-start:8px;">${QUALITY_RUNS.length}</span></button>
+  </div>`;
+  if(tab==='quality') renderQualityDashboard(tabsHtml);
+  else renderInitialDashboard(tabsHtml);
+  screen.querySelectorAll('[data-stab]').forEach(b=>b.onclick=()=>{app.ctx.smokeTab=b.dataset.stab;render();});
+}
+function renderInitialDashboard(tabsHtml){
   const runsHtml=RUNS.length?RUNS.map((r,i)=>runRow(r,i,false)).join(''):`<div class="empty">لا توجد اختبارات مكتملة بعد.</div>`;
   const draftsHtml=DRAFTS.length?DRAFTS.map((d,i)=>runRow(d,i,true)).join(''):'';
   const lastDate=RUNS.length?RUNS[0].date:'—';
   const testers=new Set(RUNS.map(r=>(r.employee||'').trim()).filter(Boolean)).size;
-  screen.innerHTML=`
+  screen.innerHTML=`${tabsHtml}
     <div class="card hero">
       <div class="eyebrow" data-edit-key="dash.eyebrow">${esc(t('dash.eyebrow','المنتج · اختبار الدخان'))}</div>
       <h1 class="h1" data-edit-key="dash.title">${esc(t('dash.title','مرحبًا بكم في مِعيار'))}</h1>
@@ -1081,6 +1124,51 @@ function renderDashboard(){
   screen.querySelectorAll('[data-delrun]').forEach(b=>b.onclick=()=>{if(confirm('حذف هذا الاختبار؟')){RUNS.splice(+b.dataset.delrun,1);save(K.runs,RUNS);render();}});
   screen.querySelectorAll('[data-resume]').forEach(b=>b.onclick=()=>smokeResume(+b.dataset.resume));
   screen.querySelectorAll('[data-deldraft]').forEach(b=>b.onclick=()=>{if(confirm('حذف المسودة؟')){DRAFTS.splice(+b.dataset.deldraft,1);save(K.drafts,DRAFTS);render();}});
+}
+function renderQualityDashboard(tabsHtml){
+  const runsHtml=QUALITY_RUNS.length?QUALITY_RUNS.map((r,i)=>qualityRunRow(r,i,false)).join(''):`<div class="empty">لا توجد اختبارات جودة مكتملة بعد.</div>`;
+  const draftsHtml=QUALITY_DRAFTS.length?QUALITY_DRAFTS.map((d,i)=>qualityRunRow(d,i,true)).join(''):'';
+  const lastDate=QUALITY_RUNS.length?QUALITY_RUNS[0].date:'—';
+  const testers=new Set(QUALITY_RUNS.map(r=>(r.employee||'').trim()).filter(Boolean)).size;
+  const avgAll=QUALITY_RUNS.length?(QUALITY_RUNS.reduce((s,r)=>s+(r.avgRating||0),0)/QUALITY_RUNS.length).toFixed(1):'—';
+  screen.innerHTML=`${tabsHtml}
+    <div class="card hero">
+      <div class="eyebrow" data-edit-key="dash.quality.eyebrow">${esc(t('dash.quality.eyebrow','المنتج · اختبار الجودة'))}</div>
+      <h1 class="h1" data-edit-key="dash.quality.title">${esc(t('dash.quality.title','اختبار الجودة'))}</h1>
+      <p class="sub" data-edit-key="dash.quality.sub">${esc(t('dash.quality.sub','استوردوا مجموعة أسئلة من بنك الأسئلة حسب النوع، وقيّموا كل إجابة من المنتج من 1 إلى 5 مع ملاحظاتكم.'))}</p>
+      <div class="tip"><span class="ic"><svg class="icon"><use href="#ic-lamp"/></svg></span><div data-edit-key="dash.quality.tip">${esc(t('dash.quality.tip','الأسئلة تُسحب في كل مرة من آخر نسخة لبنك الأسئلة، وتُقفل كما هي بعد الاستيراد لهذا الاختبار.'))}</div></div>
+      <div class="steps">
+        <div class="step"><span class="num">1</span><span class="txt" data-edit-key="dash.quality.step1">${esc(t('dash.quality.step1','اضغطوا «بدء اختبار جديد» واختاروا نوع (أو أنواع) الأسئلة المطلوب استيرادها.'))}</span></div>
+        <div class="step"><span class="num">2</span><span class="txt" data-edit-key="dash.quality.step2">${esc(t('dash.quality.step2','مرّوا على كل سؤال، جرّبوه في المنصة، وسجّلوا التقييم والملاحظة ومعرّف السؤال ونص الإجابة.'))}</span></div>
+        <div class="step"><span class="num">3</span><span class="txt" data-edit-key="dash.quality.step3">${esc(t('dash.quality.step3','راجعوا متوسط التقييم النهائي وشاركوه مباشرة من داخل التطبيق.'))}</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="eyebrow" data-edit-key="dash.quality.stats.eyebrow">${esc(t('dash.quality.stats.eyebrow','نظرة عامة'))}</div>
+      <h2 class="h2" data-edit-key="dash.quality.stats.title">${esc(t('dash.quality.stats.title','الإحصائيات'))}</h2>
+      <div class="stat-row" style="grid-template-columns:repeat(4,1fr);margin-top:16px;">
+        <div class="stat"><div class="ic"><svg class="icon"><use href="#ic-circle-check"/></svg></div><div class="n">${QUALITY_RUNS.length}</div><div class="l">اختبار مكتمل</div></div>
+        <div class="stat"><div class="ic"><svg class="icon"><use href="#ic-draft"/></svg></div><div class="n">${QUALITY_DRAFTS.length}</div><div class="l">مسودة</div></div>
+        <div class="stat"><div class="ic"><svg class="icon"><use href="#ic-calendar"/></svg></div><div class="n" style="font-size:15px;padding-top:5px;">${esc(lastDate)}</div><div class="l">آخر اختبار</div></div>
+        <div class="stat"><div class="ic"><svg class="icon"><use href="#ic-users"/></svg></div><div class="n">${testers}</div><div class="l">عدد المختبِرين</div></div>
+      </div>
+      <div class="row" style="margin-top:18px;"><button class="btn btn-primary" id="newRun"><svg class="icon"><use href="#ic-plus"/></svg> بدء اختبار جديد</button></div>
+    </div>
+    ${QUALITY_DRAFTS.length?`<div class="card"><div class="eyebrow" data-edit-key="dash.quality.drafts.eyebrow">${esc(t('dash.quality.drafts.eyebrow','قيد الإكمال'))}</div><h2 class="h2" data-edit-key="dash.quality.drafts.title">${esc(t('dash.quality.drafts.title','المسودات'))}</h2>${draftsHtml}</div>`:''}
+    <div class="card"><div class="eyebrow" data-edit-key="dash.quality.history.eyebrow">${esc(t('dash.quality.history.eyebrow','السجل'))}</div><h2 class="h2" data-edit-key="dash.quality.history.title">${esc(t('dash.quality.history.title','الاختبارات السابقة'))} ${QUALITY_RUNS.length?`<span class="chip" style="font-weight:500;">متوسط عام: ${avgAll}/5</span>`:''}</h2>${runsHtml}</div>`;
+  document.getElementById('newRun').onclick=qualityStart;
+  screen.querySelectorAll('[data-viewrun]').forEach(b=>b.onclick=()=>qualityViewRun(+b.dataset.viewrun));
+  screen.querySelectorAll('[data-share]').forEach(b=>b.onclick=()=>shareQualityRun(QUALITY_RUNS[+b.dataset.share]));
+  screen.querySelectorAll('[data-delrun]').forEach(b=>b.onclick=()=>{if(confirm('حذف هذا الاختبار؟')){QUALITY_RUNS.splice(+b.dataset.delrun,1);save(K.qualityRuns,QUALITY_RUNS);render();}});
+  screen.querySelectorAll('[data-resume]').forEach(b=>b.onclick=()=>qualityResume(+b.dataset.resume));
+  screen.querySelectorAll('[data-deldraft]').forEach(b=>b.onclick=()=>{if(confirm('حذف المسودة؟')){QUALITY_DRAFTS.splice(+b.dataset.deldraft,1);save(K.qualityDrafts,QUALITY_DRAFTS);render();}});
+}
+function qualityRunRow(r,i,isDraft){
+  const done=r.results.filter(x=>x.rating).length;
+  const avg=r.avgRating!=null?r.avgRating:(done?(r.results.reduce((s,x)=>s+(x.rating||0),0)/done).toFixed(1):null);
+  const badge=isDraft?`<span class="badge draft">مسودة ${done}/${r.tests.length}</span>`:`<span class="badge ${avg>=4?'pass':avg>=2.5?'draft':'fail'}">متوسط ${avg}/5</span>`;
+  const actions=isDraft?`<button class="btn btn-primary btn-sm" data-resume="${i}">إكمال</button><button class="iconbtn del" data-deldraft="${i}"><svg class="icon"><use href="#ic-trash"/></svg></button>`:`<button class="btn btn-ghost btn-sm" data-viewrun="${i}"><svg class="icon"><use href="#ic-external-link"/></svg> استعراض</button><button class="iconbtn" data-share="${i}"><svg class="icon"><use href="#ic-share"/></svg></button><button class="iconbtn del" data-delrun="${i}"><svg class="icon"><use href="#ic-trash"/></svg></button>`;
+  return `<div class="lrow"><div class="ri"><div class="t">${esc(r.employee||'—')}</div><div class="m">${esc(r.date)} • ${r.tests.length} سؤال${r.model?' • المودل: '+esc(r.model):''}${r.reason?' • '+esc(r.reason):''}</div></div>${badge}${actions}</div>`;
 }
 function runRow(r,i,isDraft){
   const passed=r.results.filter(x=>x.result==='pass').length,failed=r.results.filter(x=>x.result==='fail').length,done=r.results.filter(x=>x.result).length;
@@ -1333,6 +1421,251 @@ function renderSmokeRunView(){
   document.getElementById('back').onclick=()=>{app.sub=null;app.ctx.viewRunIndex=null;render();};
   document.getElementById('copySum').onclick=()=>{copyText(buildSummaryText(run));toast('تم نسخ ملخّص الاختبار');};
   document.getElementById('shareThis').onclick=()=>shareRun(run);
+}
+
+/* ===== تدفّق اختبار الجودة ===== */
+function qualityStart(){
+  app.ctx.qImportSel=app.ctx.qImportSel||[];
+  app.ctx.qImportCount=app.ctx.qImportCount||20;
+  app.sub='qImport';render();window.scrollTo(0,0);
+}
+function qualityImport(){
+  setCrumb('استيراد من بنك الأسئلة');
+  const opts=qualityTypeOptions();
+  const sel=app.ctx.qImportSel||[];
+  const allOn=sel.includes('__all__');
+  const optsHtml=opts.map(o=>`<label class="qoption ${sel.includes(o.key)?'sel':''}" data-qopt="${esc(o.key)}"><input type="checkbox" ${sel.includes(o.key)?'checked':''}><span class="qtext">${esc(o.label)}</span><span class="chip" style="flex:0 0 auto;">${o.n}</span></label>`).join('');
+  screen.innerHTML=`<div class="card">
+    <div class="eyebrow" data-edit-key="qimport.eyebrow">${esc(t('qimport.eyebrow','قبل البدء'))}</div><h1 class="h1" data-edit-key="qimport.title">${esc(t('qimport.title','استيراد أسئلة من بنك الأسئلة'))}</h1>
+    <p class="sub" data-edit-key="qimport.sub">${esc(t('qimport.sub','اختر نوع أو أنواع الأسئلة المطلوب استيرادها لهذا الاختبار. تُسحب الأسئلة من آخر نسخة لبنك الأسئلة وتُقفل كما هي بعد الاستيراد.'))}</p>
+    <div class="section-h">نوع السؤال</div>
+    <label class="qoption ${allOn?'sel':''}" data-qopt="__all__"><input type="checkbox" ${allOn?'checked':''}><span class="qtext"><b>الكل</b></span></label>
+    ${optsHtml||'<div class="muted-note">لا توجد أسئلة في بنك الأسئلة بعد.</div>'}
+    ${allOn?`<div class="field" id="countField" style="margin-top:14px;">
+      <label>عدد الأسئلة المطلوب استيرادها (عشوائيًا من الكل)</label>
+      <input id="f_count" type="number" min="1" value="${esc(app.ctx.qImportCount||20)}">
+    </div>`:''}
+    <div class="warnmsg" id="w">اختر نوعًا واحدًا على الأقل.</div>
+    <div class="nav-btns"><button class="btn btn-ghost" id="cancel">إلغاء</button><button class="btn btn-primary" id="go">استيراد وبدء ←</button></div>
+  </div>`;
+  document.getElementById('cancel').onclick=()=>{app.sub=null;render();};
+  screen.querySelectorAll('[data-qopt]').forEach(el=>el.querySelector('input').onchange=()=>{
+    const k=el.dataset.qopt;
+    let s=(app.ctx.qImportSel||[]).slice();
+    if(k==='__all__'){s=s.includes('__all__')?[]:['__all__'];}
+    else{s=s.filter(x=>x!=='__all__');const i=s.indexOf(k);if(i>-1)s.splice(i,1);else s.push(k);}
+    app.ctx.qImportSel=s;qualityImport();
+  });
+  const cf=document.getElementById('f_count');if(cf)cf.oninput=e=>app.ctx.qImportCount=+e.target.value||1;
+  document.getElementById('go').onclick=()=>{
+    const w=document.getElementById('w');
+    const s=app.ctx.qImportSel||[];
+    if(!s.length){w.classList.add('show');return;}
+    const pool=qualityPool(s);
+    if(!pool.length){w.textContent='لا توجد أسئلة مطابقة لهذا الاختيار.';w.classList.add('show');return;}
+    const tests=s.includes('__all__')?sample(pool,Math.min(app.ctx.qImportCount||20,pool.length)):pool;
+    app.ctx.qrun={employee:'',date:today(),asana:'',reason:'',model:'',importTypes:s.slice(),tests,results:tests.map(()=>({rating:null,note:'',questionId:'',answerText:'',lang:'ar'})),step:0};
+    app.ctx.qDraftIndex=null;
+    app.sub='qIntro';render();window.scrollTo(0,0);
+  };
+}
+function qualityIntro(){
+  const r=app.ctx.qrun;setCrumb('اختبار جودة جديد');
+  screen.innerHTML=`<div class="card">
+    <div class="eyebrow" data-edit-key="qintro.eyebrow">${esc(t('qintro.eyebrow','قبل البدء'))}</div><h1 class="h1" data-edit-key="qintro.title">${esc(t('qintro.title','بدء اختبار جودة جديد'))}</h1>
+    <p class="sub" data-edit-key="qintro.sub">${esc(t('qintro.sub','عبّئ المعلومات الأساسية للجلسة.'))}</p>
+    <div class="grid2">
+      <div class="field"><label>اسم الموظف</label><input id="f_emp" value="${esc(r.employee)}" placeholder="الاسم الكامل"></div>
+      <div class="field"><label>تاريخ الاختبار</label><input id="f_dt" type="date" value="${esc(r.date)}"></div>
+    </div>
+    <div class="field"><label>رابط أسانا (Asana)</label><input id="f_as" value="${esc(r.asana)}" placeholder="https://app.asana.com/..."></div>
+    <div class="field"><label>سبب الاختبار</label><textarea id="f_rs" placeholder="مثال: التحقق بعد تحديث نموذج الاسترجاع">${esc(r.reason)}</textarea></div>
+    <div class="field"><label>المودل المُختبَر</label>
+      <select id="f_model" ${MODELS.length?'':'disabled'}>
+        <option value="">${MODELS.length?'اختر المودل':'لا توجد نماذج مضافة بعد'}</option>
+        ${MODELS.map(m=>`<option value="${esc(m.name)}" ${r.model===m.name?'selected':''}>${esc(m.name)}</option>`).join('')}
+      </select>
+      ${MODELS.length?'':'<div class="muted-note" style="margin-top:6px;">أضِف نماذج من الإعدادات ← عام قبل بدء الاختبار.</div>'}
+    </div>
+    <div class="row" style="margin-top:4px;"><span class="chip">عدد الأسئلة المستوردة: ${r.tests.length}</span></div>
+    <div class="warnmsg" id="w">اكتب اسم الموظف على الأقل للبدء.</div>
+    <div class="nav-btns"><button class="btn btn-ghost" id="cancel">إلغاء</button><button class="btn btn-primary" id="start">بدء الاختبار ←</button></div>
+  </div>`;
+  document.getElementById('cancel').onclick=()=>{app.sub=null;render();};
+  document.getElementById('start').onclick=()=>{
+    r.employee=document.getElementById('f_emp').value.trim();r.date=document.getElementById('f_dt').value||today();
+    r.asana=document.getElementById('f_as').value.trim();r.reason=document.getElementById('f_rs').value.trim();
+    r.model=document.getElementById('f_model').value;
+    if(!r.employee){document.getElementById('w').classList.add('show');return;}
+    if(MODELS.length&&!r.model){const w=document.getElementById('w');w.textContent='اختر المودل المُختبَر أولًا.';w.classList.add('show');return;}
+    r.step=0;app.sub='qTest';render();window.scrollTo(0,0);
+  };
+}
+function qualitySaveDraft(){const r=app.ctx.qrun,d=clone(r);d.savedAt=new Date().toISOString();if(app.ctx.qDraftIndex!=null){QUALITY_DRAFTS[app.ctx.qDraftIndex]=d;}else{QUALITY_DRAFTS.unshift(d);app.ctx.qDraftIndex=0;}save(K.qualityDrafts,QUALITY_DRAFTS);toast('تم حفظ المسودة');}
+function qualityResume(i){app.ctx.qrun=clone(QUALITY_DRAFTS[i]);app.ctx.qDraftIndex=i;app.sub='qTest';render();window.scrollTo(0,0);}
+
+function qualityTest(){
+  const r=app.ctx.qrun,i=r.step,item=r.tests[i],res=r.results[i],total=r.tests.length;
+  setCrumb(`السؤال ${i+1}/${total}`);
+  res.lang=res.lang||'ar';
+  let bodyHtml;
+  if(item.kind==='conversation'){
+    const msgs=(item.messages||[]).map((m,mi,arr)=>{
+      const arrow=mi<arr.length-1?`<div class="conv-arrow">↓</div>`:'';
+      return `<div class="conv-msg"><span class="conv-num">${mi+1}</span><span class="conv-text">${esc(bilingualText(m.q,res.lang))}</span><button class="copybtn" data-copymsg="${mi}" title="نسخ هذا السؤال"><svg class="icon"><use href="#ic-copy"/></svg></button></div>${arrow}`;
+    }).join('');
+    bodyHtml=`<div style="margin-top:14px;"><b style="font-size:15px;color:var(--ink-2);">${esc(item.title)||'محادثة'}</b></div>
+      <div class="conv-flow" style="margin-top:10px;">${msgs||'<div class="muted-note">لا أسئلة في هذه المحادثة.</div>'}</div>
+      ${item.criteria?`<div class="criteria-box" style="margin-top:12px;"><span class="lbl">معايير المحادثة الناجحة (مرجع)</span><p style="margin:0;">${esc(item.criteria)}</p></div>`:''}
+      <div class="row" style="margin-top:12px;"><button class="btn btn-ghost btn-sm" id="copyAll"><svg class="icon"><use href="#ic-copy"/></svg> نسخ المحادثة كاملة</button></div>`;
+  } else if(item.kind==='fileupload'){
+    const criteria=(item.criteria||[]).map(x=>`<li>${esc(x)}</li>`).join('');
+    bodyHtml=`<div class="qline"><span class="qtext" style="flex:1;">${esc(bilingualText(item.q,res.lang))}</span><button class="copybtn" id="copyQ"><svg class="icon"><use href="#ic-copy"/></svg> نسخ</button></div>
+      ${item.fileLink?`<div class="row" style="margin:10px 0;"><a href="${esc(item.fileLink)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm"><svg class="icon"><use href="#ic-external-link"/></svg> فتح الملف</a></div>`:'<div class="muted-note" style="margin:10px 0;">لا يوجد رابط ملف.</div>'}
+      ${item.goal?`<div class="tip"><span class="ic"><svg class="icon"><use href="#ic-lamp"/></svg></span><div><b>الهدف من الاختبار:</b> ${esc(item.goal)}</div></div>`:''}
+      ${criteria?`<div class="criteria-box" style="margin-top:12px;"><span class="lbl">معايير التقييم (مرجع)</span><ul>${criteria}</ul></div>`:''}`;
+  } else {
+    const criteria=(item.criteria||[]).map(x=>`<li>${esc(x)}</li>`).join('');
+    const tagsHtml=(item.tags||[]).map(tag=>`<span class="chip">${esc(tag)}</span>`).join('');
+    bodyHtml=`<div class="qline"><span class="qtext" style="flex:1;">${esc(bilingualText(item.q,res.lang))}</span><button class="copybtn" id="copyQ"><svg class="icon"><use href="#ic-copy"/></svg> نسخ</button></div>
+      ${tagsHtml?`<div class="row" style="gap:6px;flex-wrap:wrap;margin-top:10px;">${tagsHtml}</div>`:''}
+      ${criteria?`<div class="criteria-box" style="margin-top:12px;"><span class="lbl">عناصر الإجابة الصحيحة (مرجع)</span><ul>${criteria}</ul></div>`:''}`;
+  }
+  const hasEn=item.kind==='conversation'?(item.messages||[]).some(m=>bilingualHas(m.q,'en')):bilingualHas(item.q,'en');
+  const langToggle=hasEn?`<div class="optpills" style="margin-bottom:8px;"><button class="optpill ${res.lang==='ar'?'on':''}" data-qlang="ar">عربي</button><button class="optpill ${res.lang==='en'?'on':''}" data-qlang="en">English</button></div>`:'';
+  const ratingHtml=`<div class="optpills">${[1,2,3,4,5].map(n=>`<button class="optpill ${res.rating===n?'on':''}" data-rate="${n}">${n}</button>`).join('')}</div>`;
+  const kindLabel=item.kind==='conversation'?'سياق محادثة':(item.kind==='fileupload'?'اختبار رفع ملف':'سؤال');
+
+  screen.innerHTML=`<div class="card">
+    <div class="progress-meta"><span>${esc(kindLabel)}</span><span>السؤال ${i+1} من ${total}</span></div>
+    <div class="progress-track"><div class="progress-fill" style="width:${(i/total)*100}%"></div></div>
+    <div class="section-h">${item.kind==='conversation'?'سياق المحادثة':'السؤال (يُنسخ تلقائيًا)'}</div>
+    ${langToggle}
+    ${bodyHtml}
+    <div class="section-h">التقييم</div>
+    <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:8px;">قيّم إجابة المنتج من 1 (ضعيف) إلى 5 (ممتاز)</label>
+    ${ratingHtml}
+    <div class="notes-block show" style="margin-top:14px;">
+      <label>ملاحظة</label>
+      <textarea class="notes" id="note" placeholder="أي ملاحظة على الإجابة (اختياري)">${esc(res.note)}</textarea>
+      <label style="margin-top:12px;">معرّف السؤال — إلزامي</label>
+      <input class="notes" id="qid" placeholder="رقم أو رابط المحادثة في المنصة" value="${esc(res.questionId||'')}">
+      <label style="margin-top:12px;">نص الإجابة — إلزامي</label>
+      <textarea class="notes" id="answerText" placeholder="الصق نص إجابة المنتج هنا">${esc(res.answerText)}</textarea>
+    </div>
+    <div class="warnmsg" id="w"></div>
+    <div class="nav-btns">
+      <div class="row"><button class="btn btn-ghost" id="prev">→ السابق</button><button class="btn btn-ghost" id="draft"><svg class="icon"><use href="#ic-save"/></svg> حفظ كمسودة</button></div>
+      <button class="btn btn-primary" id="next">${i===total-1?'إنهاء ومراجعة':'التالي ←'}</button>
+    </div>
+  </div>`;
+
+  if(item.kind==='conversation'){
+    screen.querySelectorAll('[data-copymsg]').forEach(b=>b.onclick=e=>{e.stopPropagation();copyText(bilingualText(item.messages[+b.dataset.copymsg].q,res.lang));});
+    const ca=document.getElementById('copyAll');if(ca)ca.onclick=()=>copyText((item.messages||[]).map(m=>bilingualText(m.q,res.lang)).join('\n\n'),'تم نسخ المحادثة');
+  } else {
+    document.getElementById('copyQ').onclick=()=>copyText(bilingualText(item.q,res.lang));
+  }
+  screen.querySelectorAll('[data-qlang]').forEach(b=>b.onclick=()=>{res.lang=b.dataset.qlang;qualityTest();});
+  screen.querySelectorAll('[data-rate]').forEach(b=>b.onclick=()=>{res.rating=+b.dataset.rate;qualityTest();});
+  document.getElementById('note').oninput=e=>res.note=e.target.value;
+  document.getElementById('qid').oninput=e=>res.questionId=e.target.value;
+  document.getElementById('answerText').oninput=e=>res.answerText=e.target.value;
+  document.getElementById('draft').onclick=qualitySaveDraft;
+  document.getElementById('prev').onclick=()=>{if(i===0){app.sub=app.ctx.qDraftIndex!=null?null:'qIntro';}else{r.step--;}render();window.scrollTo(0,0);};
+  document.getElementById('next').onclick=()=>{
+    const w=document.getElementById('w');
+    if(!res.rating){w.textContent='حدّد تقييمًا من 1 إلى 5.';w.classList.add('show');return;}
+    if(!(res.questionId||'').trim()){w.textContent='معرّف السؤال إلزامي.';w.classList.add('show');document.getElementById('qid').focus();return;}
+    if(!(res.answerText||'').trim()){w.textContent='نص الإجابة إلزامي.';w.classList.add('show');document.getElementById('answerText').focus();return;}
+    if(i===total-1){app.sub='qReview';}else{r.step++;}render();window.scrollTo(0,0);
+  };
+}
+function qualityResultRows(run){
+  let rows='';
+  run.tests.forEach((item,i)=>{
+    const r=run.results[i];
+    const qDisplay=item.kind==='conversation'?(item.title||'محادثة '+(i+1))+': '+(item.messages||[]).map(m=>bilingualText(m.q,r.lang)).join(' ← '):bilingualText(item.q,r.lang);
+    rows+=`<div class="rrow"><div class="rhead"><b style="color:var(--ink-2);">سؤال ${i+1}</b><span class="badge ${r.rating>=4?'pass':r.rating>=3?'draft':'fail'}">تقييم ${r.rating||'—'}/5</span></div>
+    <div class="qq"><b>السؤال:</b> ${esc(qDisplay)}</div>
+    ${r.note?`<div class="meta"><b>الملاحظة:</b> ${esc(r.note)}</div>`:''}
+    <div class="rnotes"><b>معرّف السؤال:</b> ${esc(r.questionId||'—')}<br><b>نص الإجابة:</b> ${esc(r.answerText||'—')}</div></div>`;
+  });
+  return rows;
+}
+function buildQualitySummaryText(run){
+  const avg=run.avgRating!=null?run.avgRating:(run.results.reduce((s,r)=>s+(r.rating||0),0)/run.results.length).toFixed(1);
+  let L=['📋 تقرير اختبار الجودة — منصة مِعيار',`${SETTINGS.team} — ${SETTINGS.product}`,'———————————————',`الموظف: ${run.employee}`,`التاريخ: ${run.date}`];
+  if(run.model)L.push(`المودل: ${run.model}`);
+  if(run.reason)L.push(`سبب الاختبار: ${run.reason}`);
+  if(run.asana)L.push(`أسانا: ${run.asana}`);
+  L.push(`متوسط التقييم: ${avg}/5  (${run.tests.length} سؤال)`,'———————————————');
+  run.tests.forEach((item,i)=>{
+    const r=run.results[i];
+    const qDisplay=item.kind==='conversation'?(item.title||'محادثة '+(i+1)):bilingualText(item.q,r.lang);
+    L.push('',`${i+1}. ${qDisplay}`,`   التقييم: ${r.rating||'—'}/5`);
+    if(r.note)L.push(`   الملاحظة: ${r.note}`);
+    L.push(`   معرّف السؤال: ${r.questionId||'—'}`,`   نص الإجابة: ${r.answerText||'—'}`);
+  });
+  return L.join('\n');
+}
+function qualityReview(){
+  const run=app.ctx.qrun;setCrumb('مراجعة');
+  const avg=(run.results.reduce((s,r)=>s+(r.rating||0),0)/run.results.length).toFixed(1);
+  screen.innerHTML=`<div class="card">
+    <div class="eyebrow" data-edit-key="qreview.eyebrow">${esc(t('qreview.eyebrow','اكتمل التنفيذ'))}</div><h1 class="h1" data-edit-key="qreview.title">${esc(t('qreview.title','مراجعة النتيجة'))}</h1>
+    <div class="stat-row" style="grid-template-columns:repeat(2,1fr);margin-top:14px;">
+      <div class="stat"><div class="n">${run.tests.length}</div><div class="l">إجمالي الأسئلة</div></div>
+      <div class="stat"><div class="n" style="color:var(--brand);">${avg}/5</div><div class="l">متوسط التقييم</div></div>
+    </div>
+    <div style="margin-top:14px;font-size:13.5px;color:var(--muted);">
+      <b style="color:var(--ink-2)">الموظف:</b> ${esc(run.employee)} • <b style="color:var(--ink-2)">التاريخ:</b> ${esc(run.date)}
+      ${run.model?` • <b style="color:var(--ink-2)">المودل:</b> ${esc(run.model)}`:''}
+      ${run.asana?` • <b style="color:var(--ink-2)">أسانا:</b> <a href="${esc(run.asana)}" target="_blank" style="color:var(--brand);">رابط المهمة</a>`:''}
+      ${run.reason?` • <b style="color:var(--ink-2)">السبب:</b> ${esc(run.reason)}`:''}
+    </div>
+    ${qualityResultRows(run)}
+    <div class="nav-btns">
+      <button class="btn btn-ghost" id="back">→ رجوع</button>
+      <div class="row"><button class="btn btn-ghost" id="copySum"><svg class="icon"><use href="#ic-copy"/></svg> نسخ الملخّص</button><button class="btn btn-primary" id="share"><svg class="icon"><use href="#ic-share"/></svg> حفظ ومشاركة</button></div>
+    </div>
+  </div>`;
+  document.getElementById('back').onclick=()=>{app.sub='qTest';run.step=run.tests.length-1;render();window.scrollTo(0,0);};
+  const persist=()=>{if(!app.ctx._qsaved){const saved={employee:run.employee,date:run.date,asana:run.asana,reason:run.reason,model:run.model,importTypes:run.importTypes,savedAt:new Date().toISOString(),tests:clone(run.tests),results:clone(run.results),avgRating:+avg};QUALITY_RUNS.unshift(saved);save(K.qualityRuns,QUALITY_RUNS);if(app.ctx.qDraftIndex!=null){QUALITY_DRAFTS.splice(app.ctx.qDraftIndex,1);save(K.qualityDrafts,QUALITY_DRAFTS);app.ctx.qDraftIndex=null;}app.ctx._qsaved=saved;toast('تم حفظ الاختبار');}return app.ctx._qsaved;};
+  document.getElementById('copySum').onclick=()=>{const s=persist();copyText(buildQualitySummaryText(s));toast('تم نسخ ملخّص الاختبار');};
+  document.getElementById('share').onclick=async()=>{const s=persist();await shareQualityRun(s);setTimeout(()=>{app.sub=null;app.ctx={};render();window.scrollTo(0,0);},600);};
+}
+async function shareQualityRun(run){const text=buildQualitySummaryText(run);if(navigator.share){try{await navigator.share({title:'تقرير اختبار الجودة',text});}catch(e){}}else{copyText(text);toast('نُسخ الملخّص لتلصقه');}}
+function qualityViewRun(i){app.ctx.qViewRunIndex=i;app.sub='qViewRun';render();window.scrollTo(0,0);}
+function renderQualityRunView(){
+  const i=app.ctx.qViewRunIndex,run=QUALITY_RUNS[i];
+  if(!run){app.sub=null;render();return;}
+  setCrumb('استعراض النتيجة');
+  const avg=run.avgRating!=null?run.avgRating:(run.results.reduce((s,r)=>s+(r.rating||0),0)/run.results.length).toFixed(1);
+  screen.innerHTML=`<div class="card">
+    <div class="eyebrow">استعراض اختبار جودة سابق</div><h1 class="h1" style="margin-bottom:4px;">نتيجة الاختبار</h1>
+    <div class="stat-row" style="grid-template-columns:repeat(2,1fr);margin-top:14px;">
+      <div class="stat"><div class="n">${run.tests.length}</div><div class="l">إجمالي الأسئلة</div></div>
+      <div class="stat"><div class="n" style="color:var(--brand);">${avg}/5</div><div class="l">متوسط التقييم</div></div>
+    </div>
+    <div style="margin-top:14px;font-size:13.5px;color:var(--muted);">
+      <b style="color:var(--ink-2)">الموظف:</b> ${esc(run.employee)} • <b style="color:var(--ink-2)">التاريخ:</b> ${esc(run.date)}
+      ${run.model?` • <b style="color:var(--ink-2)">المودل:</b> ${esc(run.model)}`:''}
+      ${run.asana?` • <b style="color:var(--ink-2)">أسانا:</b> <a href="${esc(run.asana)}" target="_blank" style="color:var(--brand);">رابط المهمة</a>`:''}
+      ${run.reason?` • <b style="color:var(--ink-2)">السبب:</b> ${esc(run.reason)}`:''}
+    </div>
+    ${qualityResultRows(run)}
+    <div class="nav-btns">
+      <button class="btn btn-ghost" id="back">→ رجوع</button>
+      <div class="row">
+        <button class="btn btn-ghost" id="copySum"><svg class="icon"><use href="#ic-copy"/></svg> نسخ الملخّص</button>
+        <button class="btn btn-primary" id="shareThis"><svg class="icon"><use href="#ic-share"/></svg> مشاركة</button>
+      </div>
+    </div>
+  </div>`;
+  document.getElementById('back').onclick=()=>{app.sub=null;app.ctx.qViewRunIndex=null;render();};
+  document.getElementById('copySum').onclick=()=>{copyText(buildQualitySummaryText(run));toast('تم نسخ ملخّص الاختبار');};
+  document.getElementById('shareThis').onclick=()=>shareQualityRun(run);
 }
 
 /* ===== تحليل المنافسين ===== */
