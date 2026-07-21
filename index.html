@@ -242,6 +242,12 @@
   .qline input{width:100%;border:1px solid var(--line-2);border-radius:9px;padding:6px 10px;font-size:12.5px;background:var(--card-2);color:var(--ink);}
   .qrow{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line-2);border-radius:10px;margin-top:8px;background:var(--card-2);}
   .qrow .qtext{flex:1;font-size:13.5px;color:var(--ink-2);}
+  .conv-flow{display:flex;flex-direction:column;}
+  .conv-msg,.conv-msg-edit{display:flex;align-items:flex-start;gap:10px;padding:9px 11px;border:1px solid var(--line-2);border-radius:9px;background:var(--card-2);}
+  .conv-num{flex:0 0 auto;width:22px;height:22px;border-radius:50%;background:var(--brand-2);color:#fff;font-size:11.5px;font-weight:700;display:grid;place-items:center;margin-top:1px;}
+  .conv-text{flex:1;font-size:13.5px;color:var(--ink-2);padding-top:2px;}
+  .conv-arrow{text-align:center;color:var(--muted);font-size:15px;line-height:1;padding:3px 0;}
+  .conv-msg-edit{align-items:flex-start;}
   .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
   .selbox{width:16px;height:16px;accent-color:var(--fail);}
   .tabbar{display:flex;gap:8px;flex-wrap:wrap;}
@@ -694,6 +700,12 @@ const DEF_QBANK={
       {title:'طلب معقد متعدد العناصر',tests:[{q:{ar:`أحتاج عقد مقاولة لإنشاء مبنى إداري من أربعة طوابق. قيمة المشروع 18 مليون ريال، ومدة التنفيذ 16 شهرًا. أريد أن يتضمن نطاق الأعمال، المواصفات الفنية، البرنامج الزمني، أوامر التغيير، التأمينات، الضمانات البنكية، غرامات التأخير، الاستلام الابتدائي والنهائي، مسؤولية المقاول عن العيوب، القوة القاهرة، فض المنازعات، مع الالتزام بالأنظمة السعودية وإدراج أي بنود نظامية جوهرية يجب ألا يخلو منها العقد.`,en:`I need a construction contract for a four-story administrative building. The project value is 18 million riyals, and the implementation period is 16 months. I want it to include the scope of work, technical specifications, the timeline, change orders, insurance, bank guarantees, delay penalties, provisional and final handover, the contractor's liability for defects, force majeure, dispute resolution, compliance with Saudi laws, and the inclusion of any essential statutory clauses the contract must not lack.`}}]},
     ],
   },
+  conversations:{
+    label:'سياق محادثة',
+    type:'conversation',
+    sub:'محادثات متسلسلة تحاكي تبادل الأسئلة الحقيقي مع المنتج ضمن سياق واحد، بدل سؤال وجواب منفصلين — كل سؤال يبني على ما قبله، ولكل محادثة معايير تحدد متى تُعتبر ناجحة بمجملها.',
+    cats:[{title:'كل المحادثات',tests:[]}],
+  },
 };
 let QBANK=load(K.qbank,DEF_QBANK);
 
@@ -918,6 +930,29 @@ function renderBankResults(win){
       </div>`;
     }).join('');
     document.getElementById('bankResults').innerHTML=`<div class="card"><p class="sub" data-edit-bank="${win}" style="margin:0;">${esc(w.sub)}</p>${tagbar}</div>${rows||'<div class="card" style="margin-top:12px;"><div class="empty">لا نتائج مطابقة.</div></div>'}`;
+  } else if(w.type==='conversation'){
+    const all=w.cats[0].tests;
+    const tests=all.filter(t=>{
+      if(!q) return true;
+      const hay=(t.title||'')+' '+(t.messages||[]).map(m=>bilingualText(m.q,lang)).join(' ');
+      return hay.toLowerCase().includes(q);
+    });
+    const rows=tests.map(t=>{
+      const ti=all.indexOf(t);
+      const msgs=(t.messages||[]).map((m,mi,arr)=>{
+        const arrow=mi<arr.length-1?`<div class="conv-arrow">↓</div>`:'';
+        return `<div class="conv-msg"><span class="conv-num">${mi+1}</span><span class="conv-text">${esc(bilingualText(m.q,lang))}</span></div>${arrow}`;
+      }).join('');
+      return `<div class="subacc ${t._open?'open':''}" data-bq="0|${ti}">
+        <div class="head"><span class="caret">▶</span><span class="title" style="font-size:13.5px;flex:1;font-weight:500;">${esc(t.title)||'محادثة '+(ti+1)}</span><span class="badge-n" style="margin-inline-start:8px;">${(t.messages||[]).length} سؤال</span>
+        <button class="copybtn" data-bcopyconv="0|${ti}" title="نسخ المحادثة كاملة"><svg class="icon"><use href="#ic-copy"/></svg></button></div>
+        <div class="body">
+          <div class="conv-flow">${msgs||'<div class="muted-note">لا أسئلة بعد.</div>'}</div>
+          <div class="criteria-box"><span class="lbl">معايير المحادثة الناجحة</span><p style="margin:0;">${esc(t.criteria)||'<span class="muted-note">لم تُحدَّد بعد.</span>'}</p></div>
+        </div>
+      </div>`;
+    }).join('');
+    document.getElementById('bankResults').innerHTML=`<div class="card"><p class="sub" data-edit-bank="${win}" style="margin:0;">${esc(w.sub)}</p></div>${rows||'<div class="card" style="margin-top:12px;"><div class="empty">لا نتائج مطابقة.</div></div>'}`;
   } else {
     const allSingle=w.cats.every(c=>c.tests.length===1);
     const cats=w.cats.map((c,ci)=>{
@@ -942,8 +977,9 @@ function renderBankResults(win){
 function bindBankResults(win,lang){
   const w=QBANK[win];
   screen.querySelectorAll('[data-bcat]').forEach(a=>a.querySelector('.head').onclick=()=>{const ci=+a.dataset.bcat;w.cats[ci]._open=!w.cats[ci]._open;renderBankResults(win);});
-  screen.querySelectorAll('[data-bq]').forEach(a=>a.querySelector('.head').onclick=(e)=>{if(e.target.closest('[data-bcopy]'))return;const[ci,ti]=a.dataset.bq.split('|');w.cats[+ci].tests[+ti]._open=!w.cats[+ci].tests[+ti]._open;a.classList.toggle('open');});
+  screen.querySelectorAll('[data-bq]').forEach(a=>a.querySelector('.head').onclick=(e)=>{if(e.target.closest('[data-bcopy],[data-bcopyconv]'))return;const[ci,ti]=a.dataset.bq.split('|');w.cats[+ci].tests[+ti]._open=!w.cats[+ci].tests[+ti]._open;a.classList.toggle('open');});
   screen.querySelectorAll('[data-bcopy]').forEach(b=>b.onclick=(e)=>{e.stopPropagation();const[ci,ti]=b.dataset.bcopy.split('|');copyText(bilingualText(w.cats[+ci].tests[+ti].q,lang));});
+  screen.querySelectorAll('[data-bcopyconv]').forEach(b=>b.onclick=(e)=>{e.stopPropagation();const[ci,ti]=b.dataset.bcopyconv.split('|');const conv=w.cats[+ci].tests[+ti];copyText((conv.messages||[]).map(m=>bilingualText(m.q,lang)).join('\n\n'),'تم نسخ المحادثة');});
   screen.querySelectorAll('[data-tagf]').forEach(b=>b.onclick=()=>{
     const tag=b.dataset.tagf;
     app.ctx.bankTagFilter=app.ctx.bankTagFilter||[];
@@ -1928,6 +1964,36 @@ function settingsBankTagged(w){
   return `${tagsMgr}<div class="lbl-sm" style="margin-top:16px;">الأسئلة</div>${tests}
     <div style="margin-top:14px;"><button class="btn btn-ghost" id="addBankTest"><svg class="icon"><use href="#ic-plus"/></svg> إضافة سؤال</button></div>`;
 }
+function settingsBankConversation(w){
+  const cat=w.cats[0];
+  const tests=cat.tests.map((t,ti)=>{
+    const msgs=(t.messages||[]).map((m,mi,arr)=>{
+      const arrow=mi<arr.length-1?`<div class="conv-arrow">↓</div>`:'';
+      return `<div class="conv-msg-edit"><span class="conv-num">${mi+1}</span>
+        <div style="flex:1;">
+          <textarea data-bconvmsg="${ti}|${mi}|ar" placeholder="نص السؤال (عربي)">${esc(bilingualExact(m.q,'ar'))}</textarea>
+          <textarea data-bconvmsg="${ti}|${mi}|en" placeholder="Question text (English, optional)" style="margin-top:6px;">${esc(bilingualExact(m.q,'en'))}</textarea>
+        </div>
+        <button class="iconbtn del" data-delconvmsg="${ti}|${mi}"><svg class="icon"><use href="#ic-x"/></svg></button>
+      </div>${arrow}`;
+    }).join('');
+    return `<div class="subacc ${t._open?'open':''}" data-bsub="0|${ti}"><div class="head">
+      <span class="caret">▶</span>
+      <input type="checkbox" class="selbox" data-bsel="0|${ti}" ${t._sel?'checked':''} onclick="event.stopPropagation()">
+      <span class="title" style="font-size:13.5px;">${esc(t.title)||'محادثة بلا اسم'}</span></div>
+      <div class="body">
+        <div class="lbl-sm">اسم المحادثة</div><input data-bf="0|${ti}|title" value="${esc(t.title||'')}" placeholder="مثال: محادثة إنهاء عقد عمل">
+        <div class="lbl-sm" style="margin-top:10px;">أسئلة المحادثة (بالترتيب)</div>
+        <div class="conv-flow">${msgs||'<div class="muted-note">لا أسئلة بعد.</div>'}</div>
+        <button class="iconbtn" data-addconvmsg="${ti}" style="margin-top:8px;"><svg class="icon"><use href="#ic-plus"/></svg> سؤال</button>
+        <div class="lbl-sm" style="margin-top:14px;">معايير المحادثة الناجحة</div>
+        <textarea data-bf="0|${ti}|criteria" placeholder="اكتب العناصر التي يجب أن تتوفر لتُعتبر المحادثة ناجحة">${esc(t.criteria||'')}</textarea>
+        <div class="row" style="margin-top:10px;"><button class="btn btn-primary btn-sm" data-bsavetest="0|${ti}"><svg class="icon"><use href="#ic-save"/></svg> حفظ المحادثة</button><button class="iconbtn del" data-bdeltest="0|${ti}"><svg class="icon"><use href="#ic-trash"/></svg> حذف المحادثة</button></div>
+      </div></div>`;
+  }).join('');
+  return `<div class="lbl-sm">المحادثات</div>${tests}
+    <div style="margin-top:14px;"><button class="btn btn-ghost" id="addBankTest"><svg class="icon"><use href="#ic-plus"/></svg> إضافة محادثة</button></div>`;
+}
 function settingsBankTyped(w){
   const cats=w.cats.map((c,ci)=>{
     const tests=c.tests.map((t,ti)=>`<div class="qline"><div style="flex:1;"><textarea data-bqlang="${ci}|${ti}|ar" placeholder="نص السؤال (عربي)">${esc(bilingualExact(t.q,'ar'))}</textarea><textarea data-bqlang="${ci}|${ti}|en" placeholder="Question text (English, optional)" style="margin-top:6px;">${esc(bilingualExact(t.q,'en'))}</textarea></div><button class="iconbtn del" data-bdeltest="${ci}|${ti}"><svg class="icon"><use href="#ic-x"/></svg></button></div>`).join('');
@@ -1943,16 +2009,17 @@ function settingsBank(){
   const win=app.ctx.bankAdminWin||'general';
   const w=adminBank[win];
   const tagged=w.type==='tagged';
+  const isConv=w.type==='conversation';
   const winTabs=Object.entries(adminBank).map(([k,ww])=>`<button class="tab ${win===k?'on':''}" data-abwin="${k}">${esc(ww.label)}</button>`).join('');
   return `<div class="card">
     <div class="toolbar" style="justify-content:space-between;">
       <h2 class="h2" style="margin:0;">إدارة بنك الأسئلة</h2>
-      <div class="row"><button class="btn btn-ghost btn-sm" id="resetBank"><svg class="icon"><use href="#ic-refresh"/></svg> استعادة الافتراضي</button>${tagged?`<button class="btn btn-ghost btn-sm" id="delSelBank"><svg class="icon"><use href="#ic-trash"/></svg> حذف المحدد</button>`:''}<button class="btn btn-primary btn-sm" id="saveBank"><svg class="icon"><use href="#ic-save"/></svg> حفظ التغييرات</button></div>
+      <div class="row"><button class="btn btn-ghost btn-sm" id="resetBank"><svg class="icon"><use href="#ic-refresh"/></svg> استعادة الافتراضي</button>${(tagged||isConv)?`<button class="btn btn-ghost btn-sm" id="delSelBank"><svg class="icon"><use href="#ic-trash"/></svg> حذف المحدد</button>`:''}<button class="btn btn-primary btn-sm" id="saveBank"><svg class="icon"><use href="#ic-save"/></svg> حفظ التغييرات</button></div>
     </div>
-    <p class="sub" style="margin-top:8px;">${tagged?'أضِف أو عدّل أو احذف المعيار (الوسوم) والأسئلة وعناصر الإجابة الصحيحة.':'أضِف أو عدّل أو احذف أنواع السؤال وأسئلتها، وعدّل نص التنبيه أعلى الصفحة.'}</p>
+    <p class="sub" style="margin-top:8px;">${tagged?'أضِف أو عدّل أو احذف المعيار (الوسوم) والأسئلة وعناصر الإجابة الصحيحة.':isConv?'أضِف أو عدّل أو احذف المحادثات وأسئلتها المتسلسلة ومعايير نجاحها.':'أضِف أو عدّل أو احذف أنواع السؤال وأسئلتها، وعدّل نص التنبيه أعلى الصفحة.'}</p>
     <div class="tabbar" style="margin-top:14px;">${winTabs}</div>
-    <div class="lbl-sm">${tagged?'مقدّمة الصفحة':'نص التنبيه أعلى الصفحة'}</div><input data-bwinf="${win}" value="${esc(w.sub)}">
-    ${tagged?settingsBankTagged(w):settingsBankTyped(w)}
+    <div class="lbl-sm">${tagged||isConv?'مقدّمة الصفحة':'نص التنبيه أعلى الصفحة'}</div><input data-bwinf="${win}" value="${esc(w.sub)}">
+    ${tagged?settingsBankTagged(w):isConv?settingsBankConversation(w):settingsBankTyped(w)}
   </div>`;
 }
 function persistBank(){const cl=clone(adminBank);Object.values(cl).forEach(w=>w.cats.forEach(c=>{delete c._open;c.tests.forEach(t=>{delete t._open;delete t._sel;});}));QBANK=cl;save(K.qbank,QBANK);}
@@ -1990,7 +2057,15 @@ function bindBank(){
     let name='وسم جديد',n=1;while(TAGS.includes(name)){n++;name=`وسم جديد ${n}`;}
     TAGS.push(name);save(K.tags,TAGS);re();
   };
-  if(document.getElementById('addBankTest'))document.getElementById('addBankTest').onclick=()=>{adminBank[win].cats[0].tests.push({q:'',tags:[],criteria:[''],_open:true});re();};
+  if(document.getElementById('addBankTest'))document.getElementById('addBankTest').onclick=()=>{
+    const w=adminBank[win];
+    if(w.type==='conversation')w.cats[0].tests.push({title:'',messages:[{q:''}],criteria:'',_open:true});
+    else w.cats[0].tests.push({q:'',tags:[],criteria:[''],_open:true});
+    re();
+  };
+  screen.querySelectorAll('[data-bconvmsg]').forEach(el=>el.oninput=e=>{const[ti,mi,lang]=el.dataset.bconvmsg.split('|');bqSetLang(adminBank[win].cats[0].tests[+ti].messages[+mi],lang,e.target.value);});
+  screen.querySelectorAll('[data-addconvmsg]').forEach(b=>b.onclick=()=>{const ti=+b.dataset.addconvmsg;const t=adminBank[win].cats[0].tests[ti];t.messages=t.messages||[];t.messages.push({q:''});t._open=true;re();});
+  screen.querySelectorAll('[data-delconvmsg]').forEach(b=>b.onclick=()=>{const[ti,mi]=b.dataset.delconvmsg.split('|');const t=adminBank[win].cats[0].tests[+ti];t.messages.splice(+mi,1);t._open=true;re();});
   screen.querySelectorAll('[data-baddtest]').forEach(b=>b.onclick=()=>{const ci=+b.dataset.baddtest;adminBank[win].cats[ci].tests.push({q:''});re();});
   screen.querySelectorAll('[data-bsavetest]').forEach(b=>b.onclick=()=>{persistBank();toast('تم حفظ السؤال');});
   screen.querySelectorAll('[data-bdeltest]').forEach(b=>b.onclick=()=>{const[ci,ti]=b.dataset.bdeltest.split('|');if(confirm('حذف السؤال؟')){adminBank[win].cats[+ci].tests.splice(+ti,1);re();}});
