@@ -240,6 +240,8 @@
   .qline textarea{width:100%;min-height:44px;border:1px solid var(--line-2);border-radius:9px;padding:8px 10px;font-size:13.5px;resize:vertical;background:var(--card-2);color:var(--ink);}
   .upd-box{width:100%;min-height:130px;border:1px solid var(--line-2);border-radius:9px;padding:10px 12px;font-size:13.5px;resize:vertical;background:var(--card-2);color:var(--ink);}
   .qline input{width:100%;border:1px solid var(--line-2);border-radius:9px;padding:6px 10px;font-size:12.5px;background:var(--card-2);color:var(--ink);}
+  .qoption input.qcount{width:64px;height:auto;margin-top:0;border:1px solid var(--line-2);border-radius:8px;padding:5px 8px;font-size:13px;background:var(--card);color:var(--ink);text-align:center;accent-color:auto;}
+  .qcount-wrap .muted-note{font-size:12px;}
   .qrow{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line-2);border-radius:10px;margin-top:8px;background:var(--card-2);}
   .qrow .qtext{flex:1;font-size:13.5px;color:var(--ink-2);}
   .conv-flow{display:flex;flex-direction:column;}
@@ -1434,7 +1436,13 @@ function qualityImport(){
   const opts=qualityTypeOptions();
   const sel=app.ctx.qImportSel||[];
   const allOn=sel.includes('__all__');
-  const optsHtml=opts.map(o=>`<label class="qoption ${sel.includes(o.key)?'sel':''}" data-qopt="${esc(o.key)}"><input type="checkbox" ${sel.includes(o.key)?'checked':''}><span class="qtext">${esc(o.label)}</span><span class="chip" style="flex:0 0 auto;">${o.n}</span></label>`).join('');
+  const counts=app.ctx.qImportCounts=app.ctx.qImportCounts||{};
+  const optsHtml=opts.map(o=>{
+    const on=sel.includes(o.key);
+    const cnt=Math.min(counts[o.key]!=null?counts[o.key]:3,o.n);
+    const stepper=(on&&!allOn)?`<span class="qcount-wrap" style="flex:0 0 auto;display:flex;align-items:center;gap:6px;"><span class="muted-note">عدد</span><input type="number" class="qcount" data-qcount="${esc(o.key)}" min="1" max="${o.n}" value="${cnt}"></span>`:'';
+    return `<label class="qoption ${on?'sel':''}" data-qopt="${esc(o.key)}"><input type="checkbox" ${on?'checked':''}><span class="qtext">${esc(o.label)}</span>${stepper}<span class="chip" style="flex:0 0 auto;">من ${o.n}</span></label>`;
+  }).join('');
   screen.innerHTML=`<div class="card">
     <div class="eyebrow" data-edit-key="qimport.eyebrow">${esc(t('qimport.eyebrow','قبل البدء'))}</div><h1 class="h1" data-edit-key="qimport.title">${esc(t('qimport.title','استيراد أسئلة من بنك الأسئلة'))}</h1>
     <p class="sub" data-edit-key="qimport.sub">${esc(t('qimport.sub','اختر نوع أو أنواع الأسئلة المطلوب استيرادها لهذا الاختبار. تُسحب الأسئلة من آخر نسخة لبنك الأسئلة وتُقفل كما هي بعد الاستيراد.'))}</p>
@@ -1457,13 +1465,25 @@ function qualityImport(){
     app.ctx.qImportSel=s;qualityImport();
   });
   const cf=document.getElementById('f_count');if(cf)cf.oninput=e=>app.ctx.qImportCount=+e.target.value||1;
+  screen.querySelectorAll('[data-qcount]').forEach(inp=>inp.oninput=e=>{counts[inp.dataset.qcount]=Math.max(1,+e.target.value||1);});
   document.getElementById('go').onclick=()=>{
     const w=document.getElementById('w');
     const s=app.ctx.qImportSel||[];
     if(!s.length){w.classList.add('show');return;}
-    const pool=qualityPool(s);
-    if(!pool.length){w.textContent='لا توجد أسئلة مطابقة لهذا الاختيار.';w.classList.add('show');return;}
-    const tests=s.includes('__all__')?sample(pool,Math.min(app.ctx.qImportCount||20,pool.length)):pool;
+    let tests;
+    if(s.includes('__all__')){
+      const pool=qualityPool(s);
+      if(!pool.length){w.textContent='لا توجد أسئلة مطابقة لهذا الاختيار.';w.classList.add('show');return;}
+      tests=sample(pool,Math.min(app.ctx.qImportCount||20,pool.length));
+    }else{
+      tests=[];const seen=new Set();
+      s.forEach(k=>{
+        const pool=qualityPool([k]);
+        const cnt=Math.min(counts[k]!=null?counts[k]:3,pool.length);
+        sample(pool,cnt).forEach(it=>{const id=it.kind+'|'+JSON.stringify(it.q||it.messages||it.title||'');if(!seen.has(id)){seen.add(id);tests.push(it);}});
+      });
+      if(!tests.length){w.textContent='لا توجد أسئلة مطابقة لهذا الاختيار.';w.classList.add('show');return;}
+    }
     app.ctx.qrun={employee:'',date:today(),asana:'',reason:'',model:'',importTypes:s.slice(),tests,results:tests.map(()=>({rating:null,note:'',questionId:'',answerText:'',lang:'ar'})),step:0};
     app.ctx.qDraftIndex=null;
     app.sub='qIntro';render();window.scrollTo(0,0);
