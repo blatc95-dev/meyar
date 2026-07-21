@@ -563,6 +563,7 @@ let DRAFTS=load(K.drafts,[]);
 /* ===== بنك الأسئلة ===== */
 const DEF_TAGS=['حالات السريان والإلغاء','القدرات التحليلية','قدرات الصياغة','الاستحضار وعدم الهلوسة','التحليل القضائي','شمول قاعدة البيانات','تعديلات المواد'];
 let TAGS=load(K.tags,DEF_TAGS);
+const FILE_TYPE_LABELS={word:'Word',pdf:'PDF'};
 const DEF_QBANK={
   general:{
     label:'الأسئلة العامة',
@@ -705,6 +706,12 @@ const DEF_QBANK={
     type:'conversation',
     sub:'محادثات متسلسلة تحاكي تبادل الأسئلة الحقيقي مع المنتج ضمن سياق واحد، بدل سؤال وجواب منفصلين — كل سؤال يبني على ما قبله، ولكل محادثة معايير تحدد متى تُعتبر ناجحة بمجملها.',
     cats:[{title:'كل المحادثات',tests:[]}],
+  },
+  fileUpload:{
+    label:'اختبار رفع الملفات',
+    type:'fileupload',
+    sub:'اختبارات ترفق ملفًا فعليًا (Word أو PDF) مع طلب مرافق، لفحص قدرة المنتج على قراءة الملف المرفوع وفهم محتواه والتعامل معه بدقة.',
+    cats:[{title:'كل الاختبارات',tests:[]}],
   },
 };
 let QBANK=load(K.qbank,DEF_QBANK);
@@ -893,7 +900,7 @@ function renderQBank(){
       <div class="field" style="margin-top:14px;margin-bottom:0;"><input id="bankSearch" placeholder="ابحث في الأسئلة..." value="${esc(app.ctx.bankSearch||'')}"></div>
     </div>
     <div id="bankResults"></div>`;
-  document.querySelectorAll('[data-bwin]').forEach(b=>b.onclick=()=>{app.ctx.bankWin=b.dataset.bwin;app.ctx.bankSearch='';app.ctx.bankTagFilter=[];render();});
+  document.querySelectorAll('[data-bwin]').forEach(b=>b.onclick=()=>{app.ctx.bankWin=b.dataset.bwin;app.ctx.bankSearch='';app.ctx.bankTagFilter=[];app.ctx.bankFileFilter=[];render();});
   document.querySelectorAll('[data-blang]').forEach(b=>b.onclick=()=>{app.ctx.bankLang=b.dataset.blang;render();});
   const s=document.getElementById('bankSearch');
   s.oninput=e=>{app.ctx.bankSearch=e.target.value;renderBankResults(win);};
@@ -953,6 +960,32 @@ function renderBankResults(win){
       </div>`;
     }).join('');
     document.getElementById('bankResults').innerHTML=`<div class="card"><p class="sub" data-edit-bank="${win}" style="margin:0;">${esc(w.sub)}</p></div>${rows||'<div class="card" style="margin-top:12px;"><div class="empty">لا نتائج مطابقة.</div></div>'}`;
+  } else if(w.type==='fileupload'){
+    const active=app.ctx.bankFileFilter||[];
+    const all=w.cats[0].tests;
+    const filterBar=`<div class="tabbar" style="margin-top:12px;">
+      <button class="tab ${!active.length?'on':''}" data-filef="__all__">الكل<span class="badge-n" style="margin-inline-start:8px;">${all.length}</span></button>
+      ${Object.keys(FILE_TYPE_LABELS).map(ft=>{const n=all.filter(t=>t.fileType===ft).length;return n?`<button class="tab ${active.includes(ft)?'on':''}" data-filef="${ft}">${esc(FILE_TYPE_LABELS[ft])}<span class="badge-n" style="margin-inline-start:8px;">${n}</span></button>`:'';}).join('')}
+    </div>`;
+    const tests=all.filter(t=>{
+      const matchesQ=!q||(bilingualText(t.q,lang)+' '+(t.goal||'')).toLowerCase().includes(q);
+      const matchesFt=!active.length||active.includes(t.fileType);
+      return matchesQ&&matchesFt;
+    });
+    const rows=tests.map(t=>{
+      const ti=all.indexOf(t);
+      const criteria=(t.criteria||[]).map(x=>`<li>${esc(x)}</li>`).join('');
+      return `<div class="subacc ${t._open?'open':''}" data-bq="0|${ti}">
+        <div class="head"><span class="caret">▶</span><span class="chip" style="flex:0 0 auto;">${esc(FILE_TYPE_LABELS[t.fileType]||'—')}</span><span class="title" style="font-size:13.5px;flex:1;font-weight:500;">${esc(bilingualText(t.q,lang))}</span>
+        <button class="copybtn" data-bcopy="0|${ti}" title="نسخ الطلب"><svg class="icon"><use href="#ic-copy"/></svg></button></div>
+        <div class="body">
+          ${t.fileLink?`<div class="row" style="margin-bottom:10px;"><a href="${esc(t.fileLink)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm"><svg class="icon"><use href="#ic-external-link"/></svg> فتح الملف</a></div>`:'<div class="muted-note" style="margin-bottom:10px;">لا يوجد رابط ملف.</div>'}
+          ${t.goal?`<div class="tip"><span class="ic"><svg class="icon"><use href="#ic-lamp"/></svg></span><div><b>الهدف من الاختبار:</b> ${esc(t.goal)}</div></div>`:''}
+          <div class="criteria-box"><span class="lbl">معايير التقييم</span><ul>${criteria}</ul></div>
+        </div>
+      </div>`;
+    }).join('');
+    document.getElementById('bankResults').innerHTML=`<div class="card"><p class="sub" data-edit-bank="${win}" style="margin:0;">${esc(w.sub)}</p>${filterBar}</div>${rows||'<div class="card" style="margin-top:12px;"><div class="empty">لا نتائج مطابقة.</div></div>'}`;
   } else {
     const allSingle=w.cats.every(c=>c.tests.length===1);
     const cats=w.cats.map((c,ci)=>{
@@ -985,6 +1018,13 @@ function bindBankResults(win,lang){
     app.ctx.bankTagFilter=app.ctx.bankTagFilter||[];
     if(tag==='__all__'){app.ctx.bankTagFilter=[];}
     else{const i=app.ctx.bankTagFilter.indexOf(tag);if(i>-1)app.ctx.bankTagFilter.splice(i,1);else app.ctx.bankTagFilter.push(tag);}
+    renderBankResults(win);
+  });
+  screen.querySelectorAll('[data-filef]').forEach(b=>b.onclick=()=>{
+    const ft=b.dataset.filef;
+    app.ctx.bankFileFilter=app.ctx.bankFileFilter||[];
+    if(ft==='__all__'){app.ctx.bankFileFilter=[];}
+    else{const i=app.ctx.bankFileFilter.indexOf(ft);if(i>-1)app.ctx.bankFileFilter.splice(i,1);else app.ctx.bankFileFilter.push(ft);}
     renderBankResults(win);
   });
 }
@@ -1994,6 +2034,29 @@ function settingsBankConversation(w){
   return `<div class="lbl-sm">المحادثات</div>${tests}
     <div style="margin-top:14px;"><button class="btn btn-ghost" id="addBankTest"><svg class="icon"><use href="#ic-plus"/></svg> إضافة محادثة</button></div>`;
 }
+function settingsBankFileUpload(w){
+  const cat=w.cats[0];
+  const tests=cat.tests.map((t,ti)=>{
+    const criteria=(t.criteria||[]).map((x,xi)=>`<div class="qline"><textarea data-bcrit="0|${ti}|${xi}" placeholder="معيار تقييم">${esc(x)}</textarea><button class="iconbtn del" data-delcrit="0|${ti}|${xi}"><svg class="icon"><use href="#ic-x"/></svg></button></div>`).join('');
+    const ftToggles=Object.keys(FILE_TYPE_LABELS).map(ft=>`<button class="tab ${t.fileType===ft?'on':''}" data-bft="${ti}|${ft}">${esc(FILE_TYPE_LABELS[ft])}</button>`).join('');
+    return `<div class="subacc ${t._open?'open':''}" data-bsub="0|${ti}"><div class="head">
+      <span class="caret">▶</span>
+      <input type="checkbox" class="selbox" data-bsel="0|${ti}" ${t._sel?'checked':''} onclick="event.stopPropagation()">
+      <span class="title" style="font-size:13.5px;">${esc(bilingualText(t.q,'ar'))||'(بدون نص)'}</span></div>
+      <div class="body">
+        <div class="lbl-sm">نص الطلب المرافق للملف (عربي)</div><textarea data-bqlang="0|${ti}|ar">${esc(bilingualExact(t.q,'ar'))}</textarea>
+        <div class="lbl-sm">Accompanying request text (English, optional)</div><textarea data-bqlang="0|${ti}|en">${esc(bilingualExact(t.q,'en'))}</textarea>
+        <div class="lbl-sm">رابط الملف</div><input data-bf="0|${ti}|fileLink" value="${esc(t.fileLink||'')}" placeholder="رابط الملف (Google Drive مثلًا)">
+        <div class="lbl-sm">نوع الملف</div><div class="tabbar">${ftToggles}</div>
+        <div class="lbl-sm">الهدف من الاختبار</div><textarea data-bf="0|${ti}|goal" placeholder="ما الذي يهدف هذا الاختبار للتحقق منه؟">${esc(t.goal||'')}</textarea>
+        <div class="lbl-sm">معايير التقييم</div>${criteria||'<div class="muted-note">لا معايير بعد.</div>'}
+        <button class="iconbtn" data-addcrit="0|${ti}" style="margin-top:6px;"><svg class="icon"><use href="#ic-plus"/></svg> معيار</button>
+        <div class="row" style="margin-top:10px;"><button class="btn btn-primary btn-sm" data-bsavetest="0|${ti}"><svg class="icon"><use href="#ic-save"/></svg> حفظ الاختبار</button><button class="iconbtn del" data-bdeltest="0|${ti}"><svg class="icon"><use href="#ic-trash"/></svg> حذف الاختبار</button></div>
+      </div></div>`;
+  }).join('');
+  return `<div class="lbl-sm">الاختبارات</div>${tests}
+    <div style="margin-top:14px;"><button class="btn btn-ghost" id="addBankTest"><svg class="icon"><use href="#ic-plus"/></svg> إضافة اختبار</button></div>`;
+}
 function settingsBankTyped(w){
   const cats=w.cats.map((c,ci)=>{
     const tests=c.tests.map((t,ti)=>`<div class="qline"><div style="flex:1;"><textarea data-bqlang="${ci}|${ti}|ar" placeholder="نص السؤال (عربي)">${esc(bilingualExact(t.q,'ar'))}</textarea><textarea data-bqlang="${ci}|${ti}|en" placeholder="Question text (English, optional)" style="margin-top:6px;">${esc(bilingualExact(t.q,'en'))}</textarea></div><button class="iconbtn del" data-bdeltest="${ci}|${ti}"><svg class="icon"><use href="#ic-x"/></svg></button></div>`).join('');
@@ -2010,16 +2073,17 @@ function settingsBank(){
   const w=adminBank[win];
   const tagged=w.type==='tagged';
   const isConv=w.type==='conversation';
+  const isFile=w.type==='fileupload';
   const winTabs=Object.entries(adminBank).map(([k,ww])=>`<button class="tab ${win===k?'on':''}" data-abwin="${k}">${esc(ww.label)}</button>`).join('');
   return `<div class="card">
     <div class="toolbar" style="justify-content:space-between;">
       <h2 class="h2" style="margin:0;">إدارة بنك الأسئلة</h2>
-      <div class="row"><button class="btn btn-ghost btn-sm" id="resetBank"><svg class="icon"><use href="#ic-refresh"/></svg> استعادة الافتراضي</button>${(tagged||isConv)?`<button class="btn btn-ghost btn-sm" id="delSelBank"><svg class="icon"><use href="#ic-trash"/></svg> حذف المحدد</button>`:''}<button class="btn btn-primary btn-sm" id="saveBank"><svg class="icon"><use href="#ic-save"/></svg> حفظ التغييرات</button></div>
+      <div class="row"><button class="btn btn-ghost btn-sm" id="resetBank"><svg class="icon"><use href="#ic-refresh"/></svg> استعادة الافتراضي</button>${(tagged||isConv||isFile)?`<button class="btn btn-ghost btn-sm" id="delSelBank"><svg class="icon"><use href="#ic-trash"/></svg> حذف المحدد</button>`:''}<button class="btn btn-primary btn-sm" id="saveBank"><svg class="icon"><use href="#ic-save"/></svg> حفظ التغييرات</button></div>
     </div>
-    <p class="sub" style="margin-top:8px;">${tagged?'أضِف أو عدّل أو احذف المعيار (الوسوم) والأسئلة وعناصر الإجابة الصحيحة.':isConv?'أضِف أو عدّل أو احذف المحادثات وأسئلتها المتسلسلة ومعايير نجاحها.':'أضِف أو عدّل أو احذف أنواع السؤال وأسئلتها، وعدّل نص التنبيه أعلى الصفحة.'}</p>
+    <p class="sub" style="margin-top:8px;">${tagged?'أضِف أو عدّل أو احذف المعيار (الوسوم) والأسئلة وعناصر الإجابة الصحيحة.':isConv?'أضِف أو عدّل أو احذف المحادثات وأسئلتها المتسلسلة ومعايير نجاحها.':isFile?'أضِف أو عدّل أو احذف اختبارات رفع الملفات، رابط كل ملف ونوعه وهدفه ومعايير تقييمه.':'أضِف أو عدّل أو احذف أنواع السؤال وأسئلتها، وعدّل نص التنبيه أعلى الصفحة.'}</p>
     <div class="tabbar" style="margin-top:14px;">${winTabs}</div>
-    <div class="lbl-sm">${tagged||isConv?'مقدّمة الصفحة':'نص التنبيه أعلى الصفحة'}</div><input data-bwinf="${win}" value="${esc(w.sub)}">
-    ${tagged?settingsBankTagged(w):isConv?settingsBankConversation(w):settingsBankTyped(w)}
+    <div class="lbl-sm">${tagged||isConv||isFile?'مقدّمة الصفحة':'نص التنبيه أعلى الصفحة'}</div><input data-bwinf="${win}" value="${esc(w.sub)}">
+    ${tagged?settingsBankTagged(w):isConv?settingsBankConversation(w):isFile?settingsBankFileUpload(w):settingsBankTyped(w)}
   </div>`;
 }
 function persistBank(){const cl=clone(adminBank);Object.values(cl).forEach(w=>w.cats.forEach(c=>{delete c._open;c.tests.forEach(t=>{delete t._open;delete t._sel;});}));QBANK=cl;save(K.qbank,QBANK);}
@@ -2060,12 +2124,14 @@ function bindBank(){
   if(document.getElementById('addBankTest'))document.getElementById('addBankTest').onclick=()=>{
     const w=adminBank[win];
     if(w.type==='conversation')w.cats[0].tests.push({title:'',messages:[{q:''}],criteria:'',_open:true});
+    else if(w.type==='fileupload')w.cats[0].tests.push({q:'',fileLink:'',fileType:'word',goal:'',criteria:[''],_open:true});
     else w.cats[0].tests.push({q:'',tags:[],criteria:[''],_open:true});
     re();
   };
   screen.querySelectorAll('[data-bconvmsg]').forEach(el=>el.oninput=e=>{const[ti,mi,lang]=el.dataset.bconvmsg.split('|');bqSetLang(adminBank[win].cats[0].tests[+ti].messages[+mi],lang,e.target.value);});
   screen.querySelectorAll('[data-addconvmsg]').forEach(b=>b.onclick=()=>{const ti=+b.dataset.addconvmsg;const t=adminBank[win].cats[0].tests[ti];t.messages=t.messages||[];t.messages.push({q:''});t._open=true;re();});
   screen.querySelectorAll('[data-delconvmsg]').forEach(b=>b.onclick=()=>{const[ti,mi]=b.dataset.delconvmsg.split('|');const t=adminBank[win].cats[0].tests[+ti];t.messages.splice(+mi,1);t._open=true;re();});
+  screen.querySelectorAll('[data-bft]').forEach(b=>b.onclick=()=>{const[ti,ft]=b.dataset.bft.split('|');adminBank[win].cats[0].tests[+ti].fileType=ft;re();});
   screen.querySelectorAll('[data-baddtest]').forEach(b=>b.onclick=()=>{const ci=+b.dataset.baddtest;adminBank[win].cats[ci].tests.push({q:''});re();});
   screen.querySelectorAll('[data-bsavetest]').forEach(b=>b.onclick=()=>{persistBank();toast('تم حفظ السؤال');});
   screen.querySelectorAll('[data-bdeltest]').forEach(b=>b.onclick=()=>{const[ci,ti]=b.dataset.bdeltest.split('|');if(confirm('حذف السؤال؟')){adminBank[win].cats[+ci].tests.splice(+ti,1);re();}});
