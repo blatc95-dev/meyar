@@ -767,6 +767,11 @@ function compAllRuns(product){return COMP_RUNS[product]||[];}
 
 /* ===== نماذج الذكاء الاصطناعي (للاختبار) ===== */
 let MODELS=load(K.models,[]);
+if(MODELS.some(m=>typeof m==='string')){
+  MODELS=MODELS.map(m=>typeof m==='string'?{name:m,dateAdded:'',notes:'',versions:[]}:m);
+  save(K.models,MODELS);
+}
+let adminModels=null;
 function saveModels(){save(K.models,MODELS);}
 
 /* ===== متابعة التحديثات ===== */
@@ -1096,7 +1101,7 @@ function smokeIntro(){
     <div class="field"><label>المودل المُختبَر</label>
       <select id="f_model" ${MODELS.length?'':'disabled'}>
         <option value="">${MODELS.length?'اختر المودل':'لا توجد نماذج مضافة بعد'}</option>
-        ${MODELS.map(m=>`<option value="${esc(m)}" ${r.model===m?'selected':''}>${esc(m)}</option>`).join('')}
+        ${MODELS.map(m=>`<option value="${esc(m.name)}" ${r.model===m.name?'selected':''}>${esc(m.name)}</option>`).join('')}
       </select>
       ${MODELS.length?'':'<div class="muted-note" style="margin-top:6px;">أضِف نماذج من الإعدادات ← عام قبل بدء الاختبار.</div>'}
     </div>
@@ -2229,36 +2234,67 @@ function bindComp(){
 
 /* ===== إدارة نماذج الذكاء الاصطناعي ===== */
 function settingsGeneral(){
-  const rows=MODELS.map((m,mi)=>`<span class="chip" style="display:flex;gap:6px;align-items:center;padding-inline-end:6px;">
-    <input data-modelname="${mi}" value="${esc(m)}" style="border:none;background:transparent;width:${Math.max(6,m.length)}ch;color:inherit;font:inherit;padding:0;">
-    <button class="iconbtn del" data-delmodel="${mi}" style="width:20px;height:20px;padding:0;display:grid;place-items:center;"><svg class="icon" style="width:12px;height:12px;"><use href="#ic-x"/></svg></button>
-  </span>`).join('');
-  return `<div class="card">
-    <h2 class="h2" style="margin:0;">نماذج الذكاء الاصطناعي</h2>
-    <p class="sub" style="margin-top:8px;">أضِف هنا أسماء النماذج المتاحة للاختبار. تظهر هذه القائمة كخيارات عند بدء اختبار دخان جديد ليختار الموظف النموذج الذي يختبره.</p>
-    <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:14px;">
-      ${rows||'<div class="muted-note">لا نماذج بعد.</div>'}
-      <button class="iconbtn" id="addModel"><svg class="icon"><use href="#ic-plus"/></svg> نموذج جديد</button>
+  adminModels=adminModels||clone(MODELS);
+  const rows=adminModels.map((m,mi)=>{
+    const versions=(m.versions||[]).map((v,vi)=>`<div class="qline">
+        <input data-mver="${mi}|${vi}|number" value="${esc(v.number||'')}" placeholder="رقم الإصدار" style="max-width:110px;">
+        <input data-mver="${mi}|${vi}|date" type="date" value="${esc(v.date||'')}" style="max-width:150px;">
+        <input data-mver="${mi}|${vi}|note" value="${esc(v.note||'')}" placeholder="ملاحظة الإصدار" style="flex:1;">
+        <button class="iconbtn del" data-delver="${mi}|${vi}"><svg class="icon"><use href="#ic-x"/></svg></button>
+      </div>`).join('');
+    return `<div class="subacc ${m._open?'open':''}" data-msub="${mi}"><div class="head">
+      <span class="caret">▶</span>
+      <span class="title" style="font-size:13.5px;flex:1;">${esc(m.name)||'نموذج بلا اسم'}</span>
+      <span class="sub-c">أُضيف ${esc(m.dateAdded||'—')}</span>
     </div>
+    <div class="body">
+      <div class="lbl-sm">اسم النموذج</div><input data-mf="${mi}|name" value="${esc(m.name||'')}" placeholder="مثال: GPT-5">
+      <div class="lbl-sm">ملاحظات</div><textarea data-mf="${mi}|notes" placeholder="ملاحظات عامة على هذا النموذج">${esc(m.notes||'')}</textarea>
+      <div class="lbl-sm" style="margin-top:12px;">الإصدارات</div>${versions||'<div class="muted-note">لا إصدارات بعد.</div>'}
+      <button class="iconbtn" data-addver="${mi}" style="margin-top:6px;"><svg class="icon"><use href="#ic-plus"/></svg> إصدار</button>
+      <div class="row" style="margin-top:12px;"><button class="btn btn-primary btn-sm" data-savemodel="${mi}"><svg class="icon"><use href="#ic-save"/></svg> حفظ النموذج</button><button class="iconbtn del" data-delmodel="${mi}"><svg class="icon"><use href="#ic-trash"/></svg> حذف النموذج</button></div>
+    </div></div>`;
+  }).join('');
+  return `<div class="card">
+    <div class="toolbar" style="justify-content:space-between;">
+      <h2 class="h2" style="margin:0;">نماذج الذكاء الاصطناعي</h2>
+      <button class="btn btn-primary btn-sm" id="saveModels"><svg class="icon"><use href="#ic-save"/></svg> حفظ التغييرات</button>
+    </div>
+    <p class="sub" style="margin-top:8px;">أضِف هنا النماذج المتاحة للاختبار مع إصداراتها وملاحظاتها. تظهر أسماء النماذج كخيارات عند بدء اختبار دخان جديد ليختار الموظف النموذج الذي يختبره.</p>
+    <div style="margin-top:14px;">${rows||'<div class="muted-note">لا نماذج بعد.</div>'}</div>
+    <div class="row" style="margin-top:14px;"><button class="btn btn-ghost" id="addModel"><svg class="icon"><use href="#ic-plus"/></svg> نموذج جديد</button></div>
   </div>`;
 }
 function bindGeneral(){
   const re=()=>renderSettings();
-  screen.querySelectorAll('[data-modelname]').forEach(el=>{el.onblur=e=>{
-    const i=+el.dataset.modelname;const oldName=MODELS[i];const newName=e.target.value.trim();
-    if(!newName){MODELS.splice(i,1);saveModels();toast('تم حذف النموذج');re();return;}
-    if(newName===oldName)return;
-    if(MODELS.includes(newName)){toast('النموذج موجود مسبقًا');e.target.value=oldName;return;}
-    MODELS[i]=newName;saveModels();toast('تم تعديل الاسم');re();
-  };});
-  screen.querySelectorAll('[data-delmodel]').forEach(b=>b.onclick=()=>{
-    const i=+b.dataset.delmodel;
-    if(!confirm(`حذف النموذج "${MODELS[i]}"؟`))return;
-    MODELS.splice(i,1);saveModels();toast('تم حذف النموذج');re();
+  const persist=()=>{const cl=clone(adminModels);cl.forEach(m=>delete m._open);MODELS=cl;saveModels();};
+  screen.querySelectorAll('[data-msub]').forEach(a=>a.querySelector('.head').onclick=(e)=>{if(e.target.matches('input,textarea'))return;const mi=+a.dataset.msub;adminModels[mi]._open=!adminModels[mi]._open;a.classList.toggle('open');});
+  screen.querySelectorAll('[data-mf]').forEach(el=>el.oninput=e=>{const[mi,f]=el.dataset.mf.split('|');adminModels[+mi][f]=e.target.value;});
+  screen.querySelectorAll('[data-mver]').forEach(el=>el.oninput=e=>{const[mi,vi,f]=el.dataset.mver.split('|');adminModels[+mi].versions[+vi][f]=e.target.value;});
+  screen.querySelectorAll('[data-addver]').forEach(b=>b.onclick=()=>{const mi=+b.dataset.addver;const m=adminModels[mi];m.versions=m.versions||[];m.versions.push({number:'',date:today(),note:''});m._open=true;re();});
+  screen.querySelectorAll('[data-delver]').forEach(b=>b.onclick=()=>{const[mi,vi]=b.dataset.delver.split('|');adminModels[+mi].versions.splice(+vi,1);adminModels[+mi]._open=true;re();});
+  screen.querySelectorAll('[data-savemodel]').forEach(b=>b.onclick=()=>{
+    const mi=+b.dataset.savemodel;const name=(adminModels[mi].name||'').trim();
+    if(!name){toast('اكتب اسم النموذج أولًا');return;}
+    if(adminModels.some((m,idx)=>idx!==mi&&(m.name||'').trim()===name)){toast('النموذج موجود مسبقًا');return;}
+    adminModels[mi].name=name;
+    persist();toast('تم حفظ النموذج');re();
   });
-  document.getElementById('addModel').onclick=()=>{
-    let name='نموذج جديد',n=1;while(MODELS.includes(name)){n++;name=`نموذج جديد ${n}`;}
-    MODELS.push(name);saveModels();re();
+  screen.querySelectorAll('[data-delmodel]').forEach(b=>b.onclick=()=>{
+    const mi=+b.dataset.delmodel;
+    if(!confirm(`حذف النموذج "${adminModels[mi].name||'بلا اسم'}"؟`))return;
+    adminModels.splice(mi,1);re();
+  });
+  document.getElementById('addModel').onclick=()=>{adminModels.forEach(m=>m._open=false);adminModels.push({name:'',dateAdded:today(),notes:'',versions:[],_open:true});re();};
+  document.getElementById('saveModels').onclick=()=>{
+    const before=adminModels.length;
+    adminModels=adminModels.filter(m=>(m.name||'').trim());
+    const dropped=before-adminModels.length;
+    const names=adminModels.map(m=>m.name.trim());
+    if(new Set(names).size!==names.length){toast('توجد أسماء نماذج مكررة، عدّلها أولًا');return;}
+    persist();
+    toast(dropped?'تم الحفظ (حُذفت نماذج بلا اسم)':'تم حفظ التغييرات');
+    re();
   };
 }
 
