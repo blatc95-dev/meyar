@@ -46,15 +46,33 @@
   input:not([type="checkbox"]):not([type="radio"]),textarea,select{background:var(--card-2);color:var(--ink);border:1px solid var(--line-2);border-radius:9px;padding:8px 10px;font-size:13.5px;}
 
   .layout{display:flex;min-height:100vh;}
-  .side{width:264px;flex:0 0 264px;background:var(--side-bg);color:var(--side-ink);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;border-inline-start:1px solid var(--line);}
+  .side{width:264px;flex:0 0 264px;background:var(--side-bg);color:var(--side-ink);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;border-inline-start:1px solid var(--line);transition:width .2s ease,flex-basis .2s ease;}
   .brand{display:flex;align-items:center;gap:11px;padding:20px 18px;border-bottom:1px solid var(--line);}
-  .brand .mk{width:38px;height:38px;border-radius:10px;background:var(--side-logo);display:grid;place-items:center;flex:0 0 auto;}
-  .brand .mk img{width:16px;height:20px;display:block;}
-  .brand .mk .logo-dark{display:none;}
-  [data-theme="dark"] .brand .mk .logo-light{display:none;}
-  [data-theme="dark"] .brand .mk .logo-dark{display:block;}
-  .brand h1{font-size:15.5px;margin:0;font-weight:700;line-height:1.3;color:var(--ink-2);}
-  .brand p{margin:2px 0 0;font-size:11px;color:var(--side-muted);}
+  .brand-logo{display:flex;align-items:center;text-decoration:none;flex:1;min-width:0;}
+  .brand-logo img{display:block;}
+  .brand-logo .logo-h{height:26px;width:68.6px;}
+  .brand-logo .logo-mk{height:30px;width:23.8px;display:none;}
+  .brand-logo .logo-dark{display:none;}
+  [data-theme="dark"] .brand-logo .logo-light{display:none;}
+  [data-theme="dark"] .brand-logo .logo-h.logo-dark{display:block;}
+  .side-toggle{flex:0 0 auto;background:none;border:none;color:var(--side-muted);width:30px;height:30px;display:grid;place-items:center;border-radius:8px;cursor:pointer;font-size:19px;transition:.15s;}
+  .side-toggle:hover{background:var(--card-2);color:var(--side-ink);}
+
+  /* ===== الشريط المطوي ===== */
+  .side.collapsed{width:74px;flex-basis:74px;}
+  .side.collapsed .brand{flex-direction:column;gap:12px;padding:18px 0;}
+  .side.collapsed .brand-logo{flex:0 0 auto;justify-content:center;}
+  .side.collapsed .brand-logo .logo-h{display:none;}
+  .side.collapsed .brand-logo .logo-mk.logo-light{display:block;}
+  [data-theme="dark"] .side.collapsed .brand-logo .logo-mk.logo-light{display:none;}
+  [data-theme="dark"] .side.collapsed .brand-logo .logo-mk.logo-dark{display:block;}
+  .side.collapsed .side-toggle svg{transform:scaleX(-1);}
+  .side.collapsed .nav{padding:16px 10px;}
+  .side.collapsed .nav .grp{font-size:0;padding:10px 0 2px;text-align:center;}
+  .side.collapsed .nav .grp::after{content:"";display:block;height:1px;background:var(--line);margin:0 8px;}
+  .side.collapsed .navitem,.side.collapsed .themebtn{justify-content:center;padding:10px;gap:0;}
+  .side.collapsed .navitem .lbl,.side.collapsed .themebtn .lbl,.side.collapsed .navitem .badge-n,.side.collapsed .navitem .soon-badge,.side.collapsed .signedin{display:none;}
+  .side.collapsed .foot{padding:10px 10px;}
   .icon{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0 auto;fill:none;stroke:currentColor;}
   .nav{padding:16px 12px;flex:1;overflow-y:auto;}
   .nav .grp{font-size:11px;color:var(--side-muted);letter-spacing:.3px;padding:14px 12px 7px;font-weight:600;}
@@ -305,9 +323,25 @@
   .scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:40;}
 
   @media (max-width:860px){
-    .side{position:fixed;right:0;z-index:50;transform:translateX(100%);transition:.25s;box-shadow:-8px 0 30px rgba(0,0,0,.3);}
+    .side,.side.collapsed{position:fixed;right:0;z-index:50;transform:translateX(100%);transition:.25s;box-shadow:-8px 0 30px rgba(0,0,0,.3);width:264px;flex-basis:264px;}
     .side.open{transform:translateX(0);}
-    .hamb{display:block;} .scrim.show{display:block;}
+    /* على الجوال يظهر الشريط دائمًا موسّعًا داخل الدرج */
+    .side.collapsed .brand{flex-direction:row;gap:11px;padding:20px 18px;}
+    .side.collapsed .brand-logo{flex:1;justify-content:flex-start;}
+    .side.collapsed .brand-logo .logo-h.logo-light{display:block;}
+    [data-theme="dark"] .side.collapsed .brand-logo .logo-h.logo-light{display:none;}
+    [data-theme="dark"] .side.collapsed .brand-logo .logo-h.logo-dark{display:block;}
+    .side.collapsed .brand-logo .logo-mk{display:none;}
+    .side.collapsed .side-toggle{display:none;}
+    .side.collapsed .nav{padding:16px 12px;}
+    .side.collapsed .nav .grp{font-size:11px;text-align:right;padding:14px 12px 7px;}
+    .side.collapsed .nav .grp::after{display:none;}
+    .side.collapsed .navitem,.side.collapsed .themebtn{justify-content:flex-start;padding:10px 12px;gap:11px;}
+    .side.collapsed .navitem .lbl,.side.collapsed .themebtn .lbl,.side.collapsed .navitem .badge-n,.side.collapsed .navitem .soon-badge,.side.collapsed .signedin{display:'';}
+    .side.collapsed .navitem .lbl,.side.collapsed .themebtn .lbl{display:inline;}
+    .side.collapsed .navitem .badge-n{display:inline-block;}
+    .side.collapsed .signedin{display:block;}
+    .side.collapsed .foot{padding:12px;}
     .grid2{grid-template-columns:1fr;} .verdict{flex-direction:column;} .modebox{flex-direction:column;}
   }
 </style>
@@ -328,6 +362,7 @@
 <symbol id="ic-home" viewBox="0 0 24 24"><path d="M12 18V15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M10.07 2.81997L3.14002 8.36997C2.36002 8.98997 1.86002 10.3 2.03002 11.28L3.36002 19.24C3.60002 20.66 4.96002 21.81 6.40002 21.81H17.6C19.03 21.81 20.4 20.65 20.64 19.24L21.97 11.28C22.13 10.3 21.63 8.98997 20.86 8.36997L13.93 2.82997C12.86 1.96997 11.13 1.96997 10.07 2.81997Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
 <symbol id="ic-link" viewBox="0 0 24 24"><path d="M3.27 12C2.48 11.05 2 9.83 2 8.5C2 5.48 4.47 3 7.5 3H12.5C15.52 3 18 5.48 18 8.5C18 11.52 15.53 14 12.5 14H10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M20.73 12C21.52 12.95 22 14.17 22 15.5C22 18.52 19.53 21 16.5 21H11.5C8.48 21 6 18.52 6 15.5C6 12.48 8.47 10 11.5 10H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
 <symbol id="ic-menu" viewBox="0 0 24 24"><path d="M3 7H21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/><path d="M3 12H21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/><path d="M3 17H21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></symbol>
+<symbol id="ic-sidebar" viewBox="0 0 24 24"><path d="M21.97 15V9C21.97 4 19.97 2 14.97 2H8.96997C3.96997 2 1.96997 4 1.96997 9V15C1.96997 20 3.96997 22 8.96997 22H14.97C19.97 22 21.97 20 21.97 15Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M14.97 2V22" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M7.96997 9.43994L10.53 11.9999L7.96997 14.5599" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
 <symbol id="ic-moon" viewBox="0 0 24 24"><path d="M2.03009 12.42C2.39009 17.57 6.76009 21.76 11.9901 21.99C15.6801 22.15 18.9801 20.43 20.9601 17.72C21.7801 16.61 21.3401 15.87 19.9701 16.12C19.3001 16.24 18.6101 16.29 17.8901 16.26C13.0001 16.06 9.00009 11.97 8.98009 7.13996C8.97009 5.83996 9.24009 4.60996 9.73009 3.48996C10.2701 2.24996 9.62009 1.65996 8.37009 2.18996C4.41009 3.85996 1.70009 7.84996 2.03009 12.42Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
 <symbol id="ic-sun" viewBox="0 0 24 24"><path d="M12 8.5V3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M12 21V15.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M10 3H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M10 21H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M8.96996 10.25L4.20996 7.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M19.79 16.5L15.03 13.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M3.20996 9.23001L5.20996 5.77002" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M18.79 18.23L20.79 14.77" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M15.5 12C15.5 12.64 15.33 13.23 15.03 13.75C14.42 14.8 13.29 15.5 12 15.5C10.71 15.5 9.58 14.8 8.97 13.75C8.67 13.23 8.5 12.64 8.5 12C8.5 11.36 8.67 10.77 8.97 10.25C9.58 9.2 10.71 8.5 12 8.5C13.29 8.5 14.42 9.2 15.03 10.25C15.33 10.77 15.5 11.36 15.5 12Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M19.79 7.5L15.03 10.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M8.96996 13.75L4.20996 16.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M20.79 9.23001L18.79 5.77002" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M5.20996 18.23L3.20996 14.77" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
 <symbol id="ic-paperclip" viewBox="0 0 24 24"><path d="M11.97 12V15.5C11.97 17.43 13.54 19 15.47 19C17.4 19 18.97 17.43 18.97 15.5V10C18.97 6.13 15.84 3 11.97 3C8.09997 3 4.96997 6.13 4.96997 10V16C4.96997 19.31 7.65997 22 10.97 22" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
@@ -370,18 +405,20 @@
 <div class="layout" id="layoutRoot" style="display:none;">
   <aside class="side" id="side">
     <div class="brand">
-      <div class="mk">
-        <img class="logo-light" src="assets/logos/logo-color-mark.svg" alt="" width="22" height="28">
-        <img class="logo-dark" src="assets/logos/logo-white-mark.svg" alt="" width="22" height="28">
-      </div>
-      <div><h1>مِعيار</h1><p>منصة تقييم الذكاء الاصطناعي القانوني</p></div>
+      <a class="brand-logo" href="#" title="قانونية · مِعيار">
+        <img class="logo-h logo-light" src="assets/logos/logo-color-horizontal.svg" alt="قانونية">
+        <img class="logo-h logo-dark" src="assets/logos/logo-white-horizontal.svg" alt="قانونية">
+        <img class="logo-mk logo-light" src="assets/logos/logo-color-mark.svg" alt="قانونية">
+        <img class="logo-mk logo-dark" src="assets/logos/logo-white-mark.svg" alt="قانونية">
+      </a>
+      <button class="side-toggle" id="sideToggle" title="طيّ الشريط" aria-label="طيّ الشريط"><svg class="icon"><use href="#ic-sidebar"/></svg></button>
     </div>
     <nav class="nav" id="navList"></nav>
     <div class="foot">
       <div class="signedin" id="signedInLabel"></div>
-      <button class="navitem" data-nav="settings"><span class="ic"><svg class="icon"><use href="#ic-settings"/></svg></span> الإعدادات</button>
-      <button class="themebtn" id="themeBtn"><span id="themeIc"><svg class="icon"><use href="#ic-moon"/></svg></span> <span id="themeLbl">الوضع الليلي</span></button>
-      <button class="themebtn" id="signOutBtn"><svg class="icon"><use href="#ic-x"/></svg> تسجيل الخروج</button>
+      <button class="navitem" data-nav="settings" title="الإعدادات"><span class="ic"><svg class="icon"><use href="#ic-settings"/></svg></span> <span class="lbl">الإعدادات</span></button>
+      <button class="themebtn" id="themeBtn" title="الوضع الليلي"><span id="themeIc"><svg class="icon"><use href="#ic-moon"/></svg></span> <span class="lbl" id="themeLbl">الوضع الليلي</span></button>
+      <button class="themebtn" id="signOutBtn" title="تسجيل الخروج"><svg class="icon"><use href="#ic-x"/></svg> <span class="lbl">تسجيل الخروج</span></button>
     </div>
   </aside>
   <div class="scrim" id="scrim"></div>
@@ -410,7 +447,7 @@ const store={mem:{},get(k){try{return localStorage.getItem(k);}catch(e){return (
 const clone=o=>JSON.parse(JSON.stringify(o));
 function load(k,d){const s=store.get(k);if(s){try{return JSON.parse(s);}catch(e){}}return clone(d);}
 function save(k,v){store.set(k,JSON.stringify(v));if(k!==K.theme)cloudSave(k,v);}
-const K={cats:'m_cats',runs:'m_runs',drafts:'m_drafts',settings:'m_settings',theme:'m_theme',texts:'m_texts',qbank:'m_qbank_v4',tags:'m_tags_v2',comp:'m_comp_defs_v2',compRuns:'m_comp_runs_v1',competitors:'m_competitors_v1',updatesRuns:'m_updates_runs_v1',models:'m_models_v1',productVis:'m_product_vis_v1',qualityRuns:'m_quality_runs_v1',qualityDrafts:'m_quality_drafts_v1'};
+const K={cats:'m_cats',runs:'m_runs',drafts:'m_drafts',settings:'m_settings',theme:'m_theme',texts:'m_texts',qbank:'m_qbank_v4',tags:'m_tags_v2',comp:'m_comp_defs_v2',compRuns:'m_comp_runs_v1',competitors:'m_competitors_v1',updatesRuns:'m_updates_runs_v1',models:'m_models_v1',productVis:'m_product_vis_v1',qualityRuns:'m_quality_runs_v1',qualityDrafts:'m_quality_drafts_v1',sideCollapsed:'m_side_collapsed_v1'};
 applyTheme(store.get(K.theme)||'light');
 
 /* ===== Supabase: مزامنة البيانات مع الفريق ===== */
@@ -892,10 +929,10 @@ const NAV_PRODUCTS=[
 ];
 function buildNav(){
   const el=document.getElementById('navList');
-  const soonHtml=SOON_PRODUCTS.map(p=>`<button class="navitem soon" disabled><span class="ic"><svg class="icon"><use href="#ic-${p.icon}"/></svg></span> ${p.label}<span class="soon-badge">قريبًا</span></button>`).join('');
+  const soonHtml=SOON_PRODUCTS.map(p=>`<button class="navitem soon" disabled title="${p.label}"><span class="ic"><svg class="icon"><use href="#ic-${p.icon}"/></svg></span> <span class="lbl">${p.label}</span><span class="soon-badge">قريبًا</span></button>`).join('');
   const navHtml=NAV_PRODUCTS.filter(p=>IS_ADMIN||PRODUCT_VIS[p.key]!==false).map(p=>{
     const hidden=PRODUCT_VIS[p.key]===false;
-    return `<button class="navitem ${app.view===p.key?'active':''}" data-nav="${p.key}"><span class="ic"><svg class="icon"><use href="#ic-${p.icon}"/></svg></span> ${p.label}${hidden?'<span class="soon-badge" title="مخفي عن الأعضاء">مخفي</span>':`<span class="badge-n">${p.count()}</span>`}</button>`;
+    return `<button class="navitem ${app.view===p.key?'active':''}" data-nav="${p.key}" title="${p.label}"><span class="ic"><svg class="icon"><use href="#ic-${p.icon}"/></svg></span> <span class="lbl">${p.label}</span>${hidden?'<span class="soon-badge" title="مخفي عن الأعضاء">مخفي</span>':`<span class="badge-n">${p.count()}</span>`}</button>`;
   }).join('');
   el.innerHTML=`<div class="grp">المنتجات</div>${navHtml}${soonHtml}`;
   el.querySelectorAll('[data-nav]').forEach(b=>b.onclick=()=>go(b.dataset.nav));
@@ -2704,6 +2741,11 @@ function bindGeneral(){
 function closeSide(){document.getElementById('side').classList.remove('open');document.getElementById('scrim').classList.remove('show');}
 document.getElementById('hamb').onclick=()=>{document.getElementById('side').classList.add('open');document.getElementById('scrim').classList.add('show');};
 document.getElementById('scrim').onclick=closeSide;
+/* طيّ/توسيع الشريط الجانبي — الوضع الافتراضي مطوي */
+function applySideCollapsed(c){const s=document.getElementById('side'),t=document.getElementById('sideToggle');s.classList.toggle('collapsed',c);if(t){const lbl=c?'توسيع الشريط':'طيّ الشريط';t.title=lbl;t.setAttribute('aria-label',lbl);}}
+let SIDE_COLLAPSED=store.get(K.sideCollapsed)!=='0';
+applySideCollapsed(SIDE_COLLAPSED);
+document.getElementById('sideToggle').onclick=()=>{SIDE_COLLAPSED=!SIDE_COLLAPSED;store.set(K.sideCollapsed,SIDE_COLLAPSED?'1':'0');applySideCollapsed(SIDE_COLLAPSED);};
 document.getElementById('themeBtn').onclick=()=>{THEME=THEME==='light'?'dark':'light';store.set(K.theme,THEME);applyTheme(THEME);};
 document.getElementById('homeBtn').onclick=()=>go('dashboard');
 document.getElementById('copyLinkBtn').onclick=()=>copyText(location.href,'تم نسخ رابط الصفحة');
