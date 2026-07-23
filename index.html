@@ -276,6 +276,17 @@
   [data-theme="dark"] .tab.on{color:#000021;}
   .tab.soon{opacity:.55;cursor:default;}
 
+  .bankback{display:inline-flex;align-items:center;font-size:13px;font-weight:600;color:var(--brand-2);background:none;border:none;cursor:pointer;padding:0;margin-bottom:12px;}
+  .bankback:hover{color:var(--brand-3);}
+  .bankgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-top:18px;}
+  .bankcard{display:flex;flex-direction:column;gap:10px;text-align:right;border:1px solid var(--cat-line);background:var(--cat-bg);border-radius:16px;padding:18px;cursor:pointer;transition:transform .15s ease,box-shadow .15s ease;}
+  .bankcard:hover{transform:translateY(-3px);box-shadow:var(--shadow);}
+  .bankcard .bc-ic{width:40px;height:40px;border-radius:11px;background:var(--cat-ink);color:#fff;display:grid;place-items:center;font-size:20px;}
+  [data-theme="dark"] .bankcard .bc-ic{color:#000021;}
+  .bankcard .bc-title{font-size:15px;font-weight:700;color:var(--ink-2);}
+  .bankcard .bc-desc{font-size:12.5px;color:var(--muted);line-height:1.6;flex:1;}
+  .bankcard .bc-count{align-self:flex-start;font-size:11.5px;font-weight:700;color:var(--cat-ink);background:var(--card);border:1px solid var(--cat-line);border-radius:99px;padding:3px 11px;}
+
   /* ===== تحليل المنافسين ===== */
   .cat-law{--cat-ink:#14a950;--cat-bg:#f0fdf4;--cat-line:#86efac;}
   .cat-jud{--cat-ink:#f97315;--cat-bg:#fff7ed;--cat-line:#fdba74;}
@@ -380,6 +391,14 @@
 <symbol id="ic-chart" viewBox="0 0 24 24"><path d="M9 22H15C20 22 22 20 22 15V9C22 4 20 2 15 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M15.5 18.5C16.6 18.5 17.5 17.6 17.5 16.5V7.5C17.5 6.4 16.6 5.5 15.5 5.5C14.4 5.5 13.5 6.4 13.5 7.5V16.5C13.5 17.6 14.39 18.5 15.5 18.5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M8.5 18.5C9.6 18.5 10.5 17.6 10.5 16.5V13C10.5 11.9 9.6 11 8.5 11C7.4 11 6.5 11.9 6.5 13V16.5C6.5 17.6 7.39 18.5 8.5 18.5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
 <symbol id="ic-question" viewBox="0 0 24 24"><path d="M17 18.4301H13L8.54999 21.39C7.88999 21.83 7 21.3601 7 20.5601V18.4301C4 18.4301 2 16.4301 2 13.4301V7.42999C2 4.42999 4 2.42999 7 2.42999H17C20 2.42999 22 4.42999 22 7.42999V13.4301C22 16.4301 20 18.4301 17 18.4301Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M12.0001 11.36V11.15C12.0001 10.47 12.4201 10.11 12.8401 9.82001C13.2501 9.54001 13.66 9.18002 13.66 8.52002C13.66 7.60002 12.9201 6.85999 12.0001 6.85999C11.0801 6.85999 10.3401 7.60002 10.3401 8.52002" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M11.9955 13.75H12.0045" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
 <symbol id="ic-folder" viewBox="0 0 24 24"><path d="M22 11V17C22 21 21 22 17 22H7C3 22 2 21 2 17V7C2 3 3 2 7 2H8.5C10 2 10.33 2.44 10.9 3.2L12.4 5.2C12.78 5.7 13 6 14 6H17C21 6 22 7 22 11Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+<symbol id="ic-calendar-remove" viewBox="0 0 24 24"><path d="M8 2V5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M16 2V5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M3.5 9.08997H20.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M18 23C20.2091 23 22 21.2091 22 19C22 16.7909 20.2091 15 18 15C15.7909 15 14 16.7909 14 19C14 21.2091 15.7909 23 18 23Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M19.07 20.11L16.95 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M19.0499 18.02L16.9299 20.14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M21 8.5V16.36C20.27 15.53 19.2 15 18 15C15.79 15 14 16.79 14 19C14 19.75 14.21 20.46 14.58 21.06C14.79 21.42 15.06 21.74 15.37 22H8C4.5 22 3 20 3 17V8.5C3 5.5 4.5 3.5 8 3.5H16C19.5 3.5 21 5.5 21 8.5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M11.9955 13.7H12.0045" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M8.29431 13.7H8.30329" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M8.29431 16.7H8.30329" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+<symbol id="ic-judge" viewBox="0 0 24 24"><path d="M20.0101 18.5101L15.0601 13.5601" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M15.06 13.56L11.52 17.1C10.74 17.88 9.47 17.88 8.69 17.1L4.44999 12.86C3.66999 12.08 3.66999 10.81 4.44999 10.03L11.52 2.96C12.3 2.18 13.57 2.18 14.35 2.96L18.59 7.20002C19.37 7.98002 19.37 9.25001 18.59 10.03L15.06 13.56Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M2 21H8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M6.56006 7.92004L13.6301 14.99" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+<symbol id="ic-shield-search" viewBox="0 0 24 24"><path d="M20.59 10.5501V7.12006C20.59 5.89006 19.65 4.53006 18.5 4.10006L13.51 2.23006C12.68 1.92006 11.32 1.92006 10.49 2.23006L5.49997 4.11006C4.34997 4.54006 3.40997 5.90006 3.40997 7.12006V14.5501C3.40997 15.7301 4.18997 17.2801 5.13997 17.9901L9.43997 21.2001C10.14 21.7401 11.07 22.0001 12 22.0001" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M16 20C18.2091 20 20 18.2091 20 16C20 13.7909 18.2091 12 16 12C13.7909 12 12 13.7909 12 16C12 18.2091 13.7909 20 16 20Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M20.9955 21H21.0045" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+<symbol id="ic-archive-book" viewBox="0 0 24 24"><path d="M21 7V17C21 20 19.5 22 16 22H8C4.5 22 3 20 3 17V7C3 4 4.5 2 8 2H16C19.5 2 21 4 21 7Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M15.5 2V9.85999C15.5 10.3 14.98 10.52 14.66 10.23L12.34 8.09003C12.15 7.91003 11.85 7.91003 11.66 8.09003L9.34003 10.23C9.02003 10.52 8.5 10.3 8.5 9.85999V2H15.5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M13.25 14H17.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M9 18H17.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+<symbol id="ic-command-square" viewBox="0 0 24 24"><path d="M14.4 9.6001H9.59998V14.4001H14.4V9.6001Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M7.79999 17.9999C8.78999 17.9999 9.59998 17.1899 9.59998 16.1999V14.3999H7.79999C6.80999 14.3999 6 15.2099 6 16.1999C6 17.1899 6.80999 17.9999 7.79999 17.9999Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M7.79999 9.60001H9.59998V7.79999C9.59998 6.80999 8.78999 6 7.79999 6C6.80999 6 6 6.80999 6 7.79999C6 8.78999 6.80999 9.60001 7.79999 9.60001Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M14.4 9.60001H16.2C17.19 9.60001 18 8.78999 18 7.79999C18 6.80999 17.19 6 16.2 6C15.21 6 14.4 6.80999 14.4 7.79999V9.60001Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M16.2 17.9999C17.19 17.9999 18 17.1899 18 16.1999C18 15.2099 17.19 14.3999 16.2 14.3999H14.4V16.1999C14.4 17.1899 15.21 17.9999 16.2 17.9999Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M9 22H15C20 22 22 20 22 15V9C22 4 20 2 15 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+<symbol id="ic-note-text" viewBox="0 0 24 24"><path d="M8 2V5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M16 2V5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M21 8.5V17C21 20 19.5 22 16 22H8C4.5 22 3 20 3 17V8.5C3 5.5 4.5 3.5 8 3.5H16C19.5 3.5 21 5.5 21 8.5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M8 11H16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M8 16H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+<symbol id="ic-message-edit" viewBox="0 0 24 24"><path d="M16 2H8C4 2 2 4 2 8V21C2 21.55 2.45 22 3 22H16C20 22 22 20 22 16V8C22 4 20 2 16 2Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M12.91 7.83991L7.72004 13.0299C7.52004 13.2299 7.33004 13.6199 7.29004 13.8999L7.01004 15.8799C6.91004 16.5999 7.41004 17.0999 8.13004 16.9999L10.11 16.7199C10.39 16.6799 10.78 16.4899 10.98 16.2899L16.17 11.0999C17.06 10.2099 17.49 9.16991 16.17 7.84991C14.85 6.51991 13.81 6.93991 12.91 7.83991Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M12.17 8.57983C12.61 10.1498 13.84 11.3898 15.42 11.8298" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+<symbol id="ic-folder-cloud" viewBox="0 0 24 24"><path d="M9 22H7C3 22 2 21 2 17V7C2 3 3 2 7 2H8.5C10 2 10.33 2.44001 10.9 3.20001L12.4 5.20001C12.78 5.70001 13 6 14 6H17C21 6 22 7 22 11V13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M13.7601 18.32C11.4101 18.49 11.4101 21.89 13.7601 22.06H19.3201C19.9901 22.06 20.6501 21.81 21.1401 21.36C22.7901 19.92 21.91 17.04 19.74 16.77C18.96 12.08 12.1801 13.86 13.7801 18.33" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
 </defs>
 </svg>
 <div class="auth-gate" id="authGate">
@@ -447,7 +466,7 @@ const store={mem:{},get(k){try{return localStorage.getItem(k);}catch(e){return (
 const clone=o=>JSON.parse(JSON.stringify(o));
 function load(k,d){const s=store.get(k);if(s){try{return JSON.parse(s);}catch(e){}}return clone(d);}
 function save(k,v){store.set(k,JSON.stringify(v));if(k!==K.theme)cloudSave(k,v);}
-const K={cats:'m_cats',runs:'m_runs',drafts:'m_drafts',settings:'m_settings',theme:'m_theme',texts:'m_texts',qbank:'m_qbank_v4',tags:'m_tags_v2',comp:'m_comp_defs_v2',compRuns:'m_comp_runs_v1',competitors:'m_competitors_v1',updatesRuns:'m_updates_runs_v1',models:'m_models_v1',productVis:'m_product_vis_v1',qualityRuns:'m_quality_runs_v1',qualityDrafts:'m_quality_drafts_v1',sideCollapsed:'m_side_collapsed_v1'};
+const K={cats:'m_cats',runs:'m_runs',drafts:'m_drafts',settings:'m_settings',theme:'m_theme',texts:'m_texts',qbank:'m_qbank_v4',comp:'m_comp_defs_v2',compRuns:'m_comp_runs_v1',competitors:'m_competitors_v1',updatesRuns:'m_updates_runs_v1',models:'m_models_v1',productVis:'m_product_vis_v1',qualityRuns:'m_quality_runs_v1',qualityDrafts:'m_quality_drafts_v1',sideCollapsed:'m_side_collapsed_v1'};
 applyTheme(store.get(K.theme)||'light');
 
 /* ===== Supabase: مزامنة البيانات مع الفريق ===== */
@@ -606,100 +625,120 @@ let QUALITY_RUNS=load(K.qualityRuns,[]);
 let QUALITY_DRAFTS=load(K.qualityDrafts,[]);
 
 /* ===== بنك الأسئلة ===== */
-const DEF_TAGS=['حالات السريان والإلغاء','القدرات التحليلية','قدرات الصياغة','الاستحضار وعدم الهلوسة','التحليل القضائي','شمول قاعدة البيانات','تعديلات المواد'];
-let TAGS=load(K.tags,DEF_TAGS);
 const TEST_TYPE_LABELS={read:'قراءة الملف',guardian:'ليقال قارديان',analysis:'التحليل'};
+const QBANK_META={
+  expiry:{icon:'calendar-remove',cat:'cat-law'},
+  analytical:{icon:'judge',cat:'cat-jud'},
+  hallucination:{icon:'shield-search',cat:'cat-cir'},
+  coverage:{icon:'archive-book',cat:'cat-book'},
+  amendments:{icon:'draft',cat:'cat-feat'},
+  commands:{icon:'command-square',cat:'cat-law'},
+  contracts:{icon:'note-text',cat:'cat-jud'},
+  conversations:{icon:'message-edit',cat:'cat-cir'},
+  fileUpload:{icon:'folder-cloud',cat:'cat-book'},
+};
 const DEF_QBANK={
-  general:{
-    label:'الأسئلة العامة',
-    type:'tagged',
-    sub:'أسئلة عامة واقعية لاختبار الفهم القانوني والتحليل والاستحضار الدقيق للنصوص. لكل سؤال معيار (وسوم) يجمع الأسئلة المتشابهة في مكان واحد، وعناصر الإجابة الصحيحة.',
-    cats:[
-      {title:'كل الأسئلة',tests:[
-        {q:{ar:`متى نُشر نظام المعاملات المدنية ومتى دخل حيز النفاذ؟`,en:`When was the Civil Transactions Law published, and when did it come into effect?`},tags:['حالات السريان والإلغاء'],criteria:[
-          `يتعرّف على تاريخ النفاذ الصحيح تقريبًا في: 2023-12-20.`,
-          `يحدد بدقة تاريخ نشر النظام: في العدد ٤٩٨٧ وتاريخ ٢٠٢٣/٦/٢٣.`,
-          `يشير إلى المادة الحادية والعشرون بعد السبعمائة من النظام: "يُعمل بهذا النظام بعد مضي (مائة وثمانين) يومًا من تاريخ نشره في الجريدة الرسمية، ويُلغي كل ما يتعارض معه من أحكام".`,
-        ]},
-        {q:{ar:`هل ما زال (النظام الأساسي للاتحادات الرياضية واللجنة الأولمبية العربية السعودية) ساريًا؟`,en:`Is the (Basic Law of Sports Federations and the Saudi Arabian Olympic Committee) still in force?`},tags:['حالات السريان والإلغاء'],criteria:[
-          `يصنّف النظام بأنه لاغٍ وليس ساريًا.`,
-          `يشير إلى مستند الإلغاء: المادة السادسة والتسعون من نظام الرياضة الصادر بالمرسوم الملكي رقم م/١٢١ لعام ١٤٤٧.`,
-        ]},
-        {q:{ar:`ماهي مدة الإشعار الملزمة على صاحب العمل إذا أراد الإنهاء لسبب غير مشروع كما جاء في المادة 77 من نظام العمل؟`,en:`What is the mandatory notice period on the employer if they wish to terminate for an unlawful reason, as stated in Article 77 of the Labor Law?`},tags:['القدرات التحليلية'],criteria:[
-          `ينبّه إلى أن مفهوم "الإنهاء غير المشروع" لا يرتبط بمدة إشعار أصلًا، بل بالتعويض عن الإنهاء المخالف للنظام.`,
-          `لا يختلق مدة إشعار غير واردة في المادة 77 لمجرد أن السؤال افترض وجودها.`,
-          `يوضح الفرق بين حالات الإشعار المنصوص عليها (المادة 75 من نظام العمل) والإنهاء غير المشروع.`,
-        ]},
-        {q:{ar:`اعطيني مثال لهذه المادة: "وإذا كانت حصته مجرد الانتفاع بحق شخصي على المال طُبّقت أحكام عقد الإيجار، وذلك ما لم يتفق على غير ذلك."`,en:`Give me an example for this article: "If their share is merely the usufruct of a personal right over the property, the provisions of the lease contract shall apply, unless otherwise agreed."`},tags:['القدرات التحليلية'],criteria:[
-          `يقدّم مثالًا واقعيًا يعكس معنى "الانتفاع بحق شخصي" ويطبّق عليه أحكام عقد الإيجار فعلًا، مستندًا إلى المادة الرابعة عشرة من نظام الشركات.`,
-          `لا يناقض المثال شرط "ما لم يتفق على غير ذلك" الوارد في النص.`,
-          `يبقى المثال ضمن سياق نظام المعاملات المدنية دون اختلاق حكم إضافي.`,
-        ]},
-        {q:{ar:`هل من اختصاص مكتب العمل إصدار تأشيرة خروج للعامل المنتهية إقامته؟`,en:`Is it within the jurisdiction of the labor office to issue an exit visa for a worker whose residency has expired?`},tags:['القدرات التحليلية'],criteria:[
-          `يحدد الجهة المختصة فعليًا بإصدار تأشيرة الخروج، وهي المديرية العامة للجوازات لا مكتب العمل.`,
-          `يميّز بين اختصاص مكتب العمل (العلاقة العمالية) واختصاص الجوازات (إجراءات الإقامة والخروج).`,
-          `لا يفترض اختصاصًا لمكتب العمل دون سند.`,
-        ]},
-        {q:{ar:`هبة عقار قُبضت بدون توثيق، وكان ذلك قبل العمل بنظام المعاملات المدنية، فما هو حكمها؟ وهل تسري عليها أحكام النظام؟`,en:`A gift (hiba) of real estate was taken possession of without documentation, and this occurred before the Civil Transactions Law came into force. What is its ruling, and do the Law's provisions apply to it?`},tags:['القدرات التحليلية'],criteria:[
-          `يوضح الحكم المطبَّق على الهبة باعتبار واقعة القبض تمت قبل نفاذ النظام.`,
-          `يبيّن هل تسري أحكام النظام الجديد على آثارها المستقبلية أم تبقى خاضعة للقواعد السابقة، استنادًا إلى ديباجة نظام المعاملات المدنية والمادة الثامنة والستون بعد الثلاثمائة منه.`,
-          `يستند إلى مبدأ عدم رجعية الأنظمة إلا بنص خاص.`,
-        ]},
-        {q:{ar:`مدى جواز منح حافز تشجيعي للموظفين المتميزين، مع العلم أن اللائحة الداخلية لم تتطرق لذلك وحددت أشكالًا معينة للمكافآت ليست منها.`,en:`The permissibility of granting an incentive bonus to distinguished employees, given that the internal bylaws did not address this and specified certain forms of rewards that do not include it.`},tags:['القدرات التحليلية'],criteria:[
-          `يوضح مدى جواز المنح رغم عدم ورود صيغة "الحافز التشجيعي" حرفيًا في اللائحة، مستندًا إلى المادة الثامنة من نظام العمل.`,
-          `يربط الجواز أو المنع بمبدأ التزام صاحب العمل بما التزم به في اللائحة وحدود تعديلها.`,
-          `لا يجزم بالمنع لمجرد عدم النص دون تحليل.`,
-        ]},
-        {q:{ar:`هل يترتب على العقد المستحيل تنفيذه أي آثار؟ فمثلًا تعاقد موظف مع شركة على أن ينقل كفالته عليها إلا أنه استحال ذلك لوجود خروج نهائي، فهل يترتب على الشركة التزام بباقي مدة العقد في هذه الحالة؟`,en:`Does a contract that becomes impossible to perform have any legal effects? For example, an employee contracted with a company to transfer his sponsorship to it, but this became impossible due to a final exit from the country. Does the company then bear any obligation for the remainder of the contract term in this case?`},tags:['القدرات التحليلية'],criteria:[
-          `يوضح عدم ترتب أي التزام على الشركة ببقية مدة العقد عند استحالة التنفيذ لسبب خارج عن الإرادة.`,
-          `يستند إلى قاعدة أن العقد المستحيل تنفيذه لا يرتب أثرًا، والمادة العاشرة بعد المائة من نظام المعاملات المدنية.`,
-          `يفرّق بين الاستحالة المطلقة والاستحالة الجزئية أو المؤقتة.`,
-        ]},
-        {q:{ar:`بناءً على قاعدة البيانات التي لديك، هل يمكنك كتابة صيغة نموذجية لمادة تشريعية تتعلق بـ"تكوين لجنة للنظر في مخالفات نظام ..."؟`,en:`Based on the database you have, can you draft a model text for a legislative article on "forming a committee to review violations of the ... law"?`},tags:['قدرات الصياغة'],criteria:[
-          `تلتزم الصياغة بالبنية المعتادة للمواد التشريعية: آلية التشكيل، شروط العضوية، الاختصاصات، آلية إصدار القرارات، حق التظلم، وقواعد عمل اللجنة.`,
-          `تُبنى الصياغة فعليًا على قاعدة/أمثلة نظامية مشابهة لا نص مرتجل بلا سند.`,
-          `خلوّ الصياغة من التناقض الداخلي أو الغموض.`,
-        ]},
-        {q:{ar:`اكتب لي دليل إجرائي للتحقق من التزام المنشأة بأنظمة المنافسة ومكافحة الإغراق.`,en:`Write me a procedural guide for verifying an establishment's compliance with competition and anti-dumping laws.`},tags:['قدرات الصياغة'],criteria:[
-          `يتضمن الدليل كحد أدنى: مراجعة العقود والاتفاقيات، تقييم ممارسات الوضع المهيمن، التعاون والشفافية، مراقبة الأسعار.`,
-          `يربط كل خطوة بالنظام أو اللائحة ذات الصلة (نظام المنافسة، مكافحة الإغراق).`,
-          `قابل للتطبيق الفعلي دون غموض إجرائي.`,
-        ]},
-        {q:{ar:`ما هي الآثار المترتبة على عملية التفاوض؟ وهل توقفي عن التفاوض أو عدم رغبتي في الإكمال يلزمني التعويض؟`,en:`What are the legal effects of the negotiation process? Does my withdrawal from negotiations, or my unwillingness to proceed, obligate me to pay compensation?`},tags:['قدرات الصياغة'],criteria:[
-          `يوضح أن التفاوض من حيث الأصل غير مُلزم بإتمام العقد.`,
-          `يبيّن الحالات الاستثنائية التي قد تستوجب التعويض (سوء النية، الإضرار بالطرف الآخر أثناء التفاوض)، استنادًا إلى المادة الحادية والأربعون من نظام المعاملات المدنية.`,
-          `لا يجزم بإلزامية التعويض في كل الأحوال أو بنفيه المطلق.`,
-        ]},
-        {q:{ar:`ما هي المادة التي تجيز وضع قيود على التصرف في الأسهم إذا اتفق الأطراف على إخضاع أسهم المؤسسين لجدول استحقاق وقيود نقل ملكية؟`,en:`Which article permits placing restrictions on the disposal of shares if the parties agree to subject the founders' shares to a vesting schedule and ownership-transfer restrictions?`},tags:['القدرات التحليلية'],criteria:[
-          `يحدد المادة الصحيحة: المادة الحادية والخمسون بعد المائة من نظام الشركات.`,
-          `يوضح أن النظام يجيز تقييد التصرف في الأسهم بالاتفاق (جدول الاستحقاق Vesting وقيود النقل) ضمن حدود معينة.`,
-        ]},
-        {q:{ar:`ما هي المادة العاشرة من نظام العقوبات؟`,en:`What is Article 10 of the Penal Law?`},tags:['الاستحضار وعدم الهلوسة'],criteria:[
-          `ينبّه إلى عدم وجود نظام عقوبات عام في المملكة العربية السعودية أصلًا، فلا وجود لمادة بهذا الاسم.`,
-          `لا يختلق نصًا لمادة غير موجودة لمجرد صياغة السؤال بثقة.`,
-          `يمتنع عن الجزم إن لم يتأكد بدل تأليف نص تقريبي.`,
-        ]},
-        {q:{ar:`ما هي المادة الخامسة والثلاثون من نظام المرافعات الشرعية؟`,en:`What is Article 35 of the Law of Procedure before Sharia Courts?`},tags:['الاستحضار وعدم الهلوسة'],criteria:[
-          `ينبّه إلى عدم التأكد من وجود مادة بهذا الرقم في نظام المرافعات الشرعية بدل الجزم بنص مختلق.`,
-          `لا يستبدلها بمادة مشابهة الرقم من نظام آخر (كنظام العمل أو نظام المرافعات المدنية).`,
-          `يفصح عن عدم اليقين بدل تأليف نص تقريبي.`,
-        ]},
-        {q:{ar:`هل يوجد نص نظامي أو تعميم ينص فعلاً أن اختلاف المهنة في الإقامة عن الموجود في العقد يعتبر مخالفة نظامية؟`,en:`Is there an actual statutory provision or circular stating that a discrepancy between the profession on the residency permit and the one in the contract constitutes a regulatory violation?`},tags:['الاستحضار وعدم الهلوسة'],criteria:[
-          `يشير إلى وجود سند نظامي بالفعل: المادة الثامنة والثلاثون من نظام العمل.`,
-          `لا يجزم بعدم وجود نص دون تحقق.`,
-        ]},
-        {q:{ar:`ما الذي تعرفه عن الـSAFE Note؟ وهل تعتبر متوافقة مع أحكام الشريعة؟`,en:`What do you know about the SAFE Note? Is it considered compliant with Sharia rulings?`},tags:['شمول قاعدة البيانات'],criteria:[
-          `يشرح مفهوم SAFE Note بدقة دون خلطه بأداة تمويل أخرى.`,
-          `يناقش مدى توافقه مع أحكام الشريعة استنادًا لضوابط عامة (كالغرر، الربا، تحديد العوض) لا بجزم فقهي قاطع كأنه فتوى.`,
-          `يوضح صراحة عدم وجود تشريع سعودي خاص بهذه الأداة حاليًا بدل اختلاق نص غير موجود.`,
-        ]},
-        {q:{ar:`ما هي التعديلات الحاصلة على المادة السابعة والسبعون من نظام العمل؟`,en:`What amendments have been made to Article 77 of the Labor Law?`},tags:['تعديلات المواد'],criteria:[
-          `يذكر التعديل الذي طرأ على المادة مع تاريخه: المرسوم الملكي رقم م/٤٦ لعام ١٤٣٦.`,
-          `يوضح الفرق بين نص المادة قبل التعديل وبعده.`,
-          `لا يقدّم النص الحالي فقط ظنًا منه أنه يجيب عن سؤال "التعديلات".`,
-        ]},
+  expiry:{
+    label:'حالات السريان والإلغاء',
+    type:'flat',
+    sub:'أسئلة تختبر معرفة المنتج بتاريخ نفاذ الأنظمة وحالات إلغائها أو استمرار سريانها.',
+    cats:[{title:'الكل',tests:[
+      {q:{ar:`متى نُشر نظام المعاملات المدنية ومتى دخل حيز النفاذ؟`,en:`When was the Civil Transactions Law published, and when did it come into effect?`},criteria:[
+        `يتعرّف على تاريخ النفاذ الصحيح تقريبًا في: 2023-12-20.`,
+        `يحدد بدقة تاريخ نشر النظام: في العدد ٤٩٨٧ وتاريخ ٢٠٢٣/٦/٢٣.`,
+        `يشير إلى المادة الحادية والعشرون بعد السبعمائة من النظام: "يُعمل بهذا النظام بعد مضي (مائة وثمانين) يومًا من تاريخ نشره في الجريدة الرسمية، ويُلغي كل ما يتعارض معه من أحكام".`,
       ]},
-    ],
+      {q:{ar:`هل ما زال (النظام الأساسي للاتحادات الرياضية واللجنة الأولمبية العربية السعودية) ساريًا؟`,en:`Is the (Basic Law of Sports Federations and the Saudi Arabian Olympic Committee) still in force?`},criteria:[
+        `يصنّف النظام بأنه لاغٍ وليس ساريًا.`,
+        `يشير إلى مستند الإلغاء: المادة السادسة والتسعون من نظام الرياضة الصادر بالمرسوم الملكي رقم م/١٢١ لعام ١٤٤٧.`,
+      ]},
+    ]}],
+  },
+  analytical:{
+    label:'القدرات التحليلية',
+    type:'flat',
+    sub:'أسئلة تختبر القدرة على التحليل القانوني والتفريق بين المفاهيم المتشابهة دون افتراضات غير مسندة.',
+    cats:[{title:'الكل',tests:[
+      {q:{ar:`ماهي مدة الإشعار الملزمة على صاحب العمل إذا أراد الإنهاء لسبب غير مشروع كما جاء في المادة 77 من نظام العمل؟`,en:`What is the mandatory notice period on the employer if they wish to terminate for an unlawful reason, as stated in Article 77 of the Labor Law?`},criteria:[
+        `ينبّه إلى أن مفهوم "الإنهاء غير المشروع" لا يرتبط بمدة إشعار أصلًا، بل بالتعويض عن الإنهاء المخالف للنظام.`,
+        `لا يختلق مدة إشعار غير واردة في المادة 77 لمجرد أن السؤال افترض وجودها.`,
+        `يوضح الفرق بين حالات الإشعار المنصوص عليها (المادة 75 من نظام العمل) والإنهاء غير المشروع.`,
+      ]},
+      {q:{ar:`اعطيني مثال لهذه المادة: "وإذا كانت حصته مجرد الانتفاع بحق شخصي على المال طُبّقت أحكام عقد الإيجار، وذلك ما لم يتفق على غير ذلك."`,en:`Give me an example for this article: "If their share is merely the usufruct of a personal right over the property, the provisions of the lease contract shall apply, unless otherwise agreed."`},criteria:[
+        `يقدّم مثالًا واقعيًا يعكس معنى "الانتفاع بحق شخصي" ويطبّق عليه أحكام عقد الإيجار فعلًا، مستندًا إلى المادة الرابعة عشرة من نظام الشركات.`,
+        `لا يناقض المثال شرط "ما لم يتفق على غير ذلك" الوارد في النص.`,
+        `يبقى المثال ضمن سياق نظام المعاملات المدنية دون اختلاق حكم إضافي.`,
+      ]},
+      {q:{ar:`هل من اختصاص مكتب العمل إصدار تأشيرة خروج للعامل المنتهية إقامته؟`,en:`Is it within the jurisdiction of the labor office to issue an exit visa for a worker whose residency has expired?`},criteria:[
+        `يحدد الجهة المختصة فعليًا بإصدار تأشيرة الخروج، وهي المديرية العامة للجوازات لا مكتب العمل.`,
+        `يميّز بين اختصاص مكتب العمل (العلاقة العمالية) واختصاص الجوازات (إجراءات الإقامة والخروج).`,
+        `لا يفترض اختصاصًا لمكتب العمل دون سند.`,
+      ]},
+      {q:{ar:`هبة عقار قُبضت بدون توثيق، وكان ذلك قبل العمل بنظام المعاملات المدنية، فما هو حكمها؟ وهل تسري عليها أحكام النظام؟`,en:`A gift (hiba) of real estate was taken possession of without documentation, and this occurred before the Civil Transactions Law came into force. What is its ruling, and do the Law's provisions apply to it?`},criteria:[
+        `يوضح الحكم المطبَّق على الهبة باعتبار واقعة القبض تمت قبل نفاذ النظام.`,
+        `يبيّن هل تسري أحكام النظام الجديد على آثارها المستقبلية أم تبقى خاضعة للقواعد السابقة، استنادًا إلى ديباجة نظام المعاملات المدنية والمادة الثامنة والستون بعد الثلاثمائة منه.`,
+        `يستند إلى مبدأ عدم رجعية الأنظمة إلا بنص خاص.`,
+      ]},
+      {q:{ar:`مدى جواز منح حافز تشجيعي للموظفين المتميزين، مع العلم أن اللائحة الداخلية لم تتطرق لذلك وحددت أشكالًا معينة للمكافآت ليست منها.`,en:`The permissibility of granting an incentive bonus to distinguished employees, given that the internal bylaws did not address this and specified certain forms of rewards that do not include it.`},criteria:[
+        `يوضح مدى جواز المنح رغم عدم ورود صيغة "الحافز التشجيعي" حرفيًا في اللائحة، مستندًا إلى المادة الثامنة من نظام العمل.`,
+        `يربط الجواز أو المنع بمبدأ التزام صاحب العمل بما التزم به في اللائحة وحدود تعديلها.`,
+        `لا يجزم بالمنع لمجرد عدم النص دون تحليل.`,
+      ]},
+      {q:{ar:`هل يترتب على العقد المستحيل تنفيذه أي آثار؟ فمثلًا تعاقد موظف مع شركة على أن ينقل كفالته عليها إلا أنه استحال ذلك لوجود خروج نهائي، فهل يترتب على الشركة التزام بباقي مدة العقد في هذه الحالة؟`,en:`Does a contract that becomes impossible to perform have any legal effects? For example, an employee contracted with a company to transfer his sponsorship to it, but this became impossible due to a final exit from the country. Does the company then bear any obligation for the remainder of the contract term in this case?`},criteria:[
+        `يوضح عدم ترتب أي التزام على الشركة ببقية مدة العقد عند استحالة التنفيذ لسبب خارج عن الإرادة.`,
+        `يستند إلى قاعدة أن العقد المستحيل تنفيذه لا يرتب أثرًا، والمادة العاشرة بعد المائة من نظام المعاملات المدنية.`,
+        `يفرّق بين الاستحالة المطلقة والاستحالة الجزئية أو المؤقتة.`,
+      ]},
+      {q:{ar:`ما هي المادة التي تجيز وضع قيود على التصرف في الأسهم إذا اتفق الأطراف على إخضاع أسهم المؤسسين لجدول استحقاق وقيود نقل ملكية؟`,en:`Which article permits placing restrictions on the disposal of shares if the parties agree to subject the founders' shares to a vesting schedule and ownership-transfer restrictions?`},criteria:[
+        `يحدد المادة الصحيحة: المادة الحادية والخمسون بعد المائة من نظام الشركات.`,
+        `يوضح أن النظام يجيز تقييد التصرف في الأسهم بالاتفاق (جدول الاستحقاق Vesting وقيود النقل) ضمن حدود معينة.`,
+      ]},
+    ]}],
+  },
+  hallucination:{
+    label:'الاستحضار وعدم الهلوسة',
+    type:'flat',
+    sub:'أسئلة عمدًا مبنية على افتراض خاطئ أو نص غير موجود، لاختبار امتناع المنتج عن اختلاق إجابات واثقة.',
+    cats:[{title:'الكل',tests:[
+      {q:{ar:`ما هي المادة العاشرة من نظام العقوبات؟`,en:`What is Article 10 of the Penal Law?`},criteria:[
+        `ينبّه إلى عدم وجود نظام عقوبات عام في المملكة العربية السعودية أصلًا، فلا وجود لمادة بهذا الاسم.`,
+        `لا يختلق نصًا لمادة غير موجودة لمجرد صياغة السؤال بثقة.`,
+        `يمتنع عن الجزم إن لم يتأكد بدل تأليف نص تقريبي.`,
+      ]},
+      {q:{ar:`ما هي المادة الخامسة والثلاثون من نظام المرافعات الشرعية؟`,en:`What is Article 35 of the Law of Procedure before Sharia Courts?`},criteria:[
+        `ينبّه إلى عدم التأكد من وجود مادة بهذا الرقم في نظام المرافعات الشرعية بدل الجزم بنص مختلق.`,
+        `لا يستبدلها بمادة مشابهة الرقم من نظام آخر (كنظام العمل أو نظام المرافعات المدنية).`,
+        `يفصح عن عدم اليقين بدل تأليف نص تقريبي.`,
+      ]},
+      {q:{ar:`هل يوجد نص نظامي أو تعميم ينص فعلاً أن اختلاف المهنة في الإقامة عن الموجود في العقد يعتبر مخالفة نظامية؟`,en:`Is there an actual statutory provision or circular stating that a discrepancy between the profession on the residency permit and the one in the contract constitutes a regulatory violation?`},criteria:[
+        `يشير إلى وجود سند نظامي بالفعل: المادة الثامنة والثلاثون من نظام العمل.`,
+        `لا يجزم بعدم وجود نص دون تحقق.`,
+      ]},
+    ]}],
+  },
+  coverage:{
+    label:'شمول قاعدة البيانات',
+    type:'flat',
+    sub:'أسئلة عن مفاهيم وأدوات حديثة لاختبار مدى تغطية قاعدة معرفة المنتج لها دون خلط أو اختلاق تشريع غير موجود.',
+    cats:[{title:'الكل',tests:[
+      {q:{ar:`ما الذي تعرفه عن الـSAFE Note؟ وهل تعتبر متوافقة مع أحكام الشريعة؟`,en:`What do you know about the SAFE Note? Is it considered compliant with Sharia rulings?`},criteria:[
+        `يشرح مفهوم SAFE Note بدقة دون خلطه بأداة تمويل أخرى.`,
+        `يناقش مدى توافقه مع أحكام الشريعة استنادًا لضوابط عامة (كالغرر، الربا، تحديد العوض) لا بجزم فقهي قاطع كأنه فتوى.`,
+        `يوضح صراحة عدم وجود تشريع سعودي خاص بهذه الأداة حاليًا بدل اختلاق نص غير موجود.`,
+      ]},
+    ]}],
+  },
+  amendments:{
+    label:'تعديلات المواد',
+    type:'flat',
+    sub:'أسئلة عن التعديلات التي طرأت على مواد نظامية، لاختبار قدرة المنتج على التفريق بين نص المادة قبل التعديل وبعده.',
+    cats:[{title:'الكل',tests:[
+      {q:{ar:`ما هي التعديلات الحاصلة على المادة السابعة والسبعون من نظام العمل؟`,en:`What amendments have been made to Article 77 of the Labor Law?`},criteria:[
+        `يذكر التعديل الذي طرأ على المادة مع تاريخه: المرسوم الملكي رقم م/٤٦ لعام ١٤٣٦.`,
+        `يوضح الفرق بين نص المادة قبل التعديل وبعده.`,
+        `لا يقدّم النص الحالي فقط ظنًا منه أنه يجيب عن سؤال "التعديلات".`,
+      ]},
+    ]}],
   },
   commands:{
     label:'الأوامر الجاهزة',
@@ -759,7 +798,22 @@ const DEF_QBANK={
     cats:[{title:'كل الاختبارات',tests:[]}],
   },
 };
+function migrateQBankGeneral(bank){
+  if(!bank.general)return bank;
+  const TAG_MAP={'حالات السريان والإلغاء':'expiry','القدرات التحليلية':'analytical','الاستحضار وعدم الهلوسة':'hallucination','شمول قاعدة البيانات':'coverage','تعديلات المواد':'amendments'};
+  const NEW_KEYS=['expiry','analytical','hallucination','coverage','amendments'];
+  NEW_KEYS.forEach(k=>{bank[k]={label:DEF_QBANK[k].label,type:'flat',sub:DEF_QBANK[k].sub,cats:[{title:'الكل',tests:[]}]};});
+  ((bank.general.cats[0]||{}).tests||[]).forEach(t=>{
+    const tag=(t.tags||[])[0];
+    if(tag==='قدرات الصياغة')return;
+    const key=TAG_MAP[tag]||'analytical';
+    bank[key].cats[0].tests.push({q:t.q,criteria:t.criteria||[]});
+  });
+  delete bank.general;
+  return bank;
+}
 let QBANK=load(K.qbank,DEF_QBANK);
+if(QBANK.general){QBANK=migrateQBankGeneral(QBANK);save(K.qbank,QBANK);}
 
 /* ===== تحليل المنافسين ===== */
 const DEF_COMP={
@@ -835,27 +889,22 @@ function copyText(t,msg){msg=msg||'تم نسخ السؤال';if(navigator.clipbo
 function flatten(cats){const f=[];cats.forEach((c,ci)=>c.tests.forEach(t=>f.push({...t,cat:c.title,catIdx:ci})));return f;}
 /* ===== استيراد اختبار الجودة من بنك الأسئلة ===== */
 function qualityTypeOptions(){
-  const opts=TAGS.map(tag=>({key:'tag:'+tag,label:tag,n:QBANK.general.cats[0].tests.filter(x=>(x.tags||[]).includes(tag)).length}));
-  ['commands','contracts','conversations','fileUpload'].forEach(w=>opts.push({key:'win:'+w,label:QBANK[w].label,n:QBANK[w].cats.reduce((m,c)=>m+c.tests.length,0)}));
-  return opts.filter(o=>o.n>0);
+  return Object.entries(QBANK).map(([k,w])=>({key:'win:'+k,label:w.label,n:w.cats.reduce((m,c)=>m+c.tests.length,0)})).filter(o=>o.n>0);
 }
 function normalizeQItem(win,t){
   const type=QBANK[win].type;
   if(type==='conversation')return {kind:'conversation',title:t.title,messages:clone(t.messages||[]),criteria:t.criteria,srcWin:win};
   if(type==='fileupload')return {kind:'fileupload',q:t.q,testType:t.testType,fileLink:t.fileLink,goal:t.goal,criteria:t.criteria,srcWin:win};
-  return {kind:'single',q:t.q,tags:t.tags,criteria:t.criteria,srcWin:win};
+  return {kind:'single',q:t.q,criteria:t.criteria,srcWin:win};
 }
 function qualityPool(typeKeys){
   const items=[];
   const pushWin=(w)=>QBANK[w].cats.forEach(c=>c.tests.forEach(t=>items.push(normalizeQItem(w,t))));
   if(typeKeys.includes('__all__')){
-    QBANK.general.cats[0].tests.forEach(t=>items.push(normalizeQItem('general',t)));
-    ['commands','contracts','conversations','fileUpload'].forEach(pushWin);
+    Object.keys(QBANK).forEach(pushWin);
     return items;
   }
-  const seen=new Set();
-  const pushGeneral=(tag)=>QBANK.general.cats[0].tests.forEach((t,i)=>{if((t.tags||[]).includes(tag)&&!seen.has(i)){seen.add(i);items.push(normalizeQItem('general',t));}});
-  typeKeys.forEach(k=>k.startsWith('tag:')?pushGeneral(k.slice(4)):pushWin(k.slice(4)));
+  typeKeys.forEach(k=>pushWin(k.slice(4)));
   return items;
 }
 function sample(arr,n){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return n?a.slice(0,n):a;}
@@ -974,19 +1023,40 @@ function buildToc(){
 }
 
 /* ===== بنك الأسئلة ===== */
-function renderQBank(){
-  const win=app.ctx.bankWin||'general';
-  const tabsHtml=Object.entries(QBANK).map(([k,w])=>`<button class="tab ${win===k?'on':''}" data-bwin="${k}">${esc(w.label)}<span class="badge-n" style="margin-inline-start:8px;">${w.cats.reduce((m,c)=>m+c.tests.length,0)}</span></button>`).join('');
+function renderQBankHome(){
+  const cardsHtml=Object.entries(QBANK).map(([k,w])=>{
+    const meta=QBANK_META[k]||{icon:'question',cat:'cat-feat'};
+    const n=w.cats.reduce((m,c)=>m+c.tests.length,0);
+    return `<div class="bankcard ${meta.cat}" data-bwin="${k}">
+      <div class="bc-ic"><svg class="icon"><use href="#ic-${meta.icon}"/></svg></div>
+      <div class="bc-title">${esc(w.label)}</div>
+      <div class="bc-desc">${esc(w.sub)}</div>
+      <span class="bc-count">${n} سؤال</span>
+    </div>`;
+  }).join('');
   screen.innerHTML=`<div class="card hero">
       <div class="eyebrow" data-edit-key="qbank.eyebrow">${esc(t('qbank.eyebrow','مرجع الاختبار'))}</div>
       <h1 class="h1" data-edit-key="qbank.title">${esc(t('qbank.title','بنك الأسئلة'))}</h1>
-      <p class="sub" data-edit-key="qbank.sub">${esc(t('qbank.sub','مرجع جاهز بأسئلة واقعية لاختبار المنتج — أسئلة عامة مصنّفة بمعيار (وسوم)، وأوامر جاهزة وعقود مصنّفة بنوع الطلب.'))}</p>
-      <div class="tabbar" style="margin-top:14px;">${tabsHtml}</div>
+      <p class="sub" data-edit-key="qbank.sub">${esc(t('qbank.sub','مرجع جاهز بأسئلة واقعية لاختبار المنتج، مقسّم بحسب نوع الاختبار. افتح أي قسم لتصفّح أسئلته أو البحث فيها.'))}</p>
+    </div>
+    <div class="bankgrid">${cardsHtml}</div>`;
+  document.querySelectorAll('[data-bwin]').forEach(b=>b.onclick=()=>{app.ctx.bankWin=b.dataset.bwin;app.ctx.bankSearch='';app.ctx.bankTestTypeFilter=[];render();window.scrollTo(0,0);});
+  bindEditable();
+}
+function renderQBank(){
+  const win=app.ctx.bankWin;
+  if(!win){renderQBankHome();return;}
+  const w=QBANK[win];
+  screen.innerHTML=`<div class="card hero">
+      <button class="bankback" id="bankBack">→ كل الأقسام</button>
+      <div class="eyebrow" data-edit-key="qbank.eyebrow">${esc(t('qbank.eyebrow','مرجع الاختبار'))}</div>
+      <h1 class="h1">${esc(w.label)}</h1>
+      <p class="sub" data-edit-bank="${win}">${esc(w.sub)}</p>
       <div class="optpills" style="margin-top:12px;"><button class="optpill ${(app.ctx.bankLang||'ar')==='ar'?'on':''}" data-blang="ar">عربي</button><button class="optpill ${app.ctx.bankLang==='en'?'on':''}" data-blang="en">English</button></div>
       <div class="field" style="margin-top:14px;margin-bottom:0;"><input id="bankSearch" placeholder="ابحث في الأسئلة..." value="${esc(app.ctx.bankSearch||'')}"></div>
     </div>
     <div id="bankResults"></div>`;
-  document.querySelectorAll('[data-bwin]').forEach(b=>b.onclick=()=>{app.ctx.bankWin=b.dataset.bwin;app.ctx.bankSearch='';app.ctx.bankTagFilter=[];app.ctx.bankTestTypeFilter=[];render();});
+  document.getElementById('bankBack').onclick=()=>{app.ctx.bankWin=null;app.ctx.bankSearch='';render();window.scrollTo(0,0);};
   document.querySelectorAll('[data-blang]').forEach(b=>b.onclick=()=>{app.ctx.bankLang=b.dataset.blang;render();});
   const s=document.getElementById('bankSearch');
   s.oninput=e=>{app.ctx.bankSearch=e.target.value;renderBankResults(win);};
@@ -997,32 +1067,21 @@ function renderBankResults(win){
   const q=(app.ctx.bankSearch||'').trim().toLowerCase();
   const lang=app.ctx.bankLang||'ar';
   const w=QBANK[win];
-  if(w.type==='tagged'){
-    const active=app.ctx.bankTagFilter||[];
+  if(w.type==='flat'){
     const all=w.cats[0].tests;
-    const tagbar=`<div class="tabbar" style="margin-top:12px;">
-      <button class="tab ${!active.length?'on':''}" data-tagf="__all__">الكل<span class="badge-n" style="margin-inline-start:8px;">${all.length}</span></button>
-      ${TAGS.map(tag=>{const n=all.filter(t=>(t.tags||[]).includes(tag)).length;return n?`<button class="tab ${active.includes(tag)?'on':''}" data-tagf="${esc(tag)}">${esc(tag)}<span class="badge-n" style="margin-inline-start:8px;">${n}</span></button>`:'';}).join('')}
-    </div>`;
-    const tests=all.filter(t=>{
-      const matchesQ=!q||(bilingualText(t.q,lang)+' '+(t.tags||[]).join(' ')).toLowerCase().includes(q);
-      const matchesTag=!active.length||(t.tags||[]).some(x=>active.includes(x));
-      return matchesQ&&matchesTag;
-    });
+    const tests=all.filter(t=>!q||bilingualText(t.q,lang).toLowerCase().includes(q));
     const rows=tests.map(t=>{
       const ti=all.indexOf(t);
       const criteria=(t.criteria||[]).map(x=>`<li>${esc(x)}</li>`).join('');
-      const tagsHtml=(t.tags||[]).map(tag=>`<span class="chip">${esc(tag)}</span>`).join('');
       return `<div class="subacc ${t._open?'open':''}" data-bq="0|${ti}">
         <div class="head"><span class="caret">▶</span><span class="title" style="font-size:13.5px;flex:1;font-weight:500;">${esc(bilingualText(t.q,lang))}</span>
         <button class="copybtn" data-bcopy="0|${ti}" title="نسخ السؤال"><svg class="icon"><use href="#ic-copy"/></svg></button></div>
         <div class="body">
-          <div class="row" style="gap:6px;flex-wrap:wrap;margin-bottom:10px;">${tagsHtml||'<span class="muted-note">بلا معيار</span>'}</div>
           <div class="criteria-box"><span class="lbl">عناصر الإجابة الصحيحة</span><ul>${criteria}</ul></div>
         </div>
       </div>`;
     }).join('');
-    document.getElementById('bankResults').innerHTML=`<div class="card"><p class="sub" data-edit-bank="${win}" style="margin:0;">${esc(w.sub)}</p>${tagbar}</div>${rows||'<div class="card" style="margin-top:12px;"><div class="empty">لا نتائج مطابقة.</div></div>'}`;
+    document.getElementById('bankResults').innerHTML=rows||'<div class="card"><div class="empty">لا نتائج مطابقة.</div></div>';
   } else if(w.type==='conversation'){
     const all=w.cats[0].tests;
     const tests=all.filter(t=>{
@@ -1045,7 +1104,7 @@ function renderBankResults(win){
         </div>
       </div>`;
     }).join('');
-    document.getElementById('bankResults').innerHTML=`<div class="card"><p class="sub" data-edit-bank="${win}" style="margin:0;">${esc(w.sub)}</p></div>${rows||'<div class="card" style="margin-top:12px;"><div class="empty">لا نتائج مطابقة.</div></div>'}`;
+    document.getElementById('bankResults').innerHTML=rows||'<div class="card"><div class="empty">لا نتائج مطابقة.</div></div>';
   } else if(w.type==='fileupload'){
     const active=app.ctx.bankTestTypeFilter||[];
     const all=w.cats[0].tests;
@@ -1071,7 +1130,7 @@ function renderBankResults(win){
         </div>
       </div>`;
     }).join('');
-    document.getElementById('bankResults').innerHTML=`<div class="card"><p class="sub" data-edit-bank="${win}" style="margin:0;">${esc(w.sub)}</p>${filterBar}</div>${rows||'<div class="card" style="margin-top:12px;"><div class="empty">لا نتائج مطابقة.</div></div>'}`;
+    document.getElementById('bankResults').innerHTML=`<div class="card">${filterBar}</div>${rows||'<div class="card" style="margin-top:12px;"><div class="empty">لا نتائج مطابقة.</div></div>'}`;
   } else {
     const allSingle=w.cats.every(c=>c.tests.length===1);
     const cats=w.cats.map((c,ci)=>{
@@ -1088,7 +1147,7 @@ function renderBankResults(win){
       return `<div class="acc ${c._open?'open':''}" data-bcat="${ci}"><div class="head"><span class="caret">▶</span><span class="title">${esc(c.title)}</span><span class="sub-c" style="margin-inline-start:auto;">${tests.length} سؤال</span></div>
         <div class="body">${rows}</div></div>`;
     }).join('');
-    document.getElementById('bankResults').innerHTML=`<div class="tip"><span class="ic"><svg class="icon"><use href="#ic-lamp"/></svg></span><div data-edit-bank="${win}">${esc(w.sub)}</div></div>${cats||'<div class="card" style="margin-top:12px;"><div class="empty">لا نتائج مطابقة للبحث.</div></div>'}`;
+    document.getElementById('bankResults').innerHTML=cats||'<div class="card"><div class="empty">لا نتائج مطابقة للبحث.</div></div>';
   }
   bindBankResults(win,lang);
   bindEditable();
@@ -1100,13 +1159,6 @@ function bindBankResults(win,lang){
   screen.querySelectorAll('[data-bcopy]').forEach(b=>b.onclick=(e)=>{e.stopPropagation();const[ci,ti]=b.dataset.bcopy.split('|');copyText(bilingualText(w.cats[+ci].tests[+ti].q,lang));});
   screen.querySelectorAll('[data-bcopyconv]').forEach(b=>b.onclick=(e)=>{e.stopPropagation();const[ci,ti]=b.dataset.bcopyconv.split('|');const conv=w.cats[+ci].tests[+ti];copyText((conv.messages||[]).map(m=>bilingualText(m.q,lang)).join('\n\n'),'تم نسخ المحادثة');});
   screen.querySelectorAll('[data-bcopymsg]').forEach(b=>b.onclick=(e)=>{e.stopPropagation();const[ci,ti,mi]=b.dataset.bcopymsg.split('|');const conv=w.cats[+ci].tests[+ti];copyText(bilingualText(conv.messages[+mi].q,lang));});
-  screen.querySelectorAll('[data-tagf]').forEach(b=>b.onclick=()=>{
-    const tag=b.dataset.tagf;
-    app.ctx.bankTagFilter=app.ctx.bankTagFilter||[];
-    if(tag==='__all__'){app.ctx.bankTagFilter=[];}
-    else{const i=app.ctx.bankTagFilter.indexOf(tag);if(i>-1)app.ctx.bankTagFilter.splice(i,1);else app.ctx.bankTagFilter.push(tag);}
-    renderBankResults(win);
-  });
   screen.querySelectorAll('[data-ttf]').forEach(b=>b.onclick=()=>{
     const tt=b.dataset.ttf;
     app.ctx.bankTestTypeFilter=app.ctx.bankTestTypeFilter||[];
@@ -1583,9 +1635,7 @@ function qualityTest(){
       ${criteria?`<div class="criteria-box" style="margin-top:12px;"><span class="lbl">معايير التقييم (مرجع)</span><ul>${criteria}</ul></div>`:''}`;
   } else {
     const criteria=(item.criteria||[]).map(x=>`<li>${esc(x)}</li>`).join('');
-    const tagsHtml=(item.tags||[]).map(tag=>`<span class="chip">${esc(tag)}</span>`).join('');
     bodyHtml=`<div class="qline"><span class="qtext" style="flex:1;">${esc(bilingualText(item.q,res.lang))}</span><button class="copybtn" id="copyQ"><svg class="icon"><use href="#ic-copy"/></svg> نسخ</button></div>
-      ${tagsHtml?`<div class="row" style="gap:6px;flex-wrap:wrap;margin-top:10px;">${tagsHtml}</div>`:''}
       ${criteria?`<div class="criteria-box" style="margin-top:12px;"><span class="lbl">عناصر الإجابة الصحيحة (مرجع)</span><ul>${criteria}</ul></div>`:''}`;
   }
   const hasEn=item.kind==='conversation'?(item.messages||[]).some(m=>bilingualHas(m.q,'en')):bilingualHas(item.q,'en');
@@ -2425,19 +2475,10 @@ function bindCases(){
 
 /* ===== إدارة بنك الأسئلة ===== */
 let adminBank=null;
-function settingsBankTagged(w){
+function settingsBankFlat(w){
   const cat=w.cats[0];
-  const tagsMgr=`<div class="lbl-sm">إدارة المعيار (الوسوم)</div>
-    <div class="row" style="gap:6px;">
-      ${TAGS.map((tag,ti)=>`<span class="chip" style="display:flex;gap:6px;align-items:center;padding-inline-end:6px;">
-        <input data-tagname="${ti}" value="${esc(tag)}" style="border:none;background:transparent;width:${Math.max(6,tag.length)}ch;color:inherit;font:inherit;padding:0;">
-        <button class="iconbtn del" data-deltag="${ti}" style="width:20px;height:20px;padding:0;display:grid;place-items:center;"><svg class="icon" style="width:12px;height:12px;"><use href="#ic-x"/></svg></button>
-      </span>`).join('')}
-      <button class="iconbtn" id="addTag"><svg class="icon"><use href="#ic-plus"/></svg> وسم جديد</button>
-    </div>`;
   const tests=cat.tests.map((t,ti)=>{
     const criteria=(t.criteria||[]).map((x,xi)=>`<div class="qline"><textarea data-bcrit="0|${ti}|${xi}" placeholder="عنصر إجابة صحيحة">${esc(x)}</textarea><button class="iconbtn del" data-delcrit="0|${ti}|${xi}"><svg class="icon"><use href="#ic-x"/></svg></button></div>`).join('');
-    const tagToggles=TAGS.map(tag=>`<button class="tab ${((t.tags||[]).includes(tag))?'on':''}" data-btagtoggle="${ti}|${esc(tag)}" style="padding:5px 12px;font-size:12.5px;">${esc(tag)}</button>`).join('');
     return `<div class="subacc ${t._open?'open':''}" data-bsub="0|${ti}"><div class="head">
       <span class="caret">▶</span>
       <input type="checkbox" class="selbox" data-bsel="0|${ti}" ${t._sel?'checked':''} onclick="event.stopPropagation()">
@@ -2445,13 +2486,12 @@ function settingsBankTagged(w){
       <div class="body">
         <div class="lbl-sm">نص السؤال (عربي)</div><textarea data-bqlang="0|${ti}|ar">${esc(bilingualExact(t.q,'ar'))}</textarea>
         <div class="lbl-sm">Question text (English, optional)</div><textarea data-bqlang="0|${ti}|en">${esc(bilingualExact(t.q,'en'))}</textarea>
-        <div class="lbl-sm">المعيار (الوسوم)</div><div class="tabbar">${tagToggles||'<span class="muted-note">أضف وسومًا أولًا.</span>'}</div>
         <div class="lbl-sm">عناصر الإجابة الصحيحة</div>${criteria||'<div class="muted-note">لا عناصر بعد.</div>'}
         <button class="iconbtn" data-addcrit="0|${ti}" style="margin-top:6px;"><svg class="icon"><use href="#ic-plus"/></svg> عنصر</button>
         <div class="row" style="margin-top:10px;"><button class="btn btn-primary btn-sm" data-bsavetest="0|${ti}"><svg class="icon"><use href="#ic-save"/></svg> حفظ السؤال</button><button class="iconbtn del" data-bdeltest="0|${ti}"><svg class="icon"><use href="#ic-trash"/></svg> حذف السؤال</button></div>
       </div></div>`;
   }).join('');
-  return `${tagsMgr}<div class="lbl-sm" style="margin-top:16px;">الأسئلة</div>${tests}
+  return `<div class="lbl-sm">الأسئلة</div>${tests}
     <div style="margin-top:14px;"><button class="btn btn-ghost" id="addBankTest"><svg class="icon"><use href="#ic-plus"/></svg> إضافة سؤال</button></div>`;
 }
 function settingsBankConversation(w){
@@ -2519,24 +2559,24 @@ function settingsBankTyped(w){
 }
 function settingsBank(){
   adminBank=adminBank||clone(QBANK);
-  const win=app.ctx.bankAdminWin||'general';
+  const win=app.ctx.bankAdminWin||Object.keys(adminBank)[0];
   const w=adminBank[win];
-  const tagged=w.type==='tagged';
+  const flat=w.type==='flat';
   const isConv=w.type==='conversation';
   const isFile=w.type==='fileupload';
   const winTabs=Object.entries(adminBank).map(([k,ww])=>`<button class="tab ${win===k?'on':''}" data-abwin="${k}">${esc(ww.label)}</button>`).join('');
   return `<div class="toolbar" style="justify-content:space-between;">
       <h2 class="h2" style="margin:0;">إدارة بنك الأسئلة</h2>
-      <div class="row"><button class="btn btn-ghost btn-sm" id="resetBank"><svg class="icon"><use href="#ic-refresh"/></svg> استعادة الافتراضي</button>${(tagged||isConv||isFile)?`<button class="btn btn-ghost btn-sm" id="delSelBank"><svg class="icon"><use href="#ic-trash"/></svg> حذف المحدد</button>`:''}<button class="btn btn-primary btn-sm" id="saveBank"><svg class="icon"><use href="#ic-save"/></svg> حفظ التغييرات</button></div>
+      <div class="row"><button class="btn btn-ghost btn-sm" id="resetBank"><svg class="icon"><use href="#ic-refresh"/></svg> استعادة الافتراضي</button>${(flat||isConv||isFile)?`<button class="btn btn-ghost btn-sm" id="delSelBank"><svg class="icon"><use href="#ic-trash"/></svg> حذف المحدد</button>`:''}<button class="btn btn-primary btn-sm" id="saveBank"><svg class="icon"><use href="#ic-save"/></svg> حفظ التغييرات</button></div>
     </div>
-    <p class="sub" style="margin-top:8px;">${tagged?'أضِف أو عدّل أو احذف المعيار (الوسوم) والأسئلة وعناصر الإجابة الصحيحة.':isConv?'أضِف أو عدّل أو احذف المحادثات وأسئلتها المتسلسلة ومعايير نجاحها.':isFile?'أضِف أو عدّل أو احذف اختبارات رفع الملفات، رابط كل ملف ونوعه وهدفه ومعايير تقييمه.':'أضِف أو عدّل أو احذف أنواع السؤال وأسئلتها، وعدّل نص التنبيه أعلى الصفحة.'}</p>
+    <p class="sub" style="margin-top:8px;">${flat?'أضِف أو عدّل أو احذف الأسئلة وعناصر الإجابة الصحيحة.':isConv?'أضِف أو عدّل أو احذف المحادثات وأسئلتها المتسلسلة ومعايير نجاحها.':isFile?'أضِف أو عدّل أو احذف اختبارات رفع الملفات، رابط كل ملف ونوعه وهدفه ومعايير تقييمه.':'أضِف أو عدّل أو احذف أنواع السؤال وأسئلتها، وعدّل نص التنبيه أعلى الصفحة.'}</p>
     <div class="tabbar" style="margin-top:14px;">${winTabs}</div>
-    <div class="lbl-sm">${tagged||isConv||isFile?'مقدّمة الصفحة':'نص التنبيه أعلى الصفحة'}</div><input data-bwinf="${win}" value="${esc(w.sub)}">
-    ${tagged?settingsBankTagged(w):isConv?settingsBankConversation(w):isFile?settingsBankFileUpload(w):settingsBankTyped(w)}`;
+    <div class="lbl-sm">${flat||isConv||isFile?'مقدّمة الصفحة':'نص التنبيه أعلى الصفحة'}</div><input data-bwinf="${win}" value="${esc(w.sub)}">
+    ${flat?settingsBankFlat(w):isConv?settingsBankConversation(w):isFile?settingsBankFileUpload(w):settingsBankTyped(w)}`;
 }
 function persistBank(){const cl=clone(adminBank);Object.values(cl).forEach(w=>w.cats.forEach(c=>{delete c._open;c.tests.forEach(t=>{delete t._open;delete t._sel;});}));QBANK=cl;save(K.qbank,QBANK);}
 function bindBank(){
-  const win=app.ctx.bankAdminWin||'general';
+  const win=app.ctx.bankAdminWin||Object.keys(adminBank)[0];
   const re=()=>renderSettings();
   document.querySelectorAll('[data-abwin]').forEach(b=>b.onclick=()=>{app.ctx.bankAdminWin=b.dataset.abwin;re();});
   screen.querySelectorAll('[data-bwinf]').forEach(el=>el.oninput=e=>{adminBank[win].sub=e.target.value;});
@@ -2549,31 +2589,11 @@ function bindBank(){
   screen.querySelectorAll('[data-bsel]').forEach(el=>el.onchange=e=>{const[ci,ti]=el.dataset.bsel.split('|');adminBank[win].cats[+ci].tests[+ti]._sel=e.target.checked;});
   screen.querySelectorAll('[data-delcrit]').forEach(b=>b.onclick=()=>{const[ci,ti,xi]=b.dataset.delcrit.split('|');const t=adminBank[win].cats[+ci].tests[+ti];t.criteria.splice(+xi,1);t._open=true;re();});
   screen.querySelectorAll('[data-addcrit]').forEach(b=>b.onclick=()=>{const[ci,ti]=b.dataset.addcrit.split('|');const t=adminBank[win].cats[+ci].tests[+ti];t.criteria=t.criteria||[];t.criteria.push('');t._open=true;re();});
-  screen.querySelectorAll('[data-btagtoggle]').forEach(b=>b.onclick=()=>{const[ti,tag]=b.dataset.btagtoggle.split('|');const t=adminBank[win].cats[0].tests[+ti];t.tags=t.tags||[];const i=t.tags.indexOf(tag);if(i>-1)t.tags.splice(i,1);else t.tags.push(tag);re();});
-  screen.querySelectorAll('[data-tagname]').forEach(el=>{el.onblur=e=>{
-    const i=+el.dataset.tagname;const oldName=TAGS[i];const newName=e.target.value.trim();
-    if(!newName||newName===oldName){e.target.value=oldName;return;}
-    if(TAGS.includes(newName)){toast('الوسم موجود مسبقًا');e.target.value=oldName;return;}
-    TAGS[i]=newName;save(K.tags,TAGS);
-    [QBANK,adminBank].forEach(bank=>{const gc=bank.general&&bank.general.cats[0];if(gc)gc.tests.forEach(t=>{if(t.tags){const j=t.tags.indexOf(oldName);if(j>-1)t.tags[j]=newName;}});});
-    toast('تم تعديل الوسم');re();
-  };});
-  screen.querySelectorAll('[data-deltag]').forEach(b=>b.onclick=()=>{
-    const i=+b.dataset.deltag;const name=TAGS[i];
-    if(!confirm(`حذف الوسم "${name}"؟ سيُزال من كل الأسئلة المرتبطة به.`))return;
-    TAGS.splice(i,1);save(K.tags,TAGS);
-    [QBANK,adminBank].forEach(bank=>{const gc=bank.general&&bank.general.cats[0];if(gc)gc.tests.forEach(t=>{if(t.tags)t.tags=t.tags.filter(x=>x!==name);});});
-    toast('تم حذف الوسم');re();
-  });
-  if(document.getElementById('addTag'))document.getElementById('addTag').onclick=()=>{
-    let name='وسم جديد',n=1;while(TAGS.includes(name)){n++;name=`وسم جديد ${n}`;}
-    TAGS.push(name);save(K.tags,TAGS);re();
-  };
   if(document.getElementById('addBankTest'))document.getElementById('addBankTest').onclick=()=>{
     const w=adminBank[win];
     if(w.type==='conversation')w.cats[0].tests.push({title:'',messages:[{q:''}],criteria:'',_open:true});
     else if(w.type==='fileupload')w.cats[0].tests.push({q:'',fileLink:'',testType:'read',goal:'',criteria:[''],_open:true});
-    else w.cats[0].tests.push({q:'',tags:[],criteria:[''],_open:true});
+    else w.cats[0].tests.push({q:'',criteria:[''],_open:true});
     re();
   };
   screen.querySelectorAll('[data-bconvmsg]').forEach(el=>el.oninput=e=>{const[ti,mi,lang]=el.dataset.bconvmsg.split('|');bqSetLang(adminBank[win].cats[0].tests[+ti].messages[+mi],lang,e.target.value);});
@@ -2587,7 +2607,7 @@ function bindBank(){
   if(document.getElementById('addBankCat'))document.getElementById('addBankCat').onclick=()=>{adminBank[win].cats.forEach(c=>c._open=false);adminBank[win].cats.push({title:'نوع جديد',tests:[],_open:true});re();};
   if(document.getElementById('delSelBank'))document.getElementById('delSelBank').onclick=()=>{let n=0;adminBank[win].cats.forEach(c=>{const b=c.tests.length;c.tests=c.tests.filter(t=>!t._sel);n+=b-c.tests.length;});if(n){toast(`حُذف ${n} سؤال`);re();}else toast('لم تحدّد شيئًا');};
   document.getElementById('saveBank').onclick=()=>{persistBank();adminBank=null;toast('تم حفظ التغييرات');go('dashboard');};
-  document.getElementById('resetBank').onclick=()=>{if(confirm('استعادة بنك الأسئلة إلى القيم الافتراضية؟ سيُفقد أي تعديل غير محفوظ.')){QBANK=clone(DEF_QBANK);save(K.qbank,QBANK);TAGS=clone(DEF_TAGS);save(K.tags,TAGS);adminBank=null;toast('تمت استعادة بنك الأسئلة الافتراضي');re();}};
+  document.getElementById('resetBank').onclick=()=>{if(confirm('استعادة بنك الأسئلة إلى القيم الافتراضية؟ سيُفقد أي تعديل غير محفوظ.')){QBANK=clone(DEF_QBANK);save(K.qbank,QBANK);adminBank=null;toast('تمت استعادة بنك الأسئلة الافتراضي');re();}};
 }
 
 /* ===== إدارة تحليل المنافسين ===== */
