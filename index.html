@@ -1285,7 +1285,7 @@ function renderInitialDashboard(tabsHtml){
       <p class="sub" data-edit-key="dash.sub">${esc(t('dash.sub','تعرّفوا على أداة اختبار الدخان وكيف تستفيدون منها لفحص المنتج بسرعة. فحص سريع للتأكد أن المنتج يعمل من البداية للنهاية دون أعطال — اختاروا سؤالًا واحدًا لكل حالة وحدّدوا النتيجة.'))}</p>
       <div class="tip"><span class="ic"><svg class="icon"><use href="#ic-lamp"/></svg></span><div data-edit-key="dash.tip">${esc(t('dash.tip','الحالات التي تحمل وسم ثنائي الأوضاع تُنفَّذ في الوضعين العادي والتفصيلي؛ تُحتسب مجتازة فقط إذا نجح الوضعان معًا.'))}</div></div>
       <div class="steps">
-        <div class="step"><span class="num">1</span><span class="txt" data-edit-key="dash.step1">${esc(t('dash.step1','اضغطوا «بدء اختبار جديد» وعبّئوا اسم الموظف وتاريخ الاختبار.'))}</span></div>
+        <div class="step"><span class="num">1</span><span class="txt" data-edit-key="dash.step1">${esc(t('dash.step1','اضغطوا «بدء اختبار جديد» وعبّئوا تاريخ الاختبار.'))}</span></div>
         <div class="step"><span class="num">2</span><span class="txt" data-edit-key="dash.step2">${esc(t('dash.step2','مرّوا على كل حالة، انسخوا السؤال، جرّبوه في المنصة، ثم حدّدوا مجتاز أو غير مجتاز.'))}</span></div>
         <div class="step"><span class="num">3</span><span class="txt" data-edit-key="dash.step3">${esc(t('dash.step3','راجعوا النتيجة النهائية وشاركوها مباشرة من داخل التطبيق.'))}</span></div>
       </div>
@@ -1366,7 +1366,7 @@ function runRow(r,i,isDraft){
 function smokeStart(){
   const tests=flatten(CATS);
   if(!tests.length){alert('لا توجد حالات نشطة. أضِف حالات من الإعدادات.');return;}
-  app.ctx.run={employee:'',date:today(),asana:'',reason:'',model:'',tests,results:tests.map(()=>({qIndex:null,customText:'',result:null,notes:'',convId:'',modeResults:{},lang:'ar'})),step:0};
+  app.ctx.run={employee:CURRENT_USER_EMAIL,date:today(),asana:'',reason:'',model:'',tests,results:tests.map(()=>({qIndex:null,customText:'',result:null,notes:'',convId:'',modeResults:{},lang:'ar'})),step:0};
   app.ctx.draftIndex=null;app.sub='intro';render();window.scrollTo(0,0);
 }
 function smokeResume(i){app.ctx.run=clone(DRAFTS[i]);app.ctx.draftIndex=i;app.sub='test';render();window.scrollTo(0,0);}
@@ -1376,7 +1376,7 @@ function smokeIntro(){
     <div class="eyebrow" data-edit-key="intro.eyebrow">${esc(t('intro.eyebrow','قبل البدء'))}</div><h1 class="h1" data-edit-key="intro.title">${esc(t('intro.title','بدء اختبار جديد'))}</h1>
     <p class="sub" data-edit-key="intro.sub">${esc(t('intro.sub','عبّئ المعلومات الأساسية للجلسة.'))}</p>
     <div class="grid2">
-      <div class="field"><label>اسم الموظف</label><input id="f_emp" value="${esc(r.employee)}" placeholder="الاسم الكامل"></div>
+      <div class="field"><label>الموظف</label><input id="f_emp" value="${esc(r.employee)}" readonly></div>
       <div class="field"><label>تاريخ الاختبار</label><input id="f_dt" type="date" value="${esc(r.date)}"></div>
     </div>
     <div class="field"><label>رابط أسانا (Asana)</label><input id="f_as" value="${esc(r.asana)}" placeholder="https://app.asana.com/..."></div>
@@ -1388,15 +1388,14 @@ function smokeIntro(){
       </select>
       ${MODELS.length?'':'<div class="muted-note" style="margin-top:6px;">أضِف نماذج من الإعدادات ← عام قبل بدء الاختبار.</div>'}
     </div>
-    <div class="warnmsg" id="w">اكتب اسم الموظف على الأقل للبدء.</div>
+    <div class="warnmsg" id="w"></div>
     <div class="nav-btns"><button class="btn btn-ghost" id="cancel">إلغاء</button><button class="btn btn-primary" id="start">بدء الاختبار ←</button></div>
   </div>`;
   document.getElementById('cancel').onclick=()=>{app.sub=null;render();};
   document.getElementById('start').onclick=()=>{
-    r.employee=document.getElementById('f_emp').value.trim();r.date=document.getElementById('f_dt').value||today();
+    r.date=document.getElementById('f_dt').value||today();
     r.asana=document.getElementById('f_as').value.trim();r.reason=document.getElementById('f_rs').value.trim();
     r.model=document.getElementById('f_model').value;
-    if(!r.employee){document.getElementById('w').classList.add('show');return;}
     if(MODELS.length&&!r.model){const w=document.getElementById('w');w.textContent='اختر المودل المُختبَر أولًا.';w.classList.add('show');return;}
     r.step=0;app.sub='test';render();window.scrollTo(0,0);
   };
@@ -1667,7 +1666,7 @@ function qualityImport(){
       });
       if(!tests.length){w.textContent='لا توجد أسئلة مطابقة لهذا الاختيار.';w.classList.add('show');return;}
     }
-    app.ctx.qrun={employee:'',date:today(),asana:'',reason:'',model:'',importTypes:s.slice(),tests,results:tests.map(()=>({rating:null,note:'',questionId:'',answerText:'',lang:'ar'})),step:0};
+    app.ctx.qrun={employee:CURRENT_USER_EMAIL,date:today(),asana:'',reason:'',model:'',importTypes:s.slice(),tests,results:tests.map(()=>({rating:null,note:'',questionId:'',answerText:'',lang:'ar'})),step:0};
     app.ctx.qDraftIndex=null;
     app.sub='qIntro';render();window.scrollTo(0,0);
   };
@@ -1678,7 +1677,7 @@ function qualityIntro(){
     <div class="eyebrow" data-edit-key="qintro.eyebrow">${esc(t('qintro.eyebrow','قبل البدء'))}</div><h1 class="h1" data-edit-key="qintro.title">${esc(t('qintro.title','بدء اختبار جودة جديد'))}</h1>
     <p class="sub" data-edit-key="qintro.sub">${esc(t('qintro.sub','عبّئ المعلومات الأساسية للجلسة.'))}</p>
     <div class="grid2">
-      <div class="field"><label>اسم الموظف</label><input id="f_emp" value="${esc(r.employee)}" placeholder="الاسم الكامل"></div>
+      <div class="field"><label>الموظف</label><input id="f_emp" value="${esc(r.employee)}" readonly></div>
       <div class="field"><label>تاريخ الاختبار</label><input id="f_dt" type="date" value="${esc(r.date)}"></div>
     </div>
     <div class="field"><label>رابط أسانا (Asana)</label><input id="f_as" value="${esc(r.asana)}" placeholder="https://app.asana.com/..."></div>
@@ -1691,15 +1690,14 @@ function qualityIntro(){
       ${MODELS.length?'':'<div class="muted-note" style="margin-top:6px;">أضِف نماذج من الإعدادات ← عام قبل بدء الاختبار.</div>'}
     </div>
     <div class="row" style="margin-top:4px;"><span class="chip">عدد الأسئلة المستوردة: ${r.tests.length}</span></div>
-    <div class="warnmsg" id="w">اكتب اسم الموظف على الأقل للبدء.</div>
+    <div class="warnmsg" id="w"></div>
     <div class="nav-btns"><button class="btn btn-ghost" id="cancel">إلغاء</button><button class="btn btn-primary" id="start">بدء الاختبار ←</button></div>
   </div>`;
   document.getElementById('cancel').onclick=()=>{app.sub=null;render();};
   document.getElementById('start').onclick=()=>{
-    r.employee=document.getElementById('f_emp').value.trim();r.date=document.getElementById('f_dt').value||today();
+    r.date=document.getElementById('f_dt').value||today();
     r.asana=document.getElementById('f_as').value.trim();r.reason=document.getElementById('f_rs').value.trim();
     r.model=document.getElementById('f_model').value;
-    if(!r.employee){document.getElementById('w').classList.add('show');return;}
     if(MODELS.length&&!r.model){const w=document.getElementById('w');w.textContent='اختر المودل المُختبَر أولًا.';w.classList.add('show');return;}
     r.step=0;app.sub='qTest';render();window.scrollTo(0,0);
   };
@@ -2057,7 +2055,7 @@ function renderCompetitorPage(){
 }
 
 function compStart(product,competitorId){
-  app.ctx.compDraft={product,competitorId,employee:'',date:today(),answers:{},verdict:'',editId:null};
+  app.ctx.compDraft={product,competitorId,employee:CURRENT_USER_EMAIL,date:today(),answers:{},verdict:'',editId:null};
   app.sub='intro';render();window.scrollTo(0,0);
 }
 function compEditRun(product,runIndex){
@@ -2110,17 +2108,14 @@ function renderCompIntro(){
     <div class="eyebrow">قبل البدء</div><h1 class="h1">${isEdit?'تعديل تحليل محفوظ':'بدء تحليل جديد'}</h1>
     <p class="sub">المنصة: <b>${esc(c?c.name:'—')}</b>${c&&c.isOurs?' <span class="own-badge">منصتنا</span>':''}</p>
     <div class="grid2" style="margin-top:10px;">
-      <div class="field" style="margin-top:0;"><label>اسم الموظف الذي يجري التحليل</label><input id="f_emp" value="${esc(d.employee)}" placeholder="الاسم الكامل"></div>
+      <div class="field" style="margin-top:0;"><label>الموظف الذي يجري التحليل</label><input id="f_emp" value="${esc(d.employee)}" readonly></div>
       <div class="field" style="margin-top:0;"><label>تاريخ التحليل</label><input id="f_dt" type="date" value="${esc(d.date)}"></div>
     </div>
-    <div class="warnmsg" id="w">اكتب اسم الموظف على الأقل للمتابعة.</div>
     <div class="nav-btns"><button class="btn btn-ghost" id="cancel">إلغاء</button><button class="btn btn-primary" id="startc">التالي ←</button></div>
   </div>`;
   document.getElementById('cancel').onclick=()=>{app.sub=null;app.ctx.compDraft=null;render();};
   document.getElementById('startc').onclick=()=>{
-    d.employee=document.getElementById('f_emp').value.trim();
     d.date=document.getElementById('f_dt').value||today();
-    if(!d.employee){document.getElementById('w').classList.add('show');return;}
     app.sub='form';render();window.scrollTo(0,0);
   };
 }
@@ -2274,7 +2269,7 @@ function renderUpdates(){
   screen.querySelectorAll('[data-delupd]').forEach(b=>b.onclick=()=>{if(confirm('حذف هذا التقرير؟')){UPDATES_RUNS.splice(+b.dataset.delupd,1);save(K.updatesRuns,UPDATES_RUNS);render();}});
   bindEditable();
 }
-function updatesStart(){app.ctx.updatesDraft={employee:'',date:today(),updatesWeek:'',rows:[newUpdatesRow()],editId:null};app.sub='updatesForm';render();window.scrollTo(0,0);}
+function updatesStart(){app.ctx.updatesDraft={employee:CURRENT_USER_EMAIL,date:today(),updatesWeek:'',rows:[newUpdatesRow()],editId:null};app.sub='updatesForm';render();window.scrollTo(0,0);}
 function updatesEditRun(i){const r=UPDATES_RUNS[i];app.ctx.updatesDraft={employee:r.employee,date:r.date,updatesWeek:r.updatesWeek||'',rows:clone(r.rows),editId:r.id};app.sub='updatesForm';render();window.scrollTo(0,0);}
 function updatesViewRun(i){app.ctx.updatesViewIndex=i;app.sub='updatesView';render();window.scrollTo(0,0);}
 function updatesRowCard(row,i,total){
@@ -2299,7 +2294,7 @@ function renderUpdatesForm(){
     <div class="eyebrow" data-edit-key="updates.form.eyebrow">${esc(t('updates.form.eyebrow','بيانات التقرير'))}</div>
     <h1 class="h1">${d.editId?'تعديل تقرير متابعة':'تقرير متابعة جديد'}</h1>
     <div class="grid2">
-      <div class="field"><label>اسم الموظف</label><input id="u_emp" value="${esc(d.employee)}" placeholder="الاسم الكامل"></div>
+      <div class="field"><label>الموظف</label><input id="u_emp" value="${esc(d.employee)}" readonly></div>
       <div class="field"><label>تاريخ التقرير</label><input id="u_dt" type="date" value="${esc(d.date)}"></div>
     </div>
     <div class="field"><label>أسبوع التحديثات</label><input id="u_week" value="${esc(d.updatesWeek)}" placeholder="مثال: من 2026-07-13 إلى 2026-07-19"></div>
@@ -2318,7 +2313,6 @@ function renderUpdatesForm(){
 }
 function bindUpdatesForm(){
   const d=app.ctx.updatesDraft;
-  document.getElementById('u_emp').oninput=e=>d.employee=e.target.value;
   document.getElementById('u_dt').oninput=e=>d.date=e.target.value;
   document.getElementById('u_week').oninput=e=>d.updatesWeek=e.target.value;
   screen.querySelectorAll('[data-uf]').forEach(el=>el.oninput=e=>{const[i,f]=el.dataset.uf.split('|');d.rows[+i][f]=e.target.value;});
@@ -2332,7 +2326,6 @@ function bindUpdatesForm(){
   document.getElementById('uCancel').onclick=()=>{app.sub=null;app.ctx.updatesDraft=null;render();};
   document.getElementById('uSave').onclick=()=>{
     const w=document.getElementById('uWarn');
-    if(!d.employee.trim()){w.textContent='اكتب اسم الموظف على الأقل للحفظ.';w.classList.add('show');return;}
     if(!d.updatesWeek.trim()){w.textContent='حدّد أسبوع التحديثات قبل الحفظ.';w.classList.add('show');return;}
     if(d.rows.some(r=>!r.questionForm.trim()||!r.issueDesc.trim()||!r.recommendation.trim())){w.textContent='أكمل صيغة السؤال ووصف المشكلة والتوصية لكل اختبار قبل الحفظ.';w.classList.add('show');return;}
     const rows=clone(d.rows);
