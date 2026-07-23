@@ -519,13 +519,91 @@ async function runPasswordResetIfNeeded(mustReset){
   });
 }
 
-function cloudSave(key,value,isRetry){
-  sb.from('kv_store').upsert({key,value,updated_by:CURRENT_USER_EMAIL,updated_at:new Date().toISOString()}).then(({error})=>{
+/* ===== دمج ثلاثي (base/ours/theirs) لمنع تضارب الحفظ بين مستخدمين ===== */
+const LAST_SYNCED={};
+const DOMAIN_SETTERS={};
+
+function itemKeyOf(list){
+  if(!list.length)return null;
+  if(list.every(x=>x&&typeof x==='object'&&x.id!=null))return 'id';
+  if(list.every(x=>x&&typeof x==='object'&&x.title!=null))return 'title';
+  if(list.every(x=>x&&typeof x==='object'&&x.name!=null))return 'name';
+  return null;
+}
+
+function mergeArraysById(base,ours,theirs,keyField){
+  const byKey=arr=>{const m=new Map();arr.forEach(x=>m.set(x[keyField],x));return m;};
+  const baseM=byKey(base),oursM=byKey(ours),theirsM=byKey(theirs);
+  const order=[],seen=new Set();
+  ours.forEach(x=>{const k=x[keyField];if(!seen.has(k)){order.push(k);seen.add(k);}});
+  theirs.forEach(x=>{const k=x[keyField];if(!seen.has(k)){order.push(k);seen.add(k);}});
+  const result=[];
+  order.forEach(k=>{
+    const b=baseM.get(k),o=oursM.get(k),th=theirsM.get(k);
+    if(o===undefined&&th===undefined)return;
+    if(o===undefined){if(b===undefined)result.push(th);return;}
+    if(th===undefined){if(b===undefined)result.push(o);return;}
+    result.push(mergeByStructure(b,o,th));
+  });
+  return result;
+}
+
+function mergeByStructure(base,ours,theirs){
+  if(ours===theirs)return ours;
+  const oursJson=JSON.stringify(ours),theirsJson=JSON.stringify(theirs);
+  if(oursJson===theirsJson)return ours;
+  const baseJson=JSON.stringify(base);
+  if(Array.isArray(ours)||Array.isArray(theirs)){
+    const oursArr=Array.isArray(ours)?ours:[];
+    const theirsArr=Array.isArray(theirs)?theirs:[];
+    const baseArr=Array.isArray(base)?base:[];
+    const keyField=itemKeyOf([...oursArr,...theirsArr,...baseArr]);
+    if(keyField)return mergeArraysById(baseArr,oursArr,theirsArr,keyField);
+    return oursJson===baseJson?theirsArr:oursArr;
+  }
+  if(ours&&theirs&&typeof ours==='object'&&typeof theirs==='object'){
+    const baseObj=(base&&typeof base==='object')?base:{};
+    const keys=new Set([...Object.keys(baseObj),...Object.keys(ours),...Object.keys(theirs)]);
+    const merged={};
+    keys.forEach(k=>{merged[k]=mergeByStructure(baseObj[k],ours[k],theirs[k]);});
+    return merged;
+  }
+  return oursJson===baseJson?theirs:ours;
+}
+
+async function cloudSaveAttempt(key,value,attempt){
+  value=clone(value);
+  const{data:row,error:selErr}=await sb.from('kv_store').select('value,updated_at').eq('key',key).maybeSingle();
+  if(selErr)throw selErr;
+  let toWrite=value;
+  if(row&&LAST_SYNCED[key]&&row.updated_at!==LAST_SYNCED[key].updated_at){
+    toWrite=mergeByStructure(LAST_SYNCED[key].value,value,row.value);
+    const setter=DOMAIN_SETTERS[key];
+    if(setter){setter(clone(toWrite));try{render();}catch(e){}}
+  }
+  const newUpdatedAt=new Date().toISOString();
+  if(row){
+    const{data:updated,error}=await sb.from('kv_store').update({value:toWrite,updated_by:CURRENT_USER_EMAIL,updated_at:newUpdatedAt}).eq('key',key).eq('updated_at',row.updated_at).select();
+    if(error)throw error;
+    if(!updated||updated.length===0){
+      if(attempt<5)return cloudSaveAttempt(key,value,attempt+1);
+      throw new Error('تعذّر حفظ التعديلات بسبب تحديثات متزامنة متكررة');
+    }
+  }else{
+    const{error}=await sb.from('kv_store').insert({key,value:toWrite,updated_by:CURRENT_USER_EMAIL,updated_at:newUpdatedAt});
     if(error){
-      if(isRetry){if(!cloudSyncBroken){cloudSyncBroken=true;toast('تعذّر الحفظ السحابي، سيُعاد المحاولة عند الحفظ القادم');}}
-      else{setTimeout(()=>cloudSave(key,value,true),1500);}
-    }else{cloudSyncBroken=false;}
-  }).catch(()=>{if(!isRetry)setTimeout(()=>cloudSave(key,value,true),1500);});
+      if(error.code==='23505'&&attempt<5)return cloudSaveAttempt(key,value,attempt+1);
+      throw error;
+    }
+  }
+  LAST_SYNCED[key]={value:toWrite,updated_at:newUpdatedAt};
+}
+
+function cloudSave(key,value,isRetry){
+  cloudSaveAttempt(key,value,0).then(()=>{cloudSyncBroken=false;}).catch(()=>{
+    if(isRetry){if(!cloudSyncBroken){cloudSyncBroken=true;toast('تعذّر الحفظ السحابي، سيُعاد المحاولة عند الحفظ القادم');}}
+    else{setTimeout(()=>cloudSave(key,value,true),1500);}
+  });
 }
 
 let IS_ADMIN=false;
@@ -551,9 +629,9 @@ try{
   document.getElementById('signOutBtn').onclick=()=>sb.auth.signOut().then(()=>location.reload());
 
   try{
-    const{data:rows,error}=await sb.from('kv_store').select('key,value');
+    const{data:rows,error}=await sb.from('kv_store').select('key,value,updated_at');
     if(error)throw error;
-    (rows||[]).forEach(r=>store.set(r.key,JSON.stringify(r.value)));
+    (rows||[]).forEach(r=>{store.set(r.key,JSON.stringify(r.value));LAST_SYNCED[r.key]={value:r.value,updated_at:r.updated_at};});
   }catch(e){
     toast('تعذّر تحميل البيانات السحابية — يُعرض آخر نسخة محفوظة على هذا الجهاز');
   }
@@ -877,6 +955,23 @@ const UPDATES_CHECK_TYPES=['التحقق من وصول الملف','التحقق
 let UPDATES_RUNS=load(K.updatesRuns,[]);
 function updatesCount(){return UPDATES_RUNS.length;}
 function newUpdatesRow(){return {checkType:UPDATES_CHECK_TYPES[0],questionForm:'',questionId:'',aiAnswer:'',issueDesc:'',recommendation:''};}
+
+Object.assign(DOMAIN_SETTERS,{
+  [K.cats]:v=>{CATS=v;},
+  [K.runs]:v=>{RUNS=v;},
+  [K.drafts]:v=>{DRAFTS=v;},
+  [K.settings]:v=>{SETTINGS=v;},
+  [K.texts]:v=>{TEXTS=v;},
+  [K.qbank]:v=>{QBANK=v;},
+  [K.comp]:v=>{COMP_DEFS=v;},
+  [K.compRuns]:v=>{COMP_RUNS=v;},
+  [K.competitors]:v=>{COMPETITORS=v;},
+  [K.updatesRuns]:v=>{UPDATES_RUNS=v;},
+  [K.models]:v=>{MODELS=v;},
+  [K.productVis]:v=>{PRODUCT_VIS=v;},
+  [K.qualityRuns]:v=>{QUALITY_RUNS=v;},
+  [K.qualityDrafts]:v=>{QUALITY_DRAFTS=v;},
+});
 
 /* ===== أدوات ===== */
 const esc=s=>(s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -1306,7 +1401,7 @@ function smokeIntro(){
     r.step=0;app.sub='test';render();window.scrollTo(0,0);
   };
 }
-function smokeSaveDraft(){const r=app.ctx.run,d=clone(r);d.savedAt=new Date().toISOString();if(app.ctx.draftIndex!=null){DRAFTS[app.ctx.draftIndex]=d;}else{DRAFTS.unshift(d);app.ctx.draftIndex=0;}save(K.drafts,DRAFTS);toast('تم حفظ المسودة');}
+function smokeSaveDraft(){const r=app.ctx.run,d=clone(r);d.savedAt=new Date().toISOString();if(app.ctx.draftIndex!=null){d.id=DRAFTS[app.ctx.draftIndex].id;DRAFTS[app.ctx.draftIndex]=d;}else{d.id='d'+Date.now()+Math.random().toString(36).slice(2,7);DRAFTS.unshift(d);app.ctx.draftIndex=0;}save(K.drafts,DRAFTS);toast('تم حفظ المسودة');}
 
 function smokeTest(){
   const r=app.ctx.run,i=r.step,t=r.tests[i],res=r.results[i],total=r.tests.length;
@@ -1472,7 +1567,7 @@ function smokeReview(){
     </div>
   </div>`;
   document.getElementById('back').onclick=()=>{app.sub='test';run.step=run.tests.length-1;render();window.scrollTo(0,0);};
-  const persist=()=>{if(!app.ctx._saved){const saved={employee:run.employee,date:run.date,asana:run.asana,reason:run.reason,model:run.model,savedAt:new Date().toISOString(),tests:clone(run.tests),results:clone(run.results),passed,failed};RUNS.unshift(saved);save(K.runs,RUNS);if(app.ctx.draftIndex!=null){DRAFTS.splice(app.ctx.draftIndex,1);save(K.drafts,DRAFTS);app.ctx.draftIndex=null;}app.ctx._saved=saved;toast('تم حفظ الاختبار');}return app.ctx._saved;};
+  const persist=()=>{if(!app.ctx._saved){const saved={id:'r'+Date.now()+Math.random().toString(36).slice(2,7),employee:run.employee,date:run.date,asana:run.asana,reason:run.reason,model:run.model,savedAt:new Date().toISOString(),tests:clone(run.tests),results:clone(run.results),passed,failed};RUNS.unshift(saved);save(K.runs,RUNS);if(app.ctx.draftIndex!=null){DRAFTS.splice(app.ctx.draftIndex,1);save(K.drafts,DRAFTS);app.ctx.draftIndex=null;}app.ctx._saved=saved;toast('تم حفظ الاختبار');}return app.ctx._saved;};
   document.getElementById('copySum').onclick=()=>{const s=persist();copyText(buildSummaryText(s));toast('تم نسخ ملخّص الاختبار');};
   document.getElementById('share').onclick=async()=>{const s=persist();await shareRun(s);setTimeout(()=>{app.sub=null;app.ctx={};render();window.scrollTo(0,0);},600);};
 }
@@ -1609,7 +1704,7 @@ function qualityIntro(){
     r.step=0;app.sub='qTest';render();window.scrollTo(0,0);
   };
 }
-function qualitySaveDraft(){const r=app.ctx.qrun,d=clone(r);d.savedAt=new Date().toISOString();if(app.ctx.qDraftIndex!=null){QUALITY_DRAFTS[app.ctx.qDraftIndex]=d;}else{QUALITY_DRAFTS.unshift(d);app.ctx.qDraftIndex=0;}save(K.qualityDrafts,QUALITY_DRAFTS);toast('تم حفظ المسودة');}
+function qualitySaveDraft(){const r=app.ctx.qrun,d=clone(r);d.savedAt=new Date().toISOString();if(app.ctx.qDraftIndex!=null){d.id=QUALITY_DRAFTS[app.ctx.qDraftIndex].id;QUALITY_DRAFTS[app.ctx.qDraftIndex]=d;}else{d.id='qd'+Date.now()+Math.random().toString(36).slice(2,7);QUALITY_DRAFTS.unshift(d);app.ctx.qDraftIndex=0;}save(K.qualityDrafts,QUALITY_DRAFTS);toast('تم حفظ المسودة');}
 function qualityResume(i){app.ctx.qrun=clone(QUALITY_DRAFTS[i]);app.ctx.qDraftIndex=i;app.sub='qTest';render();window.scrollTo(0,0);}
 
 function qualityTest(){
@@ -1737,7 +1832,7 @@ function qualityReview(){
     </div>
   </div>`;
   document.getElementById('back').onclick=()=>{app.sub='qTest';run.step=run.tests.length-1;render();window.scrollTo(0,0);};
-  const persist=()=>{if(!app.ctx._qsaved){const saved={employee:run.employee,date:run.date,asana:run.asana,reason:run.reason,model:run.model,importTypes:run.importTypes,savedAt:new Date().toISOString(),tests:clone(run.tests),results:clone(run.results),avgRating:+avg};QUALITY_RUNS.unshift(saved);save(K.qualityRuns,QUALITY_RUNS);if(app.ctx.qDraftIndex!=null){QUALITY_DRAFTS.splice(app.ctx.qDraftIndex,1);save(K.qualityDrafts,QUALITY_DRAFTS);app.ctx.qDraftIndex=null;}app.ctx._qsaved=saved;toast('تم حفظ الاختبار');}return app.ctx._qsaved;};
+  const persist=()=>{if(!app.ctx._qsaved){const saved={id:'qr'+Date.now()+Math.random().toString(36).slice(2,7),employee:run.employee,date:run.date,asana:run.asana,reason:run.reason,model:run.model,importTypes:run.importTypes,savedAt:new Date().toISOString(),tests:clone(run.tests),results:clone(run.results),avgRating:+avg};QUALITY_RUNS.unshift(saved);save(K.qualityRuns,QUALITY_RUNS);if(app.ctx.qDraftIndex!=null){QUALITY_DRAFTS.splice(app.ctx.qDraftIndex,1);save(K.qualityDrafts,QUALITY_DRAFTS);app.ctx.qDraftIndex=null;}app.ctx._qsaved=saved;toast('تم حفظ الاختبار');}return app.ctx._qsaved;};
   document.getElementById('copySum').onclick=()=>{const s=persist();copyText(buildQualitySummaryText(s));toast('تم نسخ ملخّص الاختبار');};
   document.getElementById('share').onclick=async()=>{const s=persist();await shareQualityRun(s);setTimeout(()=>{app.sub=null;app.ctx={};render();window.scrollTo(0,0);},600);};
 }
