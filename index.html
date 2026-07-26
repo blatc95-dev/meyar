@@ -2562,8 +2562,30 @@ function bindCases(){
 
 /* ===== إدارة بنك الأسئلة ===== */
 let adminBank=null;
+function parseTagsInput(v){return String(v||'').split(/[,،;؛]/).map(s=>s.trim()).filter(Boolean);}
+function bankTagsMissingIndex(w){return w.cats[0].tests.findIndex(t=>!(t.tags&&t.tags.length));}
+function parseBankImport(text){
+  const lines=text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  const rows=[],errors=[];
+  lines.forEach((line,i)=>{
+    const cols=line.includes('\t')?line.split('\t'):line.split(',');
+    const ar=(cols[0]||'').trim(),en=(cols[1]||'').trim();
+    const tags=parseTagsInput(cols[2]);
+    const criteria=cols.slice(3).map(s=>s.trim()).filter(Boolean);
+    if(!ar||!tags.length){errors.push({line:i+1,reason:!ar?'بدون نص سؤال':'بدون وسم'});return;}
+    rows.push({q:{ar,en},tags,criteria});
+  });
+  return {rows,errors};
+}
 function settingsBankFlat(w){
   const cat=w.cats[0];
+  if(app.ctx.bankImportOpen){
+    return `<div class="lbl-sm">استيراد جماعي (الصق من إكسل أو CSV)</div>
+      <p class="sub" style="margin-top:0;">الصق الصفوف بالترتيب التالي بدون صف عناوين: نص السؤال (عربي) ثم نص السؤال (إنجليزي، اختياري) ثم الوسوم (افصل بينها بـ ؛) ثم عناصر الإجابة الصحيحة (عمود لكل عنصر). النسخ المباشر من إكسل يعمل تلقائيًا (Tab)، أو استخدم فاصلة CSV يدويًا.</p>
+      <textarea id="bankImportArea" rows="10" placeholder="متى نُشر نظام المعاملات المدنية؟	When was the Civil Transactions Law published?	تواريخ النفاذ	يذكر تاريخ النفاذ الصحيح	يذكر تاريخ النشر">${esc(app.ctx.bankImportText||'')}</textarea>
+      <div class="warnmsg ${app.ctx.bankImportWarnHtml?'show':''}" id="bankImportWarn">${app.ctx.bankImportWarnHtml||''}</div>
+      <div class="row" style="margin-top:12px;"><button class="btn btn-ghost" id="bankImportCancel">إلغاء</button><button class="btn btn-primary" id="bankImportGo"><svg class="icon"><use href="#ic-save"/></svg> استيراد</button></div>`;
+  }
   const tests=cat.tests.map((t,ti)=>{
     const criteria=(t.criteria||[]).map((x,xi)=>`<div class="qline"><textarea data-bcrit="0|${ti}|${xi}" placeholder="عنصر إجابة صحيحة">${esc(x)}</textarea><button class="iconbtn del" data-delcrit="0|${ti}|${xi}"><svg class="icon"><use href="#ic-x"/></svg></button></div>`).join('');
     return `<div class="subacc ${t._open?'open':''}" data-bsub="0|${ti}"><div class="head">
@@ -2573,13 +2595,14 @@ function settingsBankFlat(w){
       <div class="body">
         <div class="lbl-sm">نص السؤال (عربي)</div><textarea data-bqlang="0|${ti}|ar">${esc(bilingualExact(t.q,'ar'))}</textarea>
         <div class="lbl-sm">Question text (English, optional)</div><textarea data-bqlang="0|${ti}|en">${esc(bilingualExact(t.q,'en'))}</textarea>
+        <div class="lbl-sm">الوسوم (وسم واحد على الأقل، افصل بينها بفاصلة)</div><input data-btags="0|${ti}" value="${esc((t.tags||[]).join('، '))}" placeholder="مثال: تواريخ النفاذ، عمالي">
         <div class="lbl-sm">عناصر الإجابة الصحيحة</div>${criteria||'<div class="muted-note">لا عناصر بعد.</div>'}
         <button class="iconbtn" data-addcrit="0|${ti}" style="margin-top:6px;"><svg class="icon"><use href="#ic-plus"/></svg> عنصر</button>
         <div class="row" style="margin-top:10px;"><button class="btn btn-primary btn-sm" data-bsavetest="0|${ti}"><svg class="icon"><use href="#ic-save"/></svg> حفظ السؤال</button><button class="iconbtn del" data-bdeltest="0|${ti}"><svg class="icon"><use href="#ic-trash"/></svg> حذف السؤال</button></div>
       </div></div>`;
   }).join('');
   return `<div class="lbl-sm">الأسئلة</div>${tests}
-    <div style="margin-top:14px;"><button class="btn btn-ghost" id="addBankTest"><svg class="icon"><use href="#ic-plus"/></svg> إضافة سؤال</button></div>`;
+    <div class="row" style="margin-top:14px;"><button class="btn btn-ghost" id="addBankTest"><svg class="icon"><use href="#ic-plus"/></svg> إضافة سؤال</button><button class="btn btn-ghost" id="openBankImport"><svg class="icon"><use href="#ic-plus"/></svg> استيراد جماعي</button></div>`;
 }
 function settingsBankConversation(w){
   const cat=w.cats[0];
@@ -2659,6 +2682,7 @@ function settingsBank(){
     <p class="sub" style="margin-top:8px;">${flat?'أضِف أو عدّل أو احذف الأسئلة وعناصر الإجابة الصحيحة.':isConv?'أضِف أو عدّل أو احذف المحادثات وأسئلتها المتسلسلة ومعايير نجاحها.':isFile?'أضِف أو عدّل أو احذف اختبارات رفع الملفات، رابط كل ملف ونوعه وهدفه ومعايير تقييمه.':'أضِف أو عدّل أو احذف أنواع السؤال وأسئلتها، وعدّل نص التنبيه أعلى الصفحة.'}</p>
     <div class="tabbar" style="margin-top:14px;">${winTabs}</div>
     <div class="lbl-sm">${flat||isConv||isFile?'مقدّمة الصفحة':'نص التنبيه أعلى الصفحة'}</div><input data-bwinf="${win}" value="${esc(w.sub)}">
+    <div class="warnmsg" id="bankWarn"></div>
     ${flat?settingsBankFlat(w):isConv?settingsBankConversation(w):isFile?settingsBankFileUpload(w):settingsBankTyped(w)}`;
 }
 function persistBank(){const cl=clone(adminBank);Object.values(cl).forEach(w=>w.cats.forEach(c=>{delete c._open;c.tests.forEach(t=>{delete t._open;delete t._sel;});}));QBANK=cl;save(K.qbank,QBANK);}
@@ -2673,6 +2697,7 @@ function bindBank(){
   screen.querySelectorAll('[data-bf]').forEach(el=>el.oninput=e=>{const[ci,ti,f]=el.dataset.bf.split('|');adminBank[win].cats[+ci].tests[+ti][f]=e.target.value;});
   screen.querySelectorAll('[data-bqlang]').forEach(el=>el.oninput=e=>{const[ci,ti,lang]=el.dataset.bqlang.split('|');bqSetLang(adminBank[win].cats[+ci].tests[+ti],lang,e.target.value);});
   screen.querySelectorAll('[data-bcrit]').forEach(el=>el.oninput=e=>{const[ci,ti,xi]=el.dataset.bcrit.split('|');adminBank[win].cats[+ci].tests[+ti].criteria[+xi]=e.target.value;});
+  screen.querySelectorAll('[data-btags]').forEach(el=>el.oninput=e=>{const[ci,ti]=el.dataset.btags.split('|');adminBank[win].cats[+ci].tests[+ti].tags=parseTagsInput(e.target.value);});
   screen.querySelectorAll('[data-bsel]').forEach(el=>el.onchange=e=>{const[ci,ti]=el.dataset.bsel.split('|');adminBank[win].cats[+ci].tests[+ti]._sel=e.target.checked;});
   screen.querySelectorAll('[data-delcrit]').forEach(b=>b.onclick=()=>{const[ci,ti,xi]=b.dataset.delcrit.split('|');const t=adminBank[win].cats[+ci].tests[+ti];t.criteria.splice(+xi,1);t._open=true;re();});
   screen.querySelectorAll('[data-addcrit]').forEach(b=>b.onclick=()=>{const[ci,ti]=b.dataset.addcrit.split('|');const t=adminBank[win].cats[+ci].tests[+ti];t.criteria=t.criteria||[];t.criteria.push('');t._open=true;re();});
@@ -2683,17 +2708,58 @@ function bindBank(){
     else w.cats[0].tests.push({q:'',criteria:[''],_open:true});
     re();
   };
+  if(document.getElementById('openBankImport'))document.getElementById('openBankImport').onclick=()=>{app.ctx.bankImportOpen=true;app.ctx.bankImportText='';app.ctx.bankImportWarnHtml=null;re();};
+  if(document.getElementById('bankImportCancel'))document.getElementById('bankImportCancel').onclick=()=>{app.ctx.bankImportOpen=false;app.ctx.bankImportText='';app.ctx.bankImportWarnHtml=null;re();};
+  if(document.getElementById('bankImportArea'))document.getElementById('bankImportArea').oninput=e=>{app.ctx.bankImportText=e.target.value;};
+  if(document.getElementById('bankImportGo'))document.getElementById('bankImportGo').onclick=()=>{
+    const text=app.ctx.bankImportText||'';
+    const{rows,errors}=parseBankImport(text);
+    if(!rows.length){app.ctx.bankImportWarnHtml=esc('لا يوجد صف صالح للاستيراد — تأكد من نص السؤال ووسم واحد على الأقل لكل صف.');re();return;}
+    adminBank[win].cats[0].tests.push(...rows);
+    persistBank();
+    if(errors.length){
+      toast(`تم استيراد ${rows.length} سؤال`);
+      app.ctx.bankImportWarnHtml=`تم استيراد ${rows.length} سؤال، وتجاهل ${errors.length} صف غير صالح:<br>`+errors.map(e=>esc('سطر '+e.line+': '+e.reason)).join('<br>');
+      const lineNums=new Set(errors.map(e=>e.line));
+      app.ctx.bankImportText=text.split(/\r?\n/).filter((l,i)=>lineNums.has(i+1)&&l.trim()).join('\n');
+    }else{
+      app.ctx.bankImportOpen=false;app.ctx.bankImportText='';app.ctx.bankImportWarnHtml=null;
+      toast(`تم استيراد ${rows.length} سؤال بنجاح`);
+    }
+    re();
+  };
   screen.querySelectorAll('[data-bconvmsg]').forEach(el=>el.oninput=e=>{const[ti,mi,lang]=el.dataset.bconvmsg.split('|');bqSetLang(adminBank[win].cats[0].tests[+ti].messages[+mi],lang,e.target.value);});
   screen.querySelectorAll('[data-addconvmsg]').forEach(b=>b.onclick=()=>{const ti=+b.dataset.addconvmsg;const t=adminBank[win].cats[0].tests[ti];t.messages=t.messages||[];t.messages.push({q:''});t._open=true;re();});
   screen.querySelectorAll('[data-delconvmsg]').forEach(b=>b.onclick=()=>{const[ti,mi]=b.dataset.delconvmsg.split('|');const t=adminBank[win].cats[0].tests[+ti];t.messages.splice(+mi,1);t._open=true;re();});
   screen.querySelectorAll('[data-btesttype]').forEach(b=>b.onclick=()=>{const[ti,tt]=b.dataset.btesttype.split('|');adminBank[win].cats[0].tests[+ti].testType=tt;re();});
   screen.querySelectorAll('[data-baddtest]').forEach(b=>b.onclick=()=>{const ci=+b.dataset.baddtest;adminBank[win].cats[ci].tests.push({q:''});re();});
-  screen.querySelectorAll('[data-bsavetest]').forEach(b=>b.onclick=()=>{persistBank();toast('تم حفظ السؤال');});
+  screen.querySelectorAll('[data-bsavetest]').forEach(b=>b.onclick=()=>{
+    const[ci,ti]=b.dataset.bsavetest.split('|');
+    const w=adminBank[win],t=w.cats[+ci].tests[+ti];
+    const warn=document.getElementById('bankWarn');
+    if(w.type==='flat'&&!(t.tags&&t.tags.length)){warn.textContent='أضف وسمًا واحدًا على الأقل لهذا السؤال قبل الحفظ.';warn.classList.add('show');return;}
+    warn.classList.remove('show');
+    persistBank();toast('تم حفظ السؤال');
+  });
   screen.querySelectorAll('[data-bdeltest]').forEach(b=>b.onclick=()=>{const[ci,ti]=b.dataset.bdeltest.split('|');if(confirm('حذف السؤال؟')){adminBank[win].cats[+ci].tests.splice(+ti,1);re();}});
   screen.querySelectorAll('[data-bdelcat]').forEach(b=>b.onclick=()=>{const ci=+b.dataset.bdelcat;if(confirm('حذف النوع وكل أسئلته؟')){adminBank[win].cats.splice(ci,1);re();}});
   if(document.getElementById('addBankCat'))document.getElementById('addBankCat').onclick=()=>{adminBank[win].cats.forEach(c=>c._open=false);adminBank[win].cats.push({title:'نوع جديد',tests:[],_open:true});re();};
   if(document.getElementById('delSelBank'))document.getElementById('delSelBank').onclick=()=>{let n=0;adminBank[win].cats.forEach(c=>{const b=c.tests.length;c.tests=c.tests.filter(t=>!t._sel);n+=b-c.tests.length;});if(n){toast(`حُذف ${n} سؤال`);re();}else toast('لم تحدّد شيئًا');};
-  document.getElementById('saveBank').onclick=()=>{persistBank();adminBank=null;toast('تم حفظ التغييرات');go('dashboard');};
+  document.getElementById('saveBank').onclick=()=>{
+    const w=adminBank[win];
+    const warn=document.getElementById('bankWarn');
+    if(w.type==='flat'){
+      const idx=bankTagsMissingIndex(w);
+      if(idx>-1){
+        w.cats[0].tests.forEach((t,i)=>{t._open=i===idx;});
+        warn.textContent='أضف وسمًا واحدًا على الأقل لكل سؤال قبل حفظ التغييرات.';warn.classList.add('show');
+        re();
+        const el=screen.querySelector(`[data-bsub="0|${idx}"]`);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});
+        return;
+      }
+    }
+    persistBank();adminBank=null;toast('تم حفظ التغييرات');go('dashboard');
+  };
   document.getElementById('resetBank').onclick=()=>{if(confirm('استعادة بنك الأسئلة إلى القيم الافتراضية؟ سيُفقد أي تعديل غير محفوظ.')){QBANK=clone(DEF_QBANK);save(K.qbank,QBANK);adminBank=null;toast('تمت استعادة بنك الأسئلة الافتراضي');re();}};
 }
 
