@@ -727,7 +727,7 @@ let THEME=store.get(K.theme)||'light';
 const DEF_SETTINGS={team:'الفريق القانوني',product:'قانونية AI'};
 let SETTINGS=load(K.settings,DEF_SETTINGS);
 
-const DEF_PRODUCT_VIS={dashboard:true,qbank:true,history:true,comp:true,updates:true};
+const DEF_PRODUCT_VIS={home:true,dashboard:true,qbank:true,history:true,comp:true,updates:true};
 let PRODUCT_VIS=Object.assign({},DEF_PRODUCT_VIS,load(K.productVis,{}));
 function saveProductVis(){save(K.productVis,PRODUCT_VIS);}
 
@@ -763,7 +763,6 @@ let QUALITY_RUNS=load(K.qualityRuns,[]);
 let QUALITY_DRAFTS=load(K.qualityDrafts,[]);
 
 /* ===== بنك الأسئلة ===== */
-const TEST_TYPE_LABELS={read:'قراءة الملف',guardian:'ليقال قارديان',analysis:'التحليل'};
 const QBANK_META={
   expiry:{icon:'calendar-remove'},
   analytical:{icon:'judge'},
@@ -1070,12 +1069,12 @@ function copyText(t,msg){msg=msg||'تم نسخ السؤال';if(navigator.clipbo
 function flatten(cats){const f=[];cats.forEach((c,ci)=>c.tests.forEach(t=>f.push({...t,cat:c.title,catIdx:ci})));return f;}
 /* ===== استيراد اختبار الجودة من بنك الأسئلة ===== */
 function qualityTypeOptions(){
-  return Object.entries(QBANK).map(([k,w])=>({key:'win:'+k,label:w.label,n:w.cats.reduce((m,c)=>m+c.tests.length,0)})).filter(o=>o.n>0);
+  return bankWinEntries().map(([k,w,n])=>({key:'win:'+k,label:w.label,n}));
 }
 function normalizeQItem(win,t){
   const type=QBANK[win].type;
   if(type==='conversation')return {kind:'conversation',title:t.title,messages:clone(t.messages||[]),criteria:t.criteria,srcWin:win};
-  if(type==='fileupload')return {kind:'fileupload',q:t.q,testType:t.testType,fileLink:t.fileLink,goal:t.goal,criteria:t.criteria,srcWin:win};
+  if(type==='fileupload')return {kind:'fileupload',q:t.q,fileLink:t.fileLink,goal:t.goal,criteria:t.criteria,srcWin:win};
   return {kind:'single',q:t.q,criteria:t.criteria,srcWin:win};
 }
 function qualityPool(typeKeys){
@@ -1146,12 +1145,18 @@ backfillCatsEnglish();
 backfillQbankEnglish();
 
 /* ===== التنقل ===== */
-const app={view:'dashboard',sub:null,ctx:{}};
+const app={view:'home',sub:null,ctx:{}};
 /* المنتجات المخفيّة في V2 (comp / updates / files): الكود والبيانات باقية كما هي،
    ويكفي إعادة إدراجها في NAV_PRODUCTS و SETTAB_GROUPS لإرجاعها للواجهة. */
 const SOON_PRODUCTS=[];
 function bankCount(){return Object.values(QBANK).reduce((n,w)=>n+w.cats.reduce((m,c)=>m+c.tests.length,0),0);}
+function bankWinCount(w){return w?w.cats.reduce((m,c)=>m+c.tests.length,0):0;}
+/* الأقسام التي فيها سؤال واحد على الأقل — المصدر الوحيد لما يُعرض للمستخدم،
+   في صفحة البنك وفي خيارات الاختبار على حدٍّ سواء. */
+function bankWinEntries(){return Object.entries(QBANK).map(([k,w])=>[k,w,bankWinCount(w)]).filter(e=>e[2]>0);}
 const NAV_PRODUCTS=[
+  /* الصفحة الرئيسية بلا عدّاد — ليست قائمة عناصر، وإنما ملخّص لبقية الأقسام */
+  {key:'home',icon:'home',label:'الصفحة الرئيسية'},
   {key:'dashboard',icon:'search',label:'الاختبارات',count:()=>V2_RUNS.length},
   {key:'qbank',icon:'question',label:'بنك الأسئلة',count:()=>bankCount()},
   {key:'history',icon:'archive-book',label:'سجل الاختبارات',count:()=>V2_RUNS.length+RUNS.length+QUALITY_RUNS.length},
@@ -1161,7 +1166,7 @@ function buildNav(){
   const soonHtml=SOON_PRODUCTS.map(p=>`<button class="navitem soon" disabled title="${p.label}"><span class="ic"><svg class="icon"><use href="#ic-${p.icon}"/></svg></span> <span class="lbl">${p.label}</span><span class="soon-badge">قريبًا</span></button>`).join('');
   const navHtml=NAV_PRODUCTS.filter(p=>IS_ADMIN||PRODUCT_VIS[p.key]!==false).map(p=>{
     const hidden=PRODUCT_VIS[p.key]===false;
-    return `<button class="navitem ${app.view===p.key?'active':''}" data-nav="${p.key}" title="${p.label}"><span class="ic"><svg class="icon"><use href="#ic-${p.icon}"/></svg></span> <span class="lbl">${p.label}</span>${hidden?'<span class="soon-badge" title="مخفي عن الأعضاء">مخفي</span>':`<span class="badge-n">${p.count()}</span>`}</button>`;
+    return `<button class="navitem ${app.view===p.key?'active':''}" data-nav="${p.key}" title="${p.label}"><span class="ic"><svg class="icon"><use href="#ic-${p.icon}"/></svg></span> <span class="lbl">${p.label}</span>${hidden?'<span class="soon-badge" title="مخفي عن الأعضاء">مخفي</span>':(p.count?`<span class="badge-n">${p.count()}</span>`:'')}</button>`;
   }).join('');
   el.innerHTML=`<div class="grp">المنتجات</div>${navHtml}${soonHtml}`;
   el.querySelectorAll('[data-nav]').forEach(b=>b.onclick=()=>go(b.dataset.nav));
@@ -1171,12 +1176,16 @@ function buildNav(){
   const editBtn=document.getElementById('editBtn');
   if(editBtn)editBtn.style.display=IS_ADMIN?'':'none';
 }
-function go(v){if(v==='settings'&&!IS_ADMIN){toast('هذا القسم متاح للأدمن فقط');return;}if(!IS_ADMIN&&PRODUCT_VIS[v]===false){toast('هذا المنتج غير متاح حاليًا');return;}app.view=v;app.sub=null;app.ctx={};closeSide();render();window.scrollTo(0,0);}
-const CRUMB={dashboard:'الاختبارات',qbank:'بنك الأسئلة',history:'سجل الاختبارات',comp:'تحليل المنافسين',updates:'متابعة التحديثات',settings:'الإعدادات'};
+function go(v){if(v==='settings'&&!IS_ADMIN){toast('هذا القسم متاح للأدمن فقط');return;}if(!IS_ADMIN&&PRODUCT_VIS[v]===false){toast('هذا المنتج غير متاح حاليًا');return;}
+  /* مسوّدات الإعدادات تُلغى عند الخروج منها، فلا تبقى نسخة قديمة تعرض حالة مخالفة للمحفوظ فعلًا */
+  if(app.view==='settings'&&v!=='settings'){adminBank=null;adminCats=null;}
+  app.view=v;app.sub=null;app.ctx={};closeSide();render();window.scrollTo(0,0);}
+const CRUMB={home:'الصفحة الرئيسية',dashboard:'الاختبارات',qbank:'بنك الأسئلة',history:'سجل الاختبارات',comp:'تحليل المنافسين',updates:'متابعة التحديثات',settings:'الإعدادات'};
 function setCrumb(x){document.getElementById('crumb').innerHTML=`<b>${CRUMB[app.view]||''}</b>${x?' / '+esc(x):''}`;}
 
 function render(){buildNav();setCrumb();
-  if(app.view==='settings') renderSettings();
+  if(app.view==='home') renderHome();
+  else if(app.view==='settings') renderSettings();
   else if(app.view==='qbank') renderQBank();
   else if(app.view==='history') renderHistoryRouter();
   else if(app.view==='comp') renderCompRouter();
@@ -1208,9 +1217,10 @@ function buildToc(){
 
 /* ===== بنك الأسئلة ===== */
 function renderQBankHome(){
-  const cardsHtml=Object.entries(QBANK).map(([k,w])=>{
+  /* الأقسام الفارغة تُخفى هنا كما تُخفى من خيارات الاختبار (v2WinOptions)، وتبقى
+     ظاهرة دائمًا في الإعدادات لأنها موضع إضافة الأسئلة إليها. */
+  const cardsHtml=bankWinEntries().map(([k,w,n])=>{
     const meta=QBANK_META[k]||{icon:'question'};
-    const n=w.cats.reduce((m,c)=>m+c.tests.length,0);
     return `<div class="bankcard" data-bwin="${k}">
       <div class="bc-ic"><svg class="icon"><use href="#ic-${meta.icon}"/></svg></div>
       <div class="bc-title">${esc(w.label)}</div>
@@ -1223,13 +1233,14 @@ function renderQBankHome(){
       <h1 class="h1" data-edit-key="qbank.title">${esc(t('qbank.title','بنك الأسئلة'))}</h1>
       <p class="sub" data-edit-key="qbank.sub">${esc(t('qbank.sub','مرجع جاهز بأسئلة واقعية لاختبار المنتج، مقسّم بحسب نوع الاختبار. افتح أي قسم لتصفّح أسئلته أو البحث فيها.'))}</p>
     </div>
-    <div class="bankgrid">${cardsHtml}</div>`;
-  document.querySelectorAll('[data-bwin]').forEach(b=>b.onclick=()=>{app.ctx.bankWin=b.dataset.bwin;app.ctx.bankSearch='';app.ctx.bankTestTypeFilter=[];render();window.scrollTo(0,0);});
+    ${cardsHtml?`<div class="bankgrid">${cardsHtml}</div>`:'<div class="card"><div class="empty">لا توجد أسئلة في البنك بعد. أضِفها من الإعدادات ← بنك الأسئلة.</div></div>'}`;
+  document.querySelectorAll('[data-bwin]').forEach(b=>b.onclick=()=>{app.ctx.bankWin=b.dataset.bwin;app.ctx.bankSearch='';render();window.scrollTo(0,0);});
   bindEditable();
 }
 function renderQBank(){
   const win=app.ctx.bankWin;
-  if(!win){renderQBankHome();return;}
+  /* لو حُذفت أسئلة القسم كلها بينما هو مفتوح، نرجع لقائمة الأقسام بدل عرض قسم فارغ */
+  if(!win||!QBANK[win]||!bankWinCount(QBANK[win])){app.ctx.bankWin=null;renderQBankHome();return;}
   const w=QBANK[win];
   screen.innerHTML=`<div class="card hero">
       <button class="bankback" id="bankBack">→ كل الأقسام</button>
@@ -1290,22 +1301,13 @@ function renderBankResults(win){
     }).join('');
     document.getElementById('bankResults').innerHTML=rows||'<div class="card"><div class="empty">لا نتائج مطابقة.</div></div>';
   } else if(w.type==='fileupload'){
-    const active=app.ctx.bankTestTypeFilter||[];
     const all=w.cats[0].tests;
-    const filterBar=`<div class="tabbar" style="margin-top:12px;">
-      <button class="tab ${!active.length?'on':''}" data-ttf="__all__">الكل<span class="badge-n" style="margin-inline-start:8px;">${all.length}</span></button>
-      ${Object.keys(TEST_TYPE_LABELS).map(tt=>{const n=all.filter(t=>t.testType===tt).length;return n?`<button class="tab ${active.includes(tt)?'on':''}" data-ttf="${tt}">${esc(TEST_TYPE_LABELS[tt])}<span class="badge-n" style="margin-inline-start:8px;">${n}</span></button>`:'';}).join('')}
-    </div>`;
-    const tests=all.filter(t=>{
-      const matchesQ=!q||(bilingualText(t.q,lang)+' '+(t.goal||'')).toLowerCase().includes(q);
-      const matchesTt=!active.length||active.includes(t.testType);
-      return matchesQ&&matchesTt;
-    });
+    const tests=all.filter(t=>!q||(bilingualText(t.q,lang)+' '+(t.goal||'')).toLowerCase().includes(q));
     const rows=tests.map(t=>{
       const ti=all.indexOf(t);
       const criteria=(t.criteria||[]).map(x=>`<li>${esc(x)}</li>`).join('');
       return `<div class="subacc ${t._open?'open':''}" data-bq="0|${ti}">
-        <div class="head"><span class="caret">▶</span><span class="chip" style="flex:0 0 auto;">${esc(TEST_TYPE_LABELS[t.testType]||'—')}</span><span class="title" style="font-size:13.5px;flex:1;font-weight:500;">${esc(bilingualText(t.q,lang))}</span>
+        <div class="head"><span class="caret">▶</span><span class="title" style="font-size:13.5px;flex:1;font-weight:500;">${esc(bilingualText(t.q,lang))}</span>
         <button class="copybtn" data-bcopy="0|${ti}" title="نسخ الطلب"><svg class="icon"><use href="#ic-copy"/></svg></button></div>
         <div class="body">
           ${t.fileLink?`<div class="row" style="margin-bottom:10px;"><a href="${esc(t.fileLink)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm"><svg class="icon"><use href="#ic-external-link"/></svg> فتح الملف</a></div>`:'<div class="muted-note" style="margin-bottom:10px;">لا يوجد رابط ملف.</div>'}
@@ -1314,7 +1316,7 @@ function renderBankResults(win){
         </div>
       </div>`;
     }).join('');
-    document.getElementById('bankResults').innerHTML=`<div class="card">${filterBar}</div>${rows||'<div class="card" style="margin-top:12px;"><div class="empty">لا نتائج مطابقة.</div></div>'}`;
+    document.getElementById('bankResults').innerHTML=rows||'<div class="card"><div class="empty">لا نتائج مطابقة.</div></div>';
   } else {
     const allSingle=w.cats.every(c=>c.tests.length===1);
     const cats=w.cats.map((c,ci)=>{
@@ -1343,13 +1345,85 @@ function bindBankResults(win,lang){
   screen.querySelectorAll('[data-bcopy]').forEach(b=>b.onclick=(e)=>{e.stopPropagation();const[ci,ti]=b.dataset.bcopy.split('|');copyText(bilingualText(w.cats[+ci].tests[+ti].q,lang));});
   screen.querySelectorAll('[data-bcopyconv]').forEach(b=>b.onclick=(e)=>{e.stopPropagation();const[ci,ti]=b.dataset.bcopyconv.split('|');const conv=w.cats[+ci].tests[+ti];copyText((conv.messages||[]).map(m=>bilingualText(m.q,lang)).join('\n\n'),'تم نسخ المحادثة');});
   screen.querySelectorAll('[data-bcopymsg]').forEach(b=>b.onclick=(e)=>{e.stopPropagation();const[ci,ti,mi]=b.dataset.bcopymsg.split('|');const conv=w.cats[+ci].tests[+ti];copyText(bilingualText(conv.messages[+mi].q,lang));});
-  screen.querySelectorAll('[data-ttf]').forEach(b=>b.onclick=()=>{
-    const tt=b.dataset.ttf;
-    app.ctx.bankTestTypeFilter=app.ctx.bankTestTypeFilter||[];
-    if(tt==='__all__'){app.ctx.bankTestTypeFilter=[];}
-    else{const i=app.ctx.bankTestTypeFilter.indexOf(tt);if(i>-1)app.ctx.bankTestTypeFilter.splice(i,1);else app.ctx.bankTestTypeFilter.push(tt);}
-    renderBankResults(win);
-  });
+}
+
+/* ===== الصفحة الرئيسية ===== */
+/* الإحصائيات تُحتسب من اختبارات الذكاء (V2_RUNS) وحدها. الاختبارات اليدوية القديمة
+   مقياسها مختلف (نجح/لم ينجح يدويًا، وتقييم من ٥ في الجودة) فخلطها بالنِّسب يشوّه
+   المتوسط والحدّين. وكل نسبة تُحتسب من الجلسات المقيَّمة فقط. */
+function homeAgg(list){
+  const sc=list.filter(r=>r.score!=null).map(r=>r.score);
+  return {
+    n:list.length,
+    /* البنود ليست الأسئلة: جلسة «الوضعان» تُنفِّذ كل سؤال مرتين، فيُحتسب السؤال
+       مرة واحدة وتُحتسب البنود مرتين. questionCount يغيب عن الجلسات القديمة. */
+    questions:list.reduce((m,r)=>m+(r.questionCount||(r.items||[]).length),0),
+    items:list.reduce((m,r)=>m+(r.items||[]).length,0),
+    avg:sc.length?Math.round(sc.reduce((a,b)=>a+b,0)/sc.length*10)/10:null,
+    best:sc.length?Math.max(...sc):null,
+    worst:sc.length?Math.min(...sc):null,
+  };
+}
+function homeStats(){
+  return {
+    all:homeAgg(V2_RUNS),
+    smoke:homeAgg(V2_RUNS.filter(r=>r.kind==='smoke')),
+    quality:homeAgg(V2_RUNS.filter(r=>r.kind==='quality')),
+    disputed:V2_RUNS.reduce((m,r)=>m+(r.items||[]).filter(x=>x.review&&x.review.agree===false).length,0),
+    last:V2_RUNS.length?V2_RUNS[0]:null,
+  };
+}
+function renderHome(){
+  const s=homeStats();
+  const pc=v=>v==null?'—':v+'%';
+  const col=v=>v==null?'':'color:'+scoreColor(v);
+  const kindBlock=(key,st)=>{
+    const v=V2_KINDS[key];
+    return `<div class="card">
+      <div class="eyebrow"><svg class="icon"><use href="#ic-${v.icon}"/></svg> ${esc(v.label)}</div>
+      <div class="stat-row" style="grid-template-columns:repeat(4,1fr);margin-top:14px;">
+        <div class="stat"><div class="n">${st.n}</div><div class="l">مرة تقييم</div></div>
+        <div class="stat"><div class="n" style="${col(st.avg)}">${pc(st.avg)}</div><div class="l">متوسط النتائج</div></div>
+        <div class="stat"><div class="n" style="${col(st.best)}">${pc(st.best)}</div><div class="l">أعلى نتيجة</div></div>
+        <div class="stat"><div class="n" style="${col(st.worst)}">${pc(st.worst)}</div><div class="l">أقل نتيجة</div></div>
+      </div>
+      ${st.n?`<div class="muted-note" style="margin-top:10px;">${st.questions} سؤالًا طُرح في ${st.n} جلسة${st.items!==st.questions?` — أي ${st.items} بند تقييم بعد احتساب نمطَي البحث`:''}.</div>`:'<div class="muted-note" style="margin-top:10px;">لم يُنفَّذ هذا الاختبار بعد.</div>'}
+    </div>`;
+  };
+  screen.innerHTML=`<div class="card hero">
+      <div class="eyebrow" data-edit-key="home.eyebrow">${esc(t('home.eyebrow','منصة القياس'))}</div>
+      <h1 class="h1" data-edit-key="home.title">${esc(t('home.title','مرحبًا بكم في مِعيار'))}</h1>
+      <p class="sub" data-edit-key="home.sub">${esc(t('home.sub','مِعيار هو مكان قياس جودة منصة قانونية: بنك أسئلة واقعية، اختبارات يُنفّذها الذكاء الاصطناعي ويقيّمها، وسجل يحفظ كل نتيجة لتتبّع التحسّن مع الوقت.'))}</p>
+      ${aiModeNoteHtml()}
+      <div class="row" style="margin-top:16px;">
+        <button class="btn btn-primary" id="hNew"><svg class="icon"><use href="#ic-plus"/></svg> بدء اختبار جديد</button>
+        <button class="btn btn-ghost btn-sm" id="hBank"><svg class="icon"><use href="#ic-question"/></svg> بنك الأسئلة</button>
+        <button class="btn btn-ghost btn-sm" id="hHist"><svg class="icon"><use href="#ic-archive-book"/></svg> سجل الاختبارات</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="eyebrow" data-edit-key="home.stats.eyebrow">${esc(t('home.stats.eyebrow','نظرة عامة'))}</div>
+      <h2 class="h2" data-edit-key="home.stats.title">${esc(t('home.stats.title','الإحصائيات'))}</h2>
+      <div class="stat-row" style="grid-template-columns:repeat(4,1fr);margin-top:16px;">
+        <div class="stat"><div class="ic"><svg class="icon"><use href="#ic-circle-check"/></svg></div><div class="n">${s.all.n}</div><div class="l">مرة تقييم</div></div>
+        <div class="stat"><div class="ic"><svg class="icon"><use href="#ic-question"/></svg></div><div class="n">${s.all.questions}</div><div class="l">سؤال مطروح</div></div>
+        <div class="stat"><div class="ic"><svg class="icon"><use href="#ic-chart"/></svg></div><div class="n" style="${col(s.all.avg)}">${pc(s.all.avg)}</div><div class="l">متوسط النتائج</div></div>
+        <div class="stat"><div class="ic"><svg class="icon"><use href="#ic-archive-book"/></svg></div><div class="n">${bankCount()}</div><div class="l">سؤال في البنك</div></div>
+      </div>
+      <div class="stat-row" style="grid-template-columns:repeat(4,1fr);margin-top:12px;">
+        <div class="stat"><div class="n" style="${col(s.all.best)}">${pc(s.all.best)}</div><div class="l">أعلى نتيجة وصلنا لها</div></div>
+        <div class="stat"><div class="n" style="${col(s.all.worst)}">${pc(s.all.worst)}</div><div class="l">أقل نتيجة وصلنا لها</div></div>
+        <div class="stat"><div class="n" style="${s.disputed?'color:var(--fail);':''}">${s.disputed}</div><div class="l">تقييم اعترض عليه المختبِر</div></div>
+        <div class="stat"><div class="n" style="font-size:15px;padding-top:5px;">${esc(s.last?s.last.date:'—')}</div><div class="l">${esc(s.last&&s.last.model?'آخر اختبار · '+s.last.model:'آخر اختبار')}</div></div>
+      </div>
+      <div class="muted-note" style="margin-top:12px;" data-edit-key="home.stats.note">${esc(t('home.stats.note','النِّسب محسوبة من الاختبارات التي ينفّذها الذكاء الاصطناعي دون الاختبارات اليدوية القديمة، لأن مقياسها مختلف. ونسبة اختبار الدخان تعني حصّة الأسئلة التي نجحت، أما نسبة اختبار الجودة فهي حصّة عناصر الإجابة الصحيحة التي تحقّقت.'))}</div>
+    </div>
+    ${kindBlock('smoke',s.smoke)}
+    ${kindBlock('quality',s.quality)}`;
+  document.getElementById('hNew').onclick=()=>{go('dashboard');v2Start();};
+  document.getElementById('hBank').onclick=()=>go('qbank');
+  document.getElementById('hHist').onclick=()=>go('history');
+  bindEditable();
 }
 
 /* ===== الداشبورد ===== */
@@ -1370,14 +1444,12 @@ function bindLegacyTabs(){
 }
 function renderTestsHome(){
   const recent=V2_RUNS.slice(0,5);
-  const scored=V2_RUNS.filter(r=>r.score!=null);
-  const avg=scored.length?Math.round(scored.reduce((s,r)=>s+r.score,0)/scored.length*10)/10:null;
   const kindCards=Object.entries(V2_KINDS).map(([k,v])=>`<div class="kindcard" style="cursor:default;">
     <div class="kc-t"><svg class="icon"><use href="#ic-${v.icon}"/></svg> ${esc(v.label)}</div>
     <div class="kc-d">${esc(v.desc)}</div></div>`).join('');
   screen.innerHTML=`<div class="card hero">
       <div class="eyebrow" data-edit-key="tests.eyebrow">${esc(t('tests.eyebrow','المنتج · الاختبارات'))}</div>
-      <h1 class="h1" data-edit-key="tests.title">${esc(t('tests.title','مرحبًا بكم في مِعيار'))}</h1>
+      <h1 class="h1" data-edit-key="tests.title">${esc(t('tests.title','اختبارات المنتج'))}</h1>
       <p class="sub" data-edit-key="tests.sub">${esc(t('tests.sub','ابدأ اختبارًا جديدًا، فينشئ البرنامج محادثة لكل سؤال من بنك الأسئلة ويرسلها للنموذج المُختبَر، ثم يقيّم كل إجابة حسب عناصر الإجابة الصحيحة، ويعرض النتائج عليك في بطاقات لمراجعتها.'))}</p>
       ${aiModeNoteHtml()}
       <div class="steps">
@@ -1387,16 +1459,6 @@ function renderTestsHome(){
       </div>
       <div class="kindgrid">${kindCards}</div>
       <div class="row" style="margin-top:18px;"><button class="btn btn-primary" id="newV2"><svg class="icon"><use href="#ic-plus"/></svg> بدء اختبار جديد</button></div>
-    </div>
-    <div class="card">
-      <div class="eyebrow" data-edit-key="tests.stats.eyebrow">${esc(t('tests.stats.eyebrow','نظرة عامة'))}</div>
-      <h2 class="h2" data-edit-key="tests.stats.title">${esc(t('tests.stats.title','الإحصائيات'))}</h2>
-      <div class="stat-row" style="grid-template-columns:repeat(4,1fr);margin-top:16px;">
-        <div class="stat"><div class="ic"><svg class="icon"><use href="#ic-circle-check"/></svg></div><div class="n">${V2_RUNS.length}</div><div class="l">اختبار مكتمل</div></div>
-        <div class="stat"><div class="ic"><svg class="icon"><use href="#ic-chart"/></svg></div><div class="n" style="${avg==null?'':'color:'+scoreColor(avg)}">${avg==null?'—':avg+'%'}</div><div class="l">متوسط النتائج</div></div>
-        <div class="stat"><div class="ic"><svg class="icon"><use href="#ic-question"/></svg></div><div class="n">${bankCount()}</div><div class="l">سؤال في البنك</div></div>
-        <div class="stat"><div class="ic"><svg class="icon"><use href="#ic-calendar"/></svg></div><div class="n" style="font-size:15px;padding-top:5px;">${esc(V2_RUNS.length?V2_RUNS[0].date:'—')}</div><div class="l">آخر اختبار</div></div>
-      </div>
     </div>
     <div class="card">
       <div class="eyebrow" data-edit-key="tests.recent.eyebrow">${esc(t('tests.recent.eyebrow','السجل'))}</div>
@@ -1516,7 +1578,7 @@ function runRow(r,i,isDraft){
 function smokeStart(){
   const tests=flatten(CATS);
   if(!tests.length){alert('لا توجد حالات نشطة. أضِف حالات من الإعدادات.');return;}
-  app.ctx.run={employee:CURRENT_USER_EMAIL,date:today(),asana:'',reason:'',model:'',tests,results:tests.map(()=>({qIndex:null,customText:'',result:null,notes:'',convId:'',modeResults:{},lang:'ar'})),step:0};
+  app.ctx.run={employee:CURRENT_USER_EMAIL,date:today(),reason:'',model:'',tests,results:tests.map(()=>({qIndex:null,customText:'',result:null,notes:'',convId:'',modeResults:{},lang:'ar'})),step:0};
   app.ctx.draftIndex=null;app.sub='intro';render();window.scrollTo(0,0);
 }
 function smokeResume(i){app.ctx.run=clone(DRAFTS[i]);app.ctx.draftIndex=i;app.sub='test';render();window.scrollTo(0,0);}
@@ -1529,7 +1591,6 @@ function smokeIntro(){
       <div class="field"><label>الموظف</label><input id="f_emp" value="${esc(r.employee)}" readonly></div>
       <div class="field"><label>تاريخ الاختبار</label><input id="f_dt" type="date" value="${esc(r.date)}"></div>
     </div>
-    <div class="field"><label>رابط أسانا (Asana)</label><input id="f_as" value="${esc(r.asana)}" placeholder="https://app.asana.com/..."></div>
     <div class="field"><label>سبب الاختبار</label><textarea id="f_rs" placeholder="مثال: التحقق بعد تحديث نموذج الاسترجاع">${esc(r.reason)}</textarea></div>
     <div class="field"><label>المودل المُختبَر</label>
       <select id="f_model" ${MODELS.length?'':'disabled'}>
@@ -1544,7 +1605,7 @@ function smokeIntro(){
   document.getElementById('cancel').onclick=()=>{app.sub=null;render();};
   document.getElementById('start').onclick=()=>{
     r.date=document.getElementById('f_dt').value||today();
-    r.asana=document.getElementById('f_as').value.trim();r.reason=document.getElementById('f_rs').value.trim();
+    r.reason=document.getElementById('f_rs').value.trim();
     r.model=document.getElementById('f_model').value;
     if(MODELS.length&&!r.model){const w=document.getElementById('w');w.textContent='اختر المودل المُختبَر أولًا.';w.classList.add('show');return;}
     r.step=0;app.sub='test';render();window.scrollTo(0,0);
@@ -1671,7 +1732,6 @@ function buildSummaryText(run){
   let L=['📋 تقرير اختبار الدخان — منصة مِعيار',`${SETTINGS.team} — ${SETTINGS.product}`,'———————————————',`الموظف: ${run.employee}`,`التاريخ: ${run.date}`];
   if(run.model)L.push(`المودل: ${run.model}`);
   if(run.reason)L.push(`سبب الاختبار: ${run.reason}`);
-  if(run.asana)L.push(`أسانا: ${run.asana}`);
   L.push(`النتيجة: ${overall}  (مجتاز ${passed} / غير مجتاز ${failed} من ${run.tests.length})`,'———————————————');
   let lastCat='';
   run.tests.forEach((t,i)=>{const r=run.results[i];if(t.cat!==lastCat){L.push('',`【 ${t.cat} 】`);lastCat=t.cat;}
@@ -1705,7 +1765,6 @@ function smokeReview(){
     <div style="margin-top:14px;font-size:13.5px;color:var(--muted);">
       <b style="color:var(--ink-2)">الموظف:</b> ${esc(run.employee)} • <b style="color:var(--ink-2)">التاريخ:</b> ${esc(run.date)}
       ${run.model?` • <b style="color:var(--ink-2)">المودل:</b> ${esc(run.model)}`:''}
-      ${run.asana?` • <b style="color:var(--ink-2)">أسانا:</b> <a href="${esc(run.asana)}" target="_blank" style="color:var(--brand);">رابط المهمة</a>`:''}
       ${run.reason?` • <b style="color:var(--ink-2)">السبب:</b> ${esc(run.reason)}`:''}
       • <b style="color:var(--ink-2)">النتيجة:</b> ${esc(overall)}
     </div>
@@ -1716,7 +1775,7 @@ function smokeReview(){
     </div>
   </div>`;
   document.getElementById('back').onclick=()=>{app.sub='test';run.step=run.tests.length-1;render();window.scrollTo(0,0);};
-  const persist=()=>{if(!app.ctx._saved){const saved={id:'r'+Date.now()+Math.random().toString(36).slice(2,7),employee:run.employee,date:run.date,asana:run.asana,reason:run.reason,model:run.model,savedAt:new Date().toISOString(),tests:clone(run.tests),results:clone(run.results),passed,failed};RUNS.unshift(saved);save(K.runs,RUNS);if(app.ctx.draftIndex!=null){DRAFTS.splice(app.ctx.draftIndex,1);save(K.drafts,DRAFTS);app.ctx.draftIndex=null;}app.ctx._saved=saved;toast('تم حفظ الاختبار');}return app.ctx._saved;};
+  const persist=()=>{if(!app.ctx._saved){const saved={id:'r'+Date.now()+Math.random().toString(36).slice(2,7),employee:run.employee,date:run.date,reason:run.reason,model:run.model,savedAt:new Date().toISOString(),tests:clone(run.tests),results:clone(run.results),passed,failed};RUNS.unshift(saved);save(K.runs,RUNS);if(app.ctx.draftIndex!=null){DRAFTS.splice(app.ctx.draftIndex,1);save(K.drafts,DRAFTS);app.ctx.draftIndex=null;}app.ctx._saved=saved;toast('تم حفظ الاختبار');}return app.ctx._saved;};
   document.getElementById('copySum').onclick=()=>{const s=persist();copyText(buildSummaryText(s));toast('تم نسخ ملخّص الاختبار');};
   document.getElementById('share').onclick=async()=>{const s=persist();await shareRun(s);setTimeout(()=>{app.sub=null;app.ctx={};render();window.scrollTo(0,0);},600);};
 }
@@ -1739,7 +1798,6 @@ function renderSmokeRunView(){
     <div style="margin-top:14px;font-size:13.5px;color:var(--muted);">
       <b style="color:var(--ink-2)">الموظف:</b> ${esc(run.employee)} • <b style="color:var(--ink-2)">التاريخ:</b> ${esc(run.date)}
       ${run.model?` • <b style="color:var(--ink-2)">المودل:</b> ${esc(run.model)}`:''}
-      ${run.asana?` • <b style="color:var(--ink-2)">أسانا:</b> <a href="${esc(run.asana)}" target="_blank" style="color:var(--brand);">رابط المهمة</a>`:''}
       ${run.reason?` • <b style="color:var(--ink-2)">السبب:</b> ${esc(run.reason)}`:''}
       • <b style="color:var(--ink-2)">النتيجة:</b> ${esc(overall)}
     </div>
@@ -1816,7 +1874,7 @@ function qualityImport(){
       });
       if(!tests.length){w.textContent='لا توجد أسئلة مطابقة لهذا الاختيار.';w.classList.add('show');return;}
     }
-    app.ctx.qrun={employee:CURRENT_USER_EMAIL,date:today(),asana:'',reason:'',model:'',importTypes:s.slice(),tests,results:tests.map(()=>({rating:null,note:'',questionId:'',answerText:'',lang:'ar'})),step:0};
+    app.ctx.qrun={employee:CURRENT_USER_EMAIL,date:today(),reason:'',model:'',importTypes:s.slice(),tests,results:tests.map(()=>({rating:null,note:'',questionId:'',answerText:'',lang:'ar'})),step:0};
     app.ctx.qDraftIndex=null;
     app.sub='qIntro';render();window.scrollTo(0,0);
   };
@@ -1830,7 +1888,6 @@ function qualityIntro(){
       <div class="field"><label>الموظف</label><input id="f_emp" value="${esc(r.employee)}" readonly></div>
       <div class="field"><label>تاريخ الاختبار</label><input id="f_dt" type="date" value="${esc(r.date)}"></div>
     </div>
-    <div class="field"><label>رابط أسانا (Asana)</label><input id="f_as" value="${esc(r.asana)}" placeholder="https://app.asana.com/..."></div>
     <div class="field"><label>سبب الاختبار</label><textarea id="f_rs" placeholder="مثال: التحقق بعد تحديث نموذج الاسترجاع">${esc(r.reason)}</textarea></div>
     <div class="field"><label>المودل المُختبَر</label>
       <select id="f_model" ${MODELS.length?'':'disabled'}>
@@ -1846,7 +1903,7 @@ function qualityIntro(){
   document.getElementById('cancel').onclick=()=>{app.sub=null;render();};
   document.getElementById('start').onclick=()=>{
     r.date=document.getElementById('f_dt').value||today();
-    r.asana=document.getElementById('f_as').value.trim();r.reason=document.getElementById('f_rs').value.trim();
+    r.reason=document.getElementById('f_rs').value.trim();
     r.model=document.getElementById('f_model').value;
     if(MODELS.length&&!r.model){const w=document.getElementById('w');w.textContent='اختر المودل المُختبَر أولًا.';w.classList.add('show');return;}
     r.step=0;app.sub='qTest';render();window.scrollTo(0,0);
@@ -1947,7 +2004,6 @@ function buildQualitySummaryText(run){
   let L=['📋 تقرير اختبار الجودة — منصة مِعيار',`${SETTINGS.team} — ${SETTINGS.product}`,'———————————————',`الموظف: ${run.employee}`,`التاريخ: ${run.date}`];
   if(run.model)L.push(`المودل: ${run.model}`);
   if(run.reason)L.push(`سبب الاختبار: ${run.reason}`);
-  if(run.asana)L.push(`أسانا: ${run.asana}`);
   L.push(`متوسط التقييم: ${avg}/5  (${run.tests.length} سؤال)`,'———————————————');
   run.tests.forEach((item,i)=>{
     const r=run.results[i];
@@ -1970,7 +2026,6 @@ function qualityReview(){
     <div style="margin-top:14px;font-size:13.5px;color:var(--muted);">
       <b style="color:var(--ink-2)">الموظف:</b> ${esc(run.employee)} • <b style="color:var(--ink-2)">التاريخ:</b> ${esc(run.date)}
       ${run.model?` • <b style="color:var(--ink-2)">المودل:</b> ${esc(run.model)}`:''}
-      ${run.asana?` • <b style="color:var(--ink-2)">أسانا:</b> <a href="${esc(run.asana)}" target="_blank" style="color:var(--brand);">رابط المهمة</a>`:''}
       ${run.reason?` • <b style="color:var(--ink-2)">السبب:</b> ${esc(run.reason)}`:''}
     </div>
     ${qualityResultRows(run)}
@@ -1980,7 +2035,7 @@ function qualityReview(){
     </div>
   </div>`;
   document.getElementById('back').onclick=()=>{app.sub='qTest';run.step=run.tests.length-1;render();window.scrollTo(0,0);};
-  const persist=()=>{if(!app.ctx._qsaved){const saved={id:'qr'+Date.now()+Math.random().toString(36).slice(2,7),employee:run.employee,date:run.date,asana:run.asana,reason:run.reason,model:run.model,importTypes:run.importTypes,savedAt:new Date().toISOString(),tests:clone(run.tests),results:clone(run.results),avgRating:+avg};QUALITY_RUNS.unshift(saved);save(K.qualityRuns,QUALITY_RUNS);if(app.ctx.qDraftIndex!=null){QUALITY_DRAFTS.splice(app.ctx.qDraftIndex,1);save(K.qualityDrafts,QUALITY_DRAFTS);app.ctx.qDraftIndex=null;}app.ctx._qsaved=saved;toast('تم حفظ الاختبار');}return app.ctx._qsaved;};
+  const persist=()=>{if(!app.ctx._qsaved){const saved={id:'qr'+Date.now()+Math.random().toString(36).slice(2,7),employee:run.employee,date:run.date,reason:run.reason,model:run.model,importTypes:run.importTypes,savedAt:new Date().toISOString(),tests:clone(run.tests),results:clone(run.results),avgRating:+avg};QUALITY_RUNS.unshift(saved);save(K.qualityRuns,QUALITY_RUNS);if(app.ctx.qDraftIndex!=null){QUALITY_DRAFTS.splice(app.ctx.qDraftIndex,1);save(K.qualityDrafts,QUALITY_DRAFTS);app.ctx.qDraftIndex=null;}app.ctx._qsaved=saved;toast('تم حفظ الاختبار');}return app.ctx._qsaved;};
   document.getElementById('copySum').onclick=()=>{const s=persist();copyText(buildQualitySummaryText(s));toast('تم نسخ ملخّص الاختبار');};
   document.getElementById('share').onclick=async()=>{const s=persist();await shareQualityRun(s);setTimeout(()=>{app.sub=null;app.ctx={};render();window.scrollTo(0,0);},600);};
 }
@@ -2000,7 +2055,6 @@ function renderQualityRunView(){
     <div style="margin-top:14px;font-size:13.5px;color:var(--muted);">
       <b style="color:var(--ink-2)">الموظف:</b> ${esc(run.employee)} • <b style="color:var(--ink-2)">التاريخ:</b> ${esc(run.date)}
       ${run.model?` • <b style="color:var(--ink-2)">المودل:</b> ${esc(run.model)}`:''}
-      ${run.asana?` • <b style="color:var(--ink-2)">أسانا:</b> <a href="${esc(run.asana)}" target="_blank" style="color:var(--brand);">رابط المهمة</a>`:''}
       ${run.reason?` • <b style="color:var(--ink-2)">السبب:</b> ${esc(run.reason)}`:''}
     </div>
     ${qualityResultRows(run)}
@@ -2032,9 +2086,12 @@ function renderQualityRunView(){
    عقد الطلب/الرد المتوقَّع من الوسيط:
 
    POST askEndpoint
-     { model, lang:'ar'|'en', turns:[{q}], fileLink }
+     { model, lang:'ar'|'en', searchMode:'normal'|'detailed', turns:[{q}], fileLink }
      → { answers:[string,...], conversationId, conversationUrl }
        (answers مرتّبة بترتيب turns، وطول المصفوفتين متساوٍ)
+       searchMode هو نمط البحث في المنصة المُختبَرة: عادي أو تفصيلي. يُحدَّد لكل
+       جلسة اختبار، ويصل هنا دائمًا كنمط واحد — «الوضعان» في اختبار الدخان
+       يُترجَم إلى استدعاءين منفصلين، لا إلى قيمة ثالثة.
 
    POST judgeEndpoint
      { mode:'criteria'|'binary', lang, question, answer, criteria:[string,...] }
@@ -2071,7 +2128,7 @@ async function aiPost(url,body){
 
 /* --- الربط الحقيقي (يوصّله مهندس الذكاء الاصطناعي) --- */
 async function aiAskLive(req){
-  const d=await aiPost(AI_CONFIG.askEndpoint.trim(),{model:req.model,lang:req.lang,turns:req.turns.map(x=>({q:x.q})),fileLink:req.fileLink||''});
+  const d=await aiPost(AI_CONFIG.askEndpoint.trim(),{model:req.model,lang:req.lang,searchMode:req.searchMode||'normal',turns:req.turns.map(x=>({q:x.q})),fileLink:req.fileLink||''});
   const answers=Array.isArray(d.answers)?d.answers:[String(d.answer||'')];
   return {answers,conversationId:d.conversationId||'',conversationUrl:d.conversationUrl||''};
 }
@@ -2103,10 +2160,12 @@ async function aiAskMock(req){
   await wait(420+Math.random()*680);
   const answers=req.turns.map((turn,ti)=>{
     const pool=req.lang==='en'?MOCK_EN:MOCK_AR;
-    const h=hashStr((req.model||'')+'|'+turn.q+'|'+ti);
+    const mode=req.searchMode||'normal';
+    const h=hashStr((req.model||'')+'|'+mode+'|'+turn.q+'|'+ti);
     let body=pool[h%pool.length];
     if(ti>0)body=(req.lang==='en'?'Following on from the previous answer: ':'وبناءً على ما سبق في هذه المحادثة: ')+body;
     if(req.fileLink)body=(req.lang==='en'?'[Attached file read] ':'[تمت قراءة الملف المرفق] ')+body;
+    if(mode==='detailed')body=(req.lang==='en'?'[Detailed search] ':'[بحث تفصيلي] ')+body;
     return body;
   });
   const cid='mock-'+hashStr(req.model+req.turns.map(x=>x.q).join('|')).toString(36);
@@ -2114,9 +2173,10 @@ async function aiAskMock(req){
 }
 async function aiJudgeMock(req){
   await wait(300+Math.random()*450);
-  /* المحاكاة تربط النتيجة باسم النموذج ونص المعيار، فتبقى ثابتة لنفس المدخلات
-     وتختلف بين النماذج — حتى تكون شاشات المقارنة ذات معنى أثناء التجربة. */
-  const seed=s=>hashStr((req.model||'')+'::'+s)%100;
+  /* المحاكاة تربط النتيجة باسم النموذج ونص الإجابة ونص المعيار، فتبقى ثابتة لنفس
+     المدخلات وتختلف بين النماذج وبين نمطَي البحث — حتى تكون شاشات المقارنة
+     ونتائج «الوضعان» ذات معنى أثناء التجربة. */
+  const seed=s=>hashStr((req.model||'')+'::'+hashStr(req.answer||'')+'::'+s)%100;
   if(req.mode==='binary'){
     const pass=seed(req.question)>26;
     return {pass,summary:pass?'الإجابة سليمة ولا تتضمّن خطأً ظاهرًا.':'الإجابة تتضمّن خللًا يستدعي المراجعة.'};
@@ -2142,6 +2202,29 @@ const V2_KINDS={
   quality:{label:'اختبار جودة',icon:'judge',desc:'فحص معمّق بعدد أكبر من الأسئلة. المقيّم يحكم على كل معيار من معايير الإجابة الصحيحة على حدة، والنسبة تُبنى عليها.',defaultCount:20,judge:'criteria'},
 };
 function v2KindLabel(k){return (V2_KINDS[k]||{}).label||k;}
+/* نمط البحث خصيصة للجلسة لا للسؤال: أسئلة البنك لا تحمل نمطًا، وإنما يُحدَّد قبل
+   بدء الاختبار فيُطبَّق على الجلسة كاملة. اختبار الجودة يقتصر على نمط واحد حتى
+   تبقى نسبته قابلة للمقارنة بين الجلسات، والدخان يسمح بالوضعين معًا لأن حكمه
+   نجح/لم ينجح لكل بند على حِدة فلا يختلط شيء. */
+const SEARCH_MODES={normal:'بحث عادي',detailed:'بحث تفصيلي'};
+const SEARCH_MODE_SHORT={normal:'عادي',detailed:'تفصيلي'};
+function searchModeLabel(m){return m==='both'?'الوضعان (عادي + تفصيلي)':(SEARCH_MODES[m]||'بحث عادي');}
+function searchModeShort(m){return SEARCH_MODE_SHORT[m]||'عادي';}
+function v2DefaultSearchMode(kind){return kind==='smoke'?'both':'normal';}
+function v2SearchModeOptions(kind){return kind==='smoke'?['both','normal','detailed']:['normal','detailed'];}
+/* «الوضعان» = كل سؤال يُنفَّذ مرتين كبندين مستقلّين، فتُقرأ نتيجة كل نمط على حِدة
+   بدل دمج النمطين في حكم واحد يخفي أيّهما فشل. */
+function v2ExpandModes(items,searchMode){
+  if(searchMode!=='both')return items.map(it=>Object.assign(it,{searchMode}));
+  const out=[];
+  items.forEach(it=>['normal','detailed'].forEach(m=>out.push(Object.assign(clone(it),{searchMode:m}))));
+  return out;
+}
+/* الجلسات المحفوظة قبل إضافة نمط البحث لا تحمل الحقل، فتُقرأ على أنها «عادي» */
+function runSearchMode(run){return run&&run.searchMode||'normal';}
+function itemSearchMode(it){return it&&it.searchMode||'normal';}
+/* في جلسة «الوضعان» عدد البنود ضِعف عدد الأسئلة، فلا يصح تسمية البنود «أسئلة» */
+function v2UnitLabel(run){return runSearchMode(run)==='both'?'بند':'سؤال';}
 function critArray(c){if(!c)return [];return Array.isArray(c)?c.filter(x=>(x||'').trim()):[String(c)].filter(x=>x.trim());}
 
 function v2ItemFromBank(win,ci,ti,lang){
@@ -2169,15 +2252,15 @@ function v2BankPool(wins,lang,onlyScorable){
 /* عدد الأسئلة القابلة للتقييم بالمعايير في كل قسم — أسئلة بلا معايير لا يمكن
    إعطاؤها نسبة في اختبار الجودة، فنبيّن ذلك للمستخدم قبل البدء. */
 function v2WinOptions(lang){
-  return Object.entries(QBANK).map(([k,w])=>{
-    let n=0,scorable=0;
-    w.cats.forEach((c,ci)=>c.tests.forEach((t,ti)=>{n++;if(critArray(t.criteria).length)scorable++;}));
+  return bankWinEntries().map(([k,w,n])=>{
+    let scorable=0;
+    w.cats.forEach(c=>c.tests.forEach(t=>{if(critArray(t.criteria).length)scorable++;}));
     return {key:k,label:w.label,n,scorable};
-  }).filter(o=>o.n>0);
+  });
 }
 
 function v2Start(){
-  app.ctx.v2={kind:'quality',lang:'ar',model:'',wins:[],count:V2_KINDS.quality.defaultCount,onlyScorable:true,asana:'',reason:''};
+  app.ctx.v2={kind:'quality',lang:'ar',searchMode:v2DefaultSearchMode('quality'),model:'',wins:[],count:V2_KINDS.quality.defaultCount,onlyScorable:true,reason:''};
   app.sub='v2setup';render();window.scrollTo(0,0);
 }
 
@@ -2190,6 +2273,10 @@ function v2Setup(){
   const kindCards=Object.entries(V2_KINDS).map(([k,v])=>`<button class="kindcard ${s.kind===k?'on':''}" data-kind="${k}">
     <div class="kc-t"><svg class="icon"><use href="#ic-${v.icon}"/></svg> ${esc(v.label)}</div>
     <div class="kc-d">${esc(v.desc)}</div></button>`).join('');
+  const modePills=v2SearchModeOptions(s.kind).map(m=>`<button class="optpill ${s.searchMode===m?'on':''}" data-vsmode="${m}">${esc(searchModeLabel(m))}</button>`).join('');
+  const modeNote=s.kind==='smoke'
+    ?'«الوضعان» يسأل كل سؤال مرتين — مرة بالبحث العادي ومرة بالتفصيلي — وتُسجَّل نتيجة كل نمط على حِدة، فيتبيّن أيّهما تعطّل. اختر نمطًا واحدًا لفحص أسرع.'
+    :'اختبار الجودة يُنفَّذ بنمط واحد حتى تبقى نسبته قابلة للمقارنة مع الجلسات الأخرى. لمقارنة النمطين شغّل جلستين ثم افتح شاشة المقارنة من السجل.';
   const winsHtml=wins.map(o=>{
     const gap=o.n-o.scorable;
     return `<label class="qoption ${s.wins.includes(o.key)?'sel':''}" data-win="${esc(o.key)}"><input type="checkbox" ${s.wins.includes(o.key)?'checked':''}><span class="qtext">${esc(o.label)}${gap?`<span class="cn" style="display:block;font-size:11.5px;color:var(--muted);margin-top:3px;">${gap} من أسئلته بلا معايير إجابة</span>`:''}</span><span class="chip" style="flex:0 0 auto;">${o.n} سؤال</span></label>`;
@@ -2203,31 +2290,41 @@ function v2Setup(){
     <div class="section-h">١ · نوع الاختبار</div>
     <div class="kindgrid">${kindCards}</div>
 
-    <div class="section-h" style="margin-top:20px;">٢ · لغة الاختبار</div>
+    <div class="section-h" style="margin-top:20px;">٢ · نمط البحث</div>
+    <div class="optpills">${modePills}</div>
+    <div class="muted-note" style="margin-top:8px;">${esc(modeNote)}</div>
+
+    <div class="section-h" style="margin-top:20px;">٣ · لغة الاختبار</div>
     <div class="optpills"><button class="optpill ${s.lang==='ar'?'on':''}" data-vlang="ar">عربي</button><button class="optpill ${s.lang==='en'?'on':''}" data-vlang="en">English</button></div>
 
-    <div class="section-h" style="margin-top:20px;">٣ · النموذج المُختبَر</div>
+    <div class="section-h" style="margin-top:20px;">٤ · النموذج المُختبَر</div>
     <div class="field"><select id="v_model" ${MODELS.length?'':'disabled'}>
       <option value="">${MODELS.length?'اختر النموذج':'لا توجد نماذج مضافة بعد'}</option>
       ${MODELS.map(m=>`<option value="${esc(m.name)}" ${s.model===m.name?'selected':''}>${esc(m.name)}</option>`).join('')}
     </select>${MODELS.length?'':'<div class="muted-note" style="margin-top:6px;">أضِف نماذج من الإعدادات ← عام قبل بدء الاختبار.</div>'}</div>
 
-    <div class="section-h" style="margin-top:20px;">٤ · الأسئلة</div>
+    <div class="section-h" style="margin-top:20px;">٥ · الأسئلة</div>
     <p class="muted-note" style="margin:0 0 10px;">اترك الأقسام دون تحديد لسحب الأسئلة من بنك الأسئلة كاملًا.</p>
     ${winsHtml||'<div class="muted-note">لا توجد أسئلة في بنك الأسئلة بعد.</div>'}
     ${s.kind==='quality'?`<label class="qoption ${s.onlyScorable?'sel':''}" data-onlyscorable style="margin-top:10px;"><input type="checkbox" ${s.onlyScorable?'checked':''}><span class="qtext">اقتصر على الأسئلة التي لها معايير إجابة صحيحة${noCrit?`<span class="cn" style="display:block;font-size:11.5px;color:var(--muted);margin-top:3px;">${noCrit} سؤال في اختيارك الحالي بلا معايير — لا يمكن إعطاؤه نسبة في اختبار الجودة.</span>`:''}</span></label>`:''}
     <div class="field" style="margin-top:14px;"><label>عدد الأسئلة (المتاح الآن: ${poolN})</label><input id="v_count" type="number" min="1" max="${Math.max(poolN,1)}" value="${Math.min(s.count,Math.max(poolN,1))}"></div>
+    ${s.searchMode==='both'?`<div class="muted-note" style="margin-top:-6px;margin-bottom:12px;">${Math.min(s.count,Math.max(poolN,1))} سؤال × نمطَي بحث = ${Math.min(s.count,Math.max(poolN,1))*2} محادثة.</div>`:''}
     ${poolN?'':'<div class="warnmsg show">لا توجد أسئلة مطابقة لهذا الاختيار.</div>'}
 
-    <div class="section-h" style="margin-top:20px;">٥ · معلومات إضافية (اختيارية)</div>
-    <div class="field"><label>رابط أسانا (Asana)</label><input id="v_asana" value="${esc(s.asana)}" placeholder="https://app.asana.com/..."></div>
+    <div class="section-h" style="margin-top:20px;">٦ · معلومات إضافية (اختيارية)</div>
     <div class="field"><label>سبب الاختبار</label><textarea id="v_reason" placeholder="مثال: التحقق بعد تحديث نموذج الاسترجاع">${esc(s.reason)}</textarea></div>
 
     <div class="warnmsg" id="w"></div>
     <div class="nav-btns"><button class="btn btn-ghost" id="cancel">إلغاء</button><button class="btn btn-primary" id="start"><svg class="icon"><use href="#ic-search"/></svg> بدء الاختبار ←</button></div>
   </div>`;
-  const sync=()=>{s.model=document.getElementById('v_model').value;s.count=Math.max(1,+document.getElementById('v_count').value||1);s.asana=document.getElementById('v_asana').value.trim();s.reason=document.getElementById('v_reason').value.trim();};
-  screen.querySelectorAll('[data-kind]').forEach(b=>b.onclick=()=>{sync();const prev=s.kind;s.kind=b.dataset.kind;if(s.count===V2_KINDS[prev].defaultCount)s.count=V2_KINDS[s.kind].defaultCount;v2Setup();});
+  const sync=()=>{s.model=document.getElementById('v_model').value;s.count=Math.max(1,+document.getElementById('v_count').value||1);s.reason=document.getElementById('v_reason').value.trim();};
+  screen.querySelectorAll('[data-kind]').forEach(b=>b.onclick=()=>{sync();const prev=s.kind;s.kind=b.dataset.kind;if(s.count===V2_KINDS[prev].defaultCount)s.count=V2_KINDS[s.kind].defaultCount;
+    /* نمط النوع السابق إن كان هو افتراضيه يُستبدل بافتراضي النوع الجديد، وإلا نحترم
+       اختيار المستخدم — عدا «الوضعان» فهو غير متاح في الجودة. */
+    if(s.searchMode===v2DefaultSearchMode(prev))s.searchMode=v2DefaultSearchMode(s.kind);
+    else if(!v2SearchModeOptions(s.kind).includes(s.searchMode))s.searchMode=v2DefaultSearchMode(s.kind);
+    v2Setup();});
+  screen.querySelectorAll('[data-vsmode]').forEach(b=>b.onclick=()=>{sync();s.searchMode=b.dataset.vsmode;v2Setup();});
   screen.querySelectorAll('[data-vlang]').forEach(b=>b.onclick=()=>{sync();s.lang=b.dataset.vlang;v2Setup();});
   screen.querySelectorAll('[data-win]').forEach(el=>el.querySelector('input').onchange=()=>{sync();const k=el.dataset.win,i=s.wins.indexOf(k);if(i>-1)s.wins.splice(i,1);else s.wins.push(k);v2Setup();});
   const os=screen.querySelector('[data-onlyscorable] input');if(os)os.onchange=()=>{sync();s.onlyScorable=!s.onlyScorable;v2Setup();};
@@ -2240,9 +2337,10 @@ function v2Setup(){
     if(!pool.length){w.textContent='لا توجد أسئلة مطابقة لهذا الاختيار.';w.classList.add('show');return;}
     app.ctx.v2run={
       id:'v2'+Date.now()+Math.random().toString(36).slice(2,7),
-      kind:s.kind,employee:CURRENT_USER_EMAIL,date:today(),lang:s.lang,model:s.model,
-      asana:s.asana,reason:s.reason,aiMode:aiEffectiveMode(),judgeModel:aiLiveJudge()?(AI_CONFIG.judgeModel||''):'',
-      wins:s.wins.slice(),onlyScorable:scorableOn,items:sample(pool,Math.min(s.count,pool.length)),
+      kind:s.kind,employee:CURRENT_USER_EMAIL,date:today(),lang:s.lang,searchMode:s.searchMode,model:s.model,
+      reason:s.reason,aiMode:aiEffectiveMode(),judgeModel:aiLiveJudge()?(AI_CONFIG.judgeModel||''):'',
+      wins:s.wins.slice(),onlyScorable:scorableOn,questionCount:Math.min(s.count,pool.length),
+      items:v2ExpandModes(sample(pool,Math.min(s.count,pool.length)),s.searchMode),
       score:null,savedAt:null,
     };
     app.sub='v2running';render();window.scrollTo(0,0);
@@ -2263,10 +2361,11 @@ function v2PaintProgress(){
   const rows=run.items.map((it,i)=>{
     const cls=it.status==='judged'?'done':it.status==='error'?'error':(it.status==='running'||it.status==='judging')?'running':'';
     const st={pending:'بالانتظار',running:'جارٍ سؤال النموذج',judging:'جارٍ التقييم',judged:'تم',error:'تعذّر'}[it.status]||'';
-    return `<div class="runprog ${cls}"><span class="rp-n">${it.status==='judged'?'<svg class="icon"><use href="#ic-tick"/></svg>':i+1}</span><span class="rp-t">${esc(it.title)}</span><span class="rp-s">${esc(st)}</span></div>`;
+    const modeTag=runSearchMode(run)==='both'?`<span class="chip" style="flex:0 0 auto;margin-inline-end:8px;">${esc(searchModeShort(itemSearchMode(it)))}</span>`:'';
+    return `<div class="runprog ${cls}"><span class="rp-n">${it.status==='judged'?'<svg class="icon"><use href="#ic-tick"/></svg>':i+1}</span><span class="rp-t">${modeTag}${esc(it.title)}</span><span class="rp-s">${esc(st)}</span></div>`;
   }).join('');
   screen.innerHTML=`<div class="card">
-    <div class="eyebrow">${esc(v2KindLabel(run.kind))} · ${esc(run.lang==='en'?'English':'عربي')}${run.model?' · '+esc(run.model):''}</div>
+    <div class="eyebrow">${esc(v2KindLabel(run.kind))} · ${esc(searchModeLabel(runSearchMode(run)))} · ${esc(run.lang==='en'?'English':'عربي')}${run.model?' · '+esc(run.model):''}</div>
     <h1 class="h1">جارٍ تنفيذ الاختبار</h1>
     <p class="sub">يُنشئ البرنامج محادثة لكل سؤال ويرسلها للنموذج المُختبَر، ثم يقيّم كل إجابة حسب عناصر الإجابة الصحيحة. لا تغلق الصفحة.</p>
     ${run.aiMode!=='live'?`<div class="tip"><span class="ic"><svg class="icon"><use href="#ic-lamp"/></svg></span><div>${esc(aiModeLabel(run.aiMode))} — بعض النتائج أو كلها تجريبية.</div></div>`:''}
@@ -2286,7 +2385,7 @@ async function v2Execute(run){
       const it=run.items[i];
       try{
         it.status='running';if(app.sub==='v2running')v2PaintProgress();
-        const r=await AI.ask({model:run.model,lang:run.lang,turns:it.turns,fileLink:it.fileLink});
+        const r=await AI.ask({model:run.model,lang:run.lang,searchMode:itemSearchMode(it),turns:it.turns,fileLink:it.fileLink});
         it.turns.forEach((turn,ti)=>{turn.answer=r.answers[ti]!=null?r.answers[ti]:'';});
         it.conversationId=r.conversationId||'';it.conversationUrl=r.conversationUrl||'';
         it.status='judging';if(app.sub==='v2running')v2PaintProgress();
@@ -2336,7 +2435,7 @@ function v2ScoreCellHtml(it){
 function v2Review(){
   const run=app.ctx.v2run;setCrumb('مراجعة التقييم');
   screen.innerHTML=`<div class="card">
-    <div class="eyebrow">${esc(v2KindLabel(run.kind))} · ${esc(run.lang==='en'?'English':'عربي')}</div>
+    <div class="eyebrow">${esc(v2KindLabel(run.kind))} · ${esc(searchModeLabel(runSearchMode(run)))} · ${esc(run.lang==='en'?'English':'عربي')}</div>
     <h1 class="h1" data-edit-key="v2.review.title">${esc(t('v2.review.title','مراجعة نتائج الاختبار'))}</h1>
     <p class="sub" data-edit-key="v2.review.sub">${esc(t('v2.review.sub','راجع تقييم الذكاء الاصطناعي لكل إجابة. إن كان التقييم غير صحيح فحدّد السبب واكتب توضيحًا — تُحفظ ملاحظاتك مع نتيجة الاختبار.'))}</p>
     <div id="v2sum"></div>
@@ -2372,11 +2471,11 @@ function v2PaintSummary(){
   const el=document.getElementById('v2sum');if(!el)return;
   el.innerHTML=`<div class="stat-row" style="grid-template-columns:repeat(4,1fr);margin-top:16px;">
     <div class="stat"><div class="n" style="color:${pct==null?'':scoreColor(pct)};">${pct==null?'—':pct+'%'}</div><div class="l">النتيجة</div></div>
-    <div class="stat"><div class="n">${run.items.length}</div><div class="l">سؤال</div></div>
+    <div class="stat"><div class="n">${run.items.length}</div><div class="l">${esc(v2UnitLabel(run))}</div></div>
     <div class="stat"><div class="n">${reviewed}/${run.items.length}</div><div class="l">تمت مراجعته</div></div>
     <div class="stat"><div class="n" style="${disputed?'color:var(--fail);':''}">${disputed}</div><div class="l">تقييم معترَض عليه</div></div>
   </div>
-  ${errs?`<div class="warnmsg show" style="margin-top:12px;">تعذّر تنفيذ ${errs} سؤال — راجع البطاقات المعلَّمة.</div>`:''}
+  ${errs?`<div class="warnmsg show" style="margin-top:12px;">تعذّر تنفيذ ${errs} ${esc(v2UnitLabel(run))} — راجع البطاقات المعلَّمة.</div>`:''}
   ${(()=>{const n=run.items.filter(i=>i.status==='judged'&&v2ItemScore(i)==null).length;return n?`<div class="muted-note" style="margin-top:10px;">${n} سؤال بلا معايير إجابة في بنك الأسئلة، فلم يُحتسب في النسبة.</div>`:'';})()}`;
 }
 function v2PaintCards(){
@@ -2433,8 +2532,8 @@ function v2CardHtml(it,i,run){
 
   return `<div class="v2card">
     <div class="v2head">
-      <div class="v2q"><span class="chip" style="margin-inline-end:8px;">${i+1}</span>${esc(it.title)}
-        <div class="muted-note" style="margin-top:6px;font-weight:400;">${esc(it.srcLabel)}${it.kind==='conversation'?' · محادثة من '+it.turns.length+' أسئلة':''}${it.fileLink?' · بملف مرفق':''}</div>
+      <div class="v2q"><span class="chip" style="margin-inline-end:8px;">${i+1}</span>${runSearchMode(run)==='both'?`<span class="chip" style="margin-inline-end:8px;">${esc(searchModeShort(itemSearchMode(it)))}</span>`:''}${esc(it.title)}
+        <div class="muted-note" style="margin-top:6px;font-weight:400;">${esc(it.srcLabel)} · ${esc(searchModeLabel(itemSearchMode(it)))}${it.kind==='conversation'?' · محادثة من '+it.turns.length+' أسئلة':''}${it.fileLink?' · بملف مرفق':''}</div>
       </div>
       ${scoreHtml}
     </div>
@@ -2465,16 +2564,15 @@ function v2BindCards(){
 function v2SummaryText(run){
   const pct=v2RunScore(run);
   const L=['📋 تقرير '+v2KindLabel(run.kind)+' — منصة مِعيار',`${SETTINGS.team} — ${SETTINGS.product}`,'———————————————',
-    `الموظف: ${run.employee}`,`التاريخ: ${run.date}`,`اللغة: ${run.lang==='en'?'English':'عربي'}`];
+    `الموظف: ${run.employee}`,`التاريخ: ${run.date}`,`نمط البحث: ${searchModeLabel(runSearchMode(run))}`,`اللغة: ${run.lang==='en'?'English':'عربي'}`];
   if(run.model)L.push(`النموذج المُختبَر: ${run.model}`);
   if(run.aiMode&&run.aiMode!=='live')L.push('⚠ '+aiModeLabel(run.aiMode)+' — بعض النتائج أو كلها تجريبية');
   if(run.reason)L.push(`سبب الاختبار: ${run.reason}`);
-  if(run.asana)L.push(`أسانا: ${run.asana}`);
-  L.push(`النتيجة: ${pct==null?'—':pct+'%'} من ${run.items.length} سؤال`,'———————————————');
+  L.push(`النتيجة: ${pct==null?'—':pct+'%'} من ${run.items.length} ${v2UnitLabel(run)}`,'———————————————');
   run.items.forEach((it,i)=>{
     const s=v2ItemScore(it);
     const head=it.status==='error'?'⚠ تعذّر':(it.judge&&it.judge.mode==='binary'?(it.judge.pass?'✅ نجح':'❌ لم ينجح'):`${s>=0.8?'✅':s>=0.5?'🟡':'❌'} ${Math.round(s*100)}%`);
-    L.push('',`${i+1}. ${head} — ${it.title}`);
+    L.push('',`${i+1}. ${head} — ${runSearchMode(run)==='both'?'['+searchModeShort(itemSearchMode(it))+'] ':''}${it.title}`);
     if(it.judge&&it.judge.mode==='criteria')(it.judge.criteria||[]).forEach(c=>L.push(`   ${c.met?'✓':'✗'} ${c.text}`));
     else if(it.judge)L.push(`   ${it.judge.summary}`);
     if(it.review.agree===false)L.push(`   ⚑ اعتراض على التقييم: ${it.review.reason}${it.review.note?' — '+it.review.note:''}`);
@@ -2496,7 +2594,7 @@ function v2RunRow(r,i){
   const badge=`<span class="badge ${pct==null?'draft':pct>=80?'pass':pct>=50?'draft':'fail'}">${pct==null?'—':pct+'%'}</span>`;
   const disputed=r.items.filter(x=>x.review&&x.review.agree===false).length;
   return `<div class="lrow"><div class="ri"><div class="t">${esc(v2KindLabel(r.kind))} · ${esc(r.model||'—')}</div>
-    <div class="m">${esc(r.date)} • ${esc(r.employee||'—')} • ${r.items.length} سؤال • ${r.lang==='en'?'English':'عربي'}${disputed?` • <span style="color:var(--fail);">${disputed} اعتراض</span>`:''}${r.aiMode&&r.aiMode!=='live'?' • '+esc(aiModeLabel(r.aiMode)):''}</div></div>
+    <div class="m">${esc(r.date)} • ${esc(r.employee||'—')} • ${r.items.length} ${esc(v2UnitLabel(r))} • ${esc(searchModeLabel(runSearchMode(r)))} • ${r.lang==='en'?'English':'عربي'}${disputed?` • <span style="color:var(--fail);">${disputed} اعتراض</span>`:''}${r.aiMode&&r.aiMode!=='live'?' • '+esc(aiModeLabel(r.aiMode)):''}</div></div>
     ${badge}
     <button class="btn btn-ghost btn-sm" data-vrun="${i}"><svg class="icon"><use href="#ic-external-link"/></svg> استعراض</button>
     <button class="iconbtn" data-vcopy="${i}"><svg class="icon"><use href="#ic-copy"/></svg></button>
@@ -2573,12 +2671,12 @@ function renderV2RunView(){
   const disputed=run.items.filter(x=>x.review&&x.review.agree===false);
   screen.innerHTML=`<div class="card">
     <button class="bankback" id="back">→ سجل الاختبارات</button>
-    <div class="eyebrow">${esc(v2KindLabel(run.kind))} · ${esc(run.lang==='en'?'English':'عربي')}</div>
+    <div class="eyebrow">${esc(v2KindLabel(run.kind))} · ${esc(searchModeLabel(runSearchMode(run)))} · ${esc(run.lang==='en'?'English':'عربي')}</div>
     <h1 class="h1">${esc(run.model||'اختبار')} — ${pct==null?'—':pct+'%'}</h1>
     <div style="margin-top:10px;font-size:13.5px;color:var(--muted);">
-      <b style="color:var(--ink-2)">الموظف:</b> ${esc(run.employee||'—')} • <b style="color:var(--ink-2)">التاريخ:</b> ${esc(run.date)} • <b style="color:var(--ink-2)">عدد الأسئلة:</b> ${run.items.length}
+      <b style="color:var(--ink-2)">الموظف:</b> ${esc(run.employee||'—')} • <b style="color:var(--ink-2)">التاريخ:</b> ${esc(run.date)} • <b style="color:var(--ink-2)">عدد البنود:</b> ${run.items.length} ${esc(v2UnitLabel(run))}${runSearchMode(run)==='both'&&run.questionCount?` (${run.questionCount} سؤال × نمطَي بحث)`:''}
       ${run.judgeModel?` • <b style="color:var(--ink-2)">المقيّم:</b> ${esc(run.judgeModel)}`:''}
-      ${run.asana?` • <a href="${esc(run.asana)}" target="_blank" style="color:var(--brand);">مهمة أسانا</a>`:''}
+
       ${run.reason?` • <b style="color:var(--ink-2)">السبب:</b> ${esc(run.reason)}`:''}
     </div>
     ${run.aiMode&&run.aiMode!=='live'?`<div class="warnmsg show" style="margin-top:12px;">هذا الاختبار نُفِّذ في ${esc(aiModeLabel(run.aiMode))} — بعض نتائجه أو كلها تجريبية.</div>`:''}
@@ -2604,8 +2702,8 @@ function v2ReadonlyCard(it,i,run){
     :(it.judge?`<div class="criteria-box" style="margin-top:13px;"><span class="lbl">حكم المقيّم</span><p style="margin:0;">${esc(it.judge.summary)}</p></div>`:'');
   const rv=it.review||{};
   return `<div class="v2card">
-    <div class="v2head"><div class="v2q"><span class="chip" style="margin-inline-end:8px;">${i+1}</span>${esc(it.title)}
-      <div class="muted-note" style="margin-top:6px;font-weight:400;">${esc(it.srcLabel||'')}</div></div>${scoreHtml}</div>
+    <div class="v2head"><div class="v2q"><span class="chip" style="margin-inline-end:8px;">${i+1}</span>${runSearchMode(run)==='both'?`<span class="chip" style="margin-inline-end:8px;">${esc(searchModeShort(itemSearchMode(it)))}</span>`:''}${esc(it.title)}
+      <div class="muted-note" style="margin-top:6px;font-weight:400;">${esc(it.srcLabel||'')} · ${esc(searchModeLabel(itemSearchMode(it)))}</div></div>${scoreHtml}</div>
     ${it.turns.map((turn,ti)=>`<div style="margin-top:12px;">
       <div class="answerbox" style="background:var(--card-2);"><span class="lbl">${it.turns.length>1?'السؤال '+(ti+1):'السؤال'}</span><div class="txt">${esc(turn.q)}</div></div>
       <div class="answerbox collapsed" data-ans="v${i}|${ti}"><span class="lbl">إجابة النموذج</span><div class="txt">${esc(turn.answer||'—')}</div></div>
@@ -2642,25 +2740,28 @@ function renderV2Compare(){
   if(picked.length<2){out.innerHTML='<div class="card"><div class="empty">اختر اختبارين على الأقل للمقارنة.</div></div>';buildToc();return;}
 
   const overview=`<div class="cmpwrap"><table class="v2tbl">
-    <tr><th>النموذج</th><th>النوع</th><th>اللغة</th><th>التاريخ</th><th>الأسئلة</th><th>النتيجة</th><th>اعتراضات المختبِر</th></tr>
+    <tr><th>النموذج</th><th>النوع</th><th>نمط البحث</th><th>اللغة</th><th>التاريخ</th><th>الأسئلة</th><th>النتيجة</th><th>اعتراضات المختبِر</th></tr>
     ${picked.map(r=>{const d=r.items.filter(x=>x.review&&x.review.agree===false).length;return `<tr>
-      <td><b>${esc(r.model||'—')}</b></td><td>${esc(v2KindLabel(r.kind))}</td><td>${r.lang==='en'?'English':'عربي'}</td><td>${esc(r.date)}</td><td>${r.items.length}</td>
+      <td><b>${esc(r.model||'—')}</b></td><td>${esc(v2KindLabel(r.kind))}</td><td>${esc(searchModeLabel(runSearchMode(r)))}</td><td>${r.lang==='en'?'English':'عربي'}</td><td>${esc(r.date)}</td><td>${r.items.length}</td>
       <td><b style="color:${r.score==null?'':scoreColor(r.score)}">${r.score==null?'—':r.score+'%'}</b><div class="mini-bar"><span style="width:${r.score||0}%;background:${scoreColor(r.score||0)}"></span></div></td>
       <td>${d||'—'}</td></tr>`;}).join('')}
   </table></div>`;
 
-  // الأسئلة المشتركة: تطابق بنص السؤال الأول
-  const keyOf=it=>(it.turns[0]&&it.turns[0].q||it.title||'').trim();
+  /* الأسئلة المشتركة: تطابق بنص السؤال الأول مع نمط البحث. إدخال النمط في المفتاح
+     ضروري — في جلسة «الوضعان» يتكرّر نص السؤال مرتين، فبدونه يُقارَن العادي
+     بالعادي دائمًا ويُهمل التفصيلي بلا أن يظهر ذلك. */
+  const keyOf=it=>(it.turns[0]&&it.turns[0].q||it.title||'').trim()+' ⟨'+itemSearchMode(it)+'⟩';
   const shared=[];
   (picked[0].items||[]).forEach(it=>{
     const k=keyOf(it);
     const row=picked.map(r=>(r.items||[]).find(x=>keyOf(x)===k));
-    if(row.every(Boolean))shared.push({key:k,title:it.title,row});
+    if(row.every(Boolean))shared.push({key:k,title:it.title,mode:itemSearchMode(it),row});
   });
   const cell=x=>`<td>${v2ScoreCellHtml(x)}</td>`;
+  const anyBoth=picked.some(r=>runSearchMode(r)==='both');
   const sharedHtml=shared.length?`<div class="cmpwrap"><table class="v2tbl fixed">
     <tr><th>السؤال</th>${picked.map(r=>`<th>${esc(r.model||'—')}</th>`).join('')}</tr>
-    ${shared.map(s=>`<tr><td>${esc(s.title)}</td>${s.row.map(cell).join('')}</tr>`).join('')}
+    ${shared.map(s=>`<tr><td>${anyBoth?`<span class="chip" style="margin-inline-end:6px;">${esc(searchModeShort(s.mode))}</span>`:''}${esc(s.title)}</td>${s.row.map(cell).join('')}</tr>`).join('')}
   </table></div>`:'<div class="empty">لا توجد أسئلة مشتركة بين الاختبارات المختارة. اختر اختبارات سُحبت من نفس أقسام بنك الأسئلة.</div>';
 
   out.innerHTML=`<div class="card"><h2 class="h2">نظرة عامة</h2>${overview}</div>
@@ -2687,17 +2788,17 @@ function renderV2QuestionView(){
   if(chosen){
     body=`<div class="card"><h2 class="h2">${esc(chosen.title)}</h2>
       <div class="cmpwrap"><table class="v2tbl" style="margin-top:14px;">
-        <tr><th>النموذج</th><th>نوع الاختبار</th><th>التاريخ</th><th>النتيجة</th><th>المختبِر</th><th>مراجعة التقييم</th></tr>
+        <tr><th>النموذج</th><th>نوع الاختبار</th><th>نمط البحث</th><th>التاريخ</th><th>النتيجة</th><th>المختبِر</th><th>مراجعة التقييم</th></tr>
         ${chosen.hits.map(h=>{
           const rv=h.item.review||{};
-          return `<tr><td><b>${esc(h.run.model||'—')}</b></td><td>${esc(v2KindLabel(h.run.kind))}</td><td>${esc(h.run.date)}</td>
+          return `<tr><td><b>${esc(h.run.model||'—')}</b></td><td>${esc(v2KindLabel(h.run.kind))}</td><td>${esc(searchModeShort(itemSearchMode(h.item)))}</td><td>${esc(h.run.date)}</td>
             <td>${v2ScoreCellHtml(h.item)}</td>
             <td>${esc(h.run.employee||'—')}</td>
             <td>${rv.agree===true?'أقرّه':rv.agree===false?`<span style="color:var(--fail);">اعترض — ${esc(rv.reason)}</span>`:'—'}</td></tr>`;
         }).join('')}
       </table></div></div>
       ${chosen.hits.map((h,i)=>`<div class="v2card">
-        <div class="v2head"><div class="v2q">${esc(h.run.model||'—')}<div class="muted-note" style="margin-top:6px;font-weight:400;">${esc(h.run.date)} · ${esc(v2KindLabel(h.run.kind))}</div></div>
+        <div class="v2head"><div class="v2q">${esc(h.run.model||'—')}<div class="muted-note" style="margin-top:6px;font-weight:400;">${esc(h.run.date)} · ${esc(v2KindLabel(h.run.kind))} · ${esc(searchModeLabel(itemSearchMode(h.item)))}</div></div>
         ${(()=>{const it=h.item,s=v2ItemScore(it);
           if(it.judge&&it.judge.mode==='binary')return `<div class="scorebig ${it.judge.pass?'pass':'fail'}"><div class="sv"><svg class="icon" style="width:19px;height:19px;"><use href="#ic-${it.judge.pass?'tick':'x'}"/></svg></div><div class="sl">${it.judge.pass?'نجح':'لم ينجح'}</div></div>`;
           const p=s==null?null:Math.round(s*100);
@@ -3230,7 +3331,7 @@ function renderUpdatesRunView(){
 let adminCats=null;
 const SETTAB_GROUPS=[
   {label:'إعدادات المنتجات',items:[
-    ['cases','الاختبارات · حالات اختبار الدخان القديم',false,'dashboard'],
+    ['cases','اختبارات الدخان',false,'dashboard'],
     ['bank','بنك الأسئلة',false,'qbank'],
   ]},
   {label:'الإعدادات العامة',items:[
@@ -3253,7 +3354,7 @@ function settingsAI(){
 
   <div class="field" style="margin-top:16px;"><label>رابط وسيط النموذج المُختبَر (askEndpoint)</label>
     <input id="ai_ask" value="${esc(c.askEndpoint)}" placeholder="https://<project>.supabase.co/functions/v1/qanoniah-ask">
-    <div class="muted-note" style="margin-top:6px;">يستقبل <code>{model, lang, turns:[{q}], fileLink}</code> ويعيد <code>{answers:[...], conversationId, conversationUrl}</code>.</div></div>
+    <div class="muted-note" style="margin-top:6px;">يستقبل <code>{model, lang, searchMode, turns:[{q}], fileLink}</code> ويعيد <code>{answers:[...], conversationId, conversationUrl}</code>. و<code>searchMode</code> يكون <code>normal</code> أو <code>detailed</code> ويُحدَّد لكل جلسة اختبار.</div></div>
 
   <div class="field"><label>رابط وسيط المقيّم (judgeEndpoint)</label>
     <input id="ai_judge" value="${esc(c.judgeEndpoint)}" placeholder="https://<project>.supabase.co/functions/v1/meyar-judge">
@@ -3533,7 +3634,6 @@ function settingsBankFileUpload(w){
   const cat=w.cats[0];
   const tests=cat.tests.map((t,ti)=>{
     const criteria=(t.criteria||[]).map((x,xi)=>`<div class="qline"><textarea data-bcrit="0|${ti}|${xi}" placeholder="معيار تقييم">${esc(x)}</textarea><button class="iconbtn del" data-delcrit="0|${ti}|${xi}"><svg class="icon"><use href="#ic-x"/></svg></button></div>`).join('');
-    const ttToggles=Object.keys(TEST_TYPE_LABELS).map(tt=>`<button class="tab ${t.testType===tt?'on':''}" data-btesttype="${ti}|${tt}">${esc(TEST_TYPE_LABELS[tt])}</button>`).join('');
     return `<div class="subacc ${t._open?'open':''}" data-bsub="0|${ti}"><div class="head">
       <span class="caret">▶</span>
       <input type="checkbox" class="selbox" data-bsel="0|${ti}" ${t._sel?'checked':''} onclick="event.stopPropagation()">
@@ -3542,7 +3642,6 @@ function settingsBankFileUpload(w){
         <div class="lbl-sm">نص الطلب المرافق للملف (عربي)</div><textarea data-bqlang="0|${ti}|ar">${esc(bilingualExact(t.q,'ar'))}</textarea>
         <div class="lbl-sm">Accompanying request text (English, optional)</div><textarea data-bqlang="0|${ti}|en">${esc(bilingualExact(t.q,'en'))}</textarea>
         <div class="lbl-sm">رابط الملف</div><input data-bf="0|${ti}|fileLink" value="${esc(t.fileLink||'')}" placeholder="رابط الملف (Google Drive مثلًا)">
-        <div class="lbl-sm">نوع الاختبار</div><div class="tabbar">${ttToggles}</div>
         <div class="lbl-sm">الهدف من الاختبار</div><textarea data-bf="0|${ti}|goal" placeholder="ما الذي يهدف هذا الاختبار للتحقق منه؟">${esc(t.goal||'')}</textarea>
         <div class="lbl-sm">معايير التقييم</div>${criteria||'<div class="muted-note">لا معايير بعد.</div>'}
         <button class="iconbtn" data-addcrit="0|${ti}" style="margin-top:6px;"><svg class="icon"><use href="#ic-plus"/></svg> معيار</button>
@@ -3599,14 +3698,13 @@ function bindBank(){
   if(document.getElementById('addBankTest'))document.getElementById('addBankTest').onclick=()=>{
     const w=adminBank[win];
     if(w.type==='conversation')w.cats[0].tests.push({title:'',messages:[{q:''}],criteria:'',_open:true});
-    else if(w.type==='fileupload')w.cats[0].tests.push({q:'',fileLink:'',testType:'read',goal:'',criteria:[''],_open:true});
+    else if(w.type==='fileupload')w.cats[0].tests.push({q:'',fileLink:'',goal:'',criteria:[''],_open:true});
     else w.cats[0].tests.push({q:'',criteria:[''],_open:true});
     re();
   };
   screen.querySelectorAll('[data-bconvmsg]').forEach(el=>el.oninput=e=>{const[ti,mi,lang]=el.dataset.bconvmsg.split('|');bqSetLang(adminBank[win].cats[0].tests[+ti].messages[+mi],lang,e.target.value);});
   screen.querySelectorAll('[data-addconvmsg]').forEach(b=>b.onclick=()=>{const ti=+b.dataset.addconvmsg;const t=adminBank[win].cats[0].tests[ti];t.messages=t.messages||[];t.messages.push({q:''});t._open=true;re();});
   screen.querySelectorAll('[data-delconvmsg]').forEach(b=>b.onclick=()=>{const[ti,mi]=b.dataset.delconvmsg.split('|');const t=adminBank[win].cats[0].tests[+ti];t.messages.splice(+mi,1);t._open=true;re();});
-  screen.querySelectorAll('[data-btesttype]').forEach(b=>b.onclick=()=>{const[ti,tt]=b.dataset.btesttype.split('|');adminBank[win].cats[0].tests[+ti].testType=tt;re();});
   screen.querySelectorAll('[data-baddtest]').forEach(b=>b.onclick=()=>{const ci=+b.dataset.baddtest;adminBank[win].cats[ci].tests.push({q:''});re();});
   screen.querySelectorAll('[data-bsavetest]').forEach(b=>b.onclick=()=>{
     const[ci,ti]=b.dataset.bsavetest.split('|');
@@ -3616,10 +3714,10 @@ function bindBank(){
     warn.classList.remove('show');
     persistBank();toast('تم حفظ السؤال');
   });
-  screen.querySelectorAll('[data-bdeltest]').forEach(b=>b.onclick=()=>{const[ci,ti]=b.dataset.bdeltest.split('|');if(confirm('حذف السؤال؟')){adminBank[win].cats[+ci].tests.splice(+ti,1);re();}});
-  screen.querySelectorAll('[data-bdelcat]').forEach(b=>b.onclick=()=>{const ci=+b.dataset.bdelcat;if(confirm('حذف النوع وكل أسئلته؟')){adminBank[win].cats.splice(ci,1);re();}});
+  screen.querySelectorAll('[data-bdeltest]').forEach(b=>b.onclick=()=>{const[ci,ti]=b.dataset.bdeltest.split('|');if(confirm('حذف السؤال؟')){adminBank[win].cats[+ci].tests.splice(+ti,1);persistBank();toast('تم حذف السؤال');re();}});
+  screen.querySelectorAll('[data-bdelcat]').forEach(b=>b.onclick=()=>{const ci=+b.dataset.bdelcat;if(confirm('حذف النوع وكل أسئلته؟')){adminBank[win].cats.splice(ci,1);persistBank();toast('تم حذف النوع');re();}});
   if(document.getElementById('addBankCat'))document.getElementById('addBankCat').onclick=()=>{adminBank[win].cats.forEach(c=>c._open=false);adminBank[win].cats.push({title:'نوع جديد',tests:[],_open:true});re();};
-  if(document.getElementById('delSelBank'))document.getElementById('delSelBank').onclick=()=>{let n=0;adminBank[win].cats.forEach(c=>{const b=c.tests.length;c.tests=c.tests.filter(t=>!t._sel);n+=b-c.tests.length;});if(n){toast(`حُذف ${n} سؤال`);re();}else toast('لم تحدّد شيئًا');};
+  if(document.getElementById('delSelBank'))document.getElementById('delSelBank').onclick=()=>{let n=0;adminBank[win].cats.forEach(c=>{const b=c.tests.length;c.tests=c.tests.filter(t=>!t._sel);n+=b-c.tests.length;});if(n){persistBank();toast(`حُذف ${n} سؤال`);re();}else toast('لم تحدّد شيئًا');};
   document.getElementById('saveBank').onclick=()=>{
     const w=adminBank[win];
     const warn=document.getElementById('bankWarn');
