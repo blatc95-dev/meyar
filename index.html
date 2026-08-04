@@ -3578,8 +3578,6 @@ function bindCases(){
 
 /* ===== إدارة بنك الأسئلة ===== */
 let adminBank=null;
-function parseTagsInput(v){return String(v||'').split(/[,،;؛]/).map(s=>s.trim()).filter(Boolean);}
-function bankTagsMissingIndex(w){return w.cats[0].tests.findIndex(t=>!(t.tags&&t.tags.length));}
 function settingsBankFlat(w){
   const cat=w.cats[0];
   const tests=cat.tests.map((t,ti)=>{
@@ -3591,7 +3589,6 @@ function settingsBankFlat(w){
       <div class="body">
         <div class="lbl-sm">نص السؤال (عربي)</div><textarea data-bqlang="0|${ti}|ar">${esc(bilingualExact(t.q,'ar'))}</textarea>
         <div class="lbl-sm">Question text (English, optional)</div><textarea data-bqlang="0|${ti}|en">${esc(bilingualExact(t.q,'en'))}</textarea>
-        <div class="lbl-sm">الوسوم (وسم واحد على الأقل، افصل بينها بفاصلة)</div><input data-btags="0|${ti}" value="${esc((t.tags||[]).join('، '))}" placeholder="مثال: تواريخ النفاذ، عمالي">
         <div class="lbl-sm">عناصر الإجابة الصحيحة</div>${criteria||'<div class="muted-note">لا عناصر بعد.</div>'}
         <button class="iconbtn" data-addcrit="0|${ti}" style="margin-top:6px;"><svg class="icon"><use href="#ic-plus"/></svg> عنصر</button>
         <div class="row" style="margin-top:10px;"><button class="btn btn-primary btn-sm" data-bsavetest="0|${ti}"><svg class="icon"><use href="#ic-save"/></svg> حفظ السؤال</button><button class="iconbtn del" data-bdeltest="0|${ti}"><svg class="icon"><use href="#ic-trash"/></svg> حذف السؤال</button></div>
@@ -3679,7 +3676,8 @@ function settingsBank(){
     <div class="warnmsg" id="bankWarn"></div>
     ${flat?settingsBankFlat(w):isConv?settingsBankConversation(w):isFile?settingsBankFileUpload(w):settingsBankTyped(w)}`;
 }
-function persistBank(){const cl=clone(adminBank);Object.values(cl).forEach(w=>w.cats.forEach(c=>{delete c._open;c.tests.forEach(t=>{delete t._open;delete t._sel;});}));QBANK=cl;save(K.qbank,QBANK);}
+/* tags حقل ملغى: تُحذف بقاياه من الأسئلة المحفوظة سابقًا عند أول حفظ بعد الإلغاء */
+function persistBank(){const cl=clone(adminBank);Object.values(cl).forEach(w=>w.cats.forEach(c=>{delete c._open;c.tests.forEach(t=>{delete t._open;delete t._sel;delete t.tags;});}));QBANK=cl;save(K.qbank,QBANK);}
 function bindBank(){
   const win=app.ctx.bankAdminWin||Object.keys(adminBank)[0];
   const re=()=>renderSettings();
@@ -3691,7 +3689,6 @@ function bindBank(){
   screen.querySelectorAll('[data-bf]').forEach(el=>el.oninput=e=>{const[ci,ti,f]=el.dataset.bf.split('|');adminBank[win].cats[+ci].tests[+ti][f]=e.target.value;});
   screen.querySelectorAll('[data-bqlang]').forEach(el=>el.oninput=e=>{const[ci,ti,lang]=el.dataset.bqlang.split('|');bqSetLang(adminBank[win].cats[+ci].tests[+ti],lang,e.target.value);});
   screen.querySelectorAll('[data-bcrit]').forEach(el=>el.oninput=e=>{const[ci,ti,xi]=el.dataset.bcrit.split('|');adminBank[win].cats[+ci].tests[+ti].criteria[+xi]=e.target.value;});
-  screen.querySelectorAll('[data-btags]').forEach(el=>el.oninput=e=>{const[ci,ti]=el.dataset.btags.split('|');adminBank[win].cats[+ci].tests[+ti].tags=parseTagsInput(e.target.value);});
   screen.querySelectorAll('[data-bsel]').forEach(el=>el.onchange=e=>{const[ci,ti]=el.dataset.bsel.split('|');adminBank[win].cats[+ci].tests[+ti]._sel=e.target.checked;});
   screen.querySelectorAll('[data-delcrit]').forEach(b=>b.onclick=()=>{const[ci,ti,xi]=b.dataset.delcrit.split('|');const t=adminBank[win].cats[+ci].tests[+ti];t.criteria.splice(+xi,1);t._open=true;re();});
   screen.querySelectorAll('[data-addcrit]').forEach(b=>b.onclick=()=>{const[ci,ti]=b.dataset.addcrit.split('|');const t=adminBank[win].cats[+ci].tests[+ti];t.criteria=t.criteria||[];t.criteria.push('');t._open=true;re();});
@@ -3707,10 +3704,7 @@ function bindBank(){
   screen.querySelectorAll('[data-delconvmsg]').forEach(b=>b.onclick=()=>{const[ti,mi]=b.dataset.delconvmsg.split('|');const t=adminBank[win].cats[0].tests[+ti];t.messages.splice(+mi,1);t._open=true;re();});
   screen.querySelectorAll('[data-baddtest]').forEach(b=>b.onclick=()=>{const ci=+b.dataset.baddtest;adminBank[win].cats[ci].tests.push({q:''});re();});
   screen.querySelectorAll('[data-bsavetest]').forEach(b=>b.onclick=()=>{
-    const[ci,ti]=b.dataset.bsavetest.split('|');
-    const w=adminBank[win],t=w.cats[+ci].tests[+ti];
     const warn=document.getElementById('bankWarn');
-    if(w.type==='flat'&&!(t.tags&&t.tags.length)){warn.textContent='أضف وسمًا واحدًا على الأقل لهذا السؤال قبل الحفظ.';warn.classList.add('show');return;}
     warn.classList.remove('show');
     persistBank();toast('تم حفظ السؤال');
   });
@@ -3719,18 +3713,8 @@ function bindBank(){
   if(document.getElementById('addBankCat'))document.getElementById('addBankCat').onclick=()=>{adminBank[win].cats.forEach(c=>c._open=false);adminBank[win].cats.push({title:'نوع جديد',tests:[],_open:true});re();};
   if(document.getElementById('delSelBank'))document.getElementById('delSelBank').onclick=()=>{let n=0;adminBank[win].cats.forEach(c=>{const b=c.tests.length;c.tests=c.tests.filter(t=>!t._sel);n+=b-c.tests.length;});if(n){persistBank();toast(`حُذف ${n} سؤال`);re();}else toast('لم تحدّد شيئًا');};
   document.getElementById('saveBank').onclick=()=>{
-    const w=adminBank[win];
     const warn=document.getElementById('bankWarn');
-    if(w.type==='flat'){
-      const idx=bankTagsMissingIndex(w);
-      if(idx>-1){
-        w.cats[0].tests.forEach((t,i)=>{t._open=i===idx;});
-        warn.textContent='أضف وسمًا واحدًا على الأقل لكل سؤال قبل حفظ التغييرات.';warn.classList.add('show');
-        re();
-        const el=screen.querySelector(`[data-bsub="0|${idx}"]`);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});
-        return;
-      }
-    }
+    warn.classList.remove('show');
     persistBank();adminBank=null;toast('تم حفظ التغييرات');go('dashboard');
   };
   document.getElementById('resetBank').onclick=()=>{if(confirm('استعادة بنك الأسئلة إلى القيم الافتراضية؟ سيُفقد أي تعديل غير محفوظ.')){QBANK=clone(DEF_QBANK);save(K.qbank,QBANK);adminBank=null;toast('تمت استعادة بنك الأسئلة الافتراضي');re();}};
