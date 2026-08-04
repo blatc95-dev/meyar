@@ -250,7 +250,10 @@
   .subacc{border:1px solid var(--line-2);border-radius:10px;margin-top:8px;overflow:hidden;}
   .subacc>.head{display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;background:var(--card-2);}
   .subacc>.head:hover{background:var(--accent-soft);}
-  .subacc>.head .caret{transition:.2s;color:var(--muted);font-size:11px;}
+  .subacc>.head .caret{transition:.2s;color:var(--muted);font-size:11px;flex:0 0 auto;}
+  /* أسئلة الوقائع الطويلة تُقصّ إلى سطرين في الرأس المطويّ ليبقى التصفّح ممكنًا،
+     ونصّها الكامل يُعرض داخل البطاقة عند فتحها */
+  .subacc>.head .title{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
   .subacc>.body{display:none;padding:12px;border-top:1px solid var(--line-2);background:var(--card);}
   .subacc.open>.body{display:block;}
   .subacc.open>.head .caret{transform:rotate(90deg);}
@@ -526,7 +529,7 @@ const store={mem:{},get(k){try{return localStorage.getItem(k);}catch(e){return (
 const clone=o=>JSON.parse(JSON.stringify(o));
 function load(k,d){const s=store.get(k);if(s){try{return JSON.parse(s);}catch(e){}}return clone(d);}
 function save(k,v){store.set(k,JSON.stringify(v));if(k!==K.theme)cloudSave(k,v);}
-const K={cats:'m_cats',runs:'m_runs',drafts:'m_drafts',settings:'m_settings',theme:'m_theme',texts:'m_texts',qbank:'m_qbank_v4',comp:'m_comp_defs_v2',compRuns:'m_comp_runs_v1',competitors:'m_competitors_v1',updatesRuns:'m_updates_runs_v1',models:'m_models_v1',productVis:'m_product_vis_v1',qualityRuns:'m_quality_runs_v1',qualityDrafts:'m_quality_drafts_v1',sideCollapsed:'m_side_collapsed_v1',aiConfig:'m_ai_config_v1',v2Runs:'m_v2_runs_v1',rejectReasons:'m_reject_reasons_v1'};
+const K={cats:'m_cats',runs:'m_runs',drafts:'m_drafts',settings:'m_settings',theme:'m_theme',texts:'m_texts',qbank:'m_qbank_v4',bankImports:'m_bank_imports_v1',comp:'m_comp_defs_v2',compRuns:'m_comp_runs_v1',competitors:'m_competitors_v1',updatesRuns:'m_updates_runs_v1',models:'m_models_v1',productVis:'m_product_vis_v1',qualityRuns:'m_quality_runs_v1',qualityDrafts:'m_quality_drafts_v1',sideCollapsed:'m_side_collapsed_v1',aiConfig:'m_ai_config_v1',v2Runs:'m_v2_runs_v1',rejectReasons:'m_reject_reasons_v1'};
 applyTheme(store.get(K.theme)||'light');
 
 /* ===== Supabase: مزامنة البيانات مع الفريق ===== */
@@ -949,8 +952,180 @@ function migrateQBankGeneral(bank){
   delete bank.general;
   return bank;
 }
+let BANK_IMPORTS=load(K.bankImports,[]);
 let QBANK=load(K.qbank,DEF_QBANK);
 if(QBANK.general){QBANK=migrateQBankGeneral(QBANK);save(K.qbank,QBANK);}
+
+/* دفعة أسئلة مستوردة من ملف «تصدير بنك الأسئلة» — تُدمج في القدرات التحليلية.
+   نص السؤال محفوظ بفواصل أسطره كما ورد، لأن أكثرها وقائع متعدّدة الفقرات. */
+const IMPORT_ANALYTICAL_2026_08_04=[
+  {q:{ar:`أنا أعمل في شركة منذ ثلاث سنوات، وخلال الفترة الماضية بدأت الإدارة تسحب معظم صلاحياتي وتعطيها لموظف آخر، ثم نقلوني إلى مكتب منفصل بدون أي توضيح، وبعدها بدأوا يطلبون مني أعمالًا ليست ضمن طبيعة عملي، وكلما اعترضت قالوا إن هذا من صلاحيات صاحب العمل.
+
+قبل يومين استدعاني المدير وقال بالحرف: “إذا قدمت استقالتك سنعطيك شهادة خبرة ممتازة ونصرف مستحقاتك بسرعة، أما إذا رفضت فسنضطر لإنهاء خدماتك بطريقة قد لا تكون في مصلحتك.”
+
+أنا لم أوقع على أي شيء حتى الآن، ولا أعرف هل الأفضل أن أقدم الاستقالة أم أنتظر قرار الشركة.
+
+هل ما قامت به الشركة يعتبر إجراءً نظاميًا؟ وما الذي ينبغي أن أنتبه له قبل اتخاذ أي قرار؟`,en:`I have worked for the same company for three years. Over the past several months, management gradually removed most of my responsibilities and assigned them to another employee. They then moved me to a separate office without explanation and began assigning me work unrelated to my position. Whenever I objected, I was told that management has full authority to assign any work it wishes.
+
+Two days ago, my manager told me: “If you resign voluntarily, we’ll provide an excellent reference and process your end-of-service benefits quickly. If you refuse, we may terminate your employment in a way that won’t be in your best interest.”
+
+I have not signed anything yet.
+
+Should I resign? Is the company’s conduct necessarily lawful, and what legal issues should I consider before making a decision?`},criteria:[
+    `يقرر أن تكليف العامل بعمل يختلف جوهرياً عن العمل المتفق عليه دون موافقته الكتابية يُعد مخالفة للمادة (60) من نظام العمل.`,
+    `تهميش العامل أو سحب صلاحياته أو الضغط عليه للاستقالة قد يندرج ضمن حالات المادة (81)، بما يجيز له ترك العمل مع الاحتفاظ بحقوقه النظامية.`,
+    `الاستقالة بعد خدمة ثلاث سنوات يترتب عليها استحقاق ثلث مكافأة نهاية الخدمة فقط وفق المادة (85)، وقد تؤثر في المطالبة بالتعويض عن الإنهاء غير المشروع.`,
+    `ينبغي عدم توقيع الاستقالة أو الموافقة على تغيير المهام، مع توثيق المخالفات وتقديم شكوى عمالية عند استمرارها.`,
+    `إذا أنهت الشركة العقد دون سبب مشروع، فقد يستحق العامل مكافأة نهاية الخدمة كاملة، وتعويض المادة (77)، وبدل مهلة الإشعار عند عدم مراعاتها.`,
+  ]},
+  {q:{ar:`شركة وضعت في العقد بندًا ينص على أن أي نزاع يجب حله أولًا عن طريق التفاوض، فهل يمنع ذلك أحد الأطراف من رفع الدعوى مباشرة؟`,en:`A company inserted a clause stating that any dispute must first be resolved by negotiation. Does this prevent a party from filing a lawsuit immediately?`},criteria:[
+    `يحدد ابتداءً أن وجود اتفاق تعاقدي مكتوب يلزم الطرفين بالتفاوض قبل اللجوء إلى القضاء، ويجعل هذا الاتفاق هو السند الأساسي لوجوب اتباع هذا الإجراء.`,
+    `يستند إلى المادتين (94) و(95) من نظام المعاملات المدنية، اللتين تقرران وجوب الوفاء بالعقد وتنفيذه وفقًا لما اشتمل عليه وبما يقتضيه حسن النية.`,
+    `يبين أن شرط التفاوض السابق على التقاضي لا يسقط بإرادة أحد الطرفين منفردًا، وإنما يتطلب إسقاطه أو تعديله اتفاق الطرفين.`,
+    `يقرر أن عبء إثبات وجود شرط التفاوض ومضمونه يقع على عاتق الطرف الذي يتمسك به ويدعي وجوب تطبيقه.`,
+    `يتجنب افتراض اختصاص المحاكم التجارية والاستناد لنظام المحاكم التجارية ولائحته التنفيذية لمجرد أن أحد أطراف النزاع شركة`,
+  ]},
+  {q:{ar:`هل يمكن الاعتماد على محادثة واتساب وحدها كدليل أمام القضاء السعودي؟`,en:`Can a WhatsApp conversation alone be relied upon as evidence before Saudi courts?`},criteria:[
+    `يبين أن الأصل العام هو أن محادثات واتساب تعد من الأدلة الرقمية المقبولة، وأن للدليل الرقمي ذات حجية الدليل الكتابي - المادة ٥٥ من نظام الإثبات`,
+    `يشير إلى تعريف الدليل الرقمي - المادتان 53 و 54 من نظام الإثبات`,
+    `يراعي أحكام حجية الدليل الرقمي غير الرسمي - المادة 57 من نظام الإثبات ويتجنب اعتبار محادثات واتساب دليلاً قاطعًا دون مراعاة متطلبات الحجية أو الإثبات.`,
+  ]},
+  {q:{ar:`تعتزم جهتنا الحكومية التعاقد مع منصة تعتمد على الذكاء الاصطناعي لمراجعة العقود. أوضح المورّد أن العقود المرفوعة قد تتم معالجتها عبر بنية سحابية خارج المملكة، وأنه يحتفظ بنسخ مجهّلة من استفسارات المستخدمين لتحسين الخدمة. قبل اعتماد التعاقد، ما أبرز الجوانب النظامية التي ينبغي على الإدارة القانونية تقييمها؟`,en:`Our government entity intends to procure an AI-powered contract review platform. The vendor states that uploaded contracts may be processed using cloud infrastructure outside Saudi Arabia and that anonymized user prompts may be retained to improve the service. Before approving the procurement, what are the primary legal and regulatory issues that should be assessed?`},criteria:[
+    `لا يخلط بين البيانات الحكومية، والبيانات الشخصية، والمعلومات السرية أو التجارية.`,
+    `يقرر أن نظام حماية البيانات الشخصية ولائحة نقل البيانات الشخصية إلى خارج المملكة يطبقان على ما تتضمنه العقود من بيانات شخصية، ولا يجوز الاستناد إليهما وحدهما للحكم على جميع البيانات الحكومية غير الشخصية.`,
+    `يبين أن وصف البيانات بأنها «مجهّلة» لا يكفي، بل يجب التحقق من تعذر إعادة تحديد أصحابها بصورة مباشرة أو غير مباشرة، وألا يكون الأمر مجرد حذف للأسماء أو استبدالها برموز.`,
+    `يتجنب تقرير أن جميع بيانات الجهات الحكومية يحظر نقلها خارج المملكة على نحو مطلق، أو أن موافقة الجهة وحدها تكفي، بل يربط الحكم بتصنيف البيانات والضوابط النافذة والمتطلبات القطاعية المطبقة.`,
+  ]},
+  {q:{ar:`قدّم أحد الموظفين أمس استقالته كتابةً. واليوم ترغب إدارة الموارد البشرية والفريق التقني في إنهاء صلاحيات وصوله إلى الأنظمة. ووفقًا للنظام السعودي، هل يملك الموظف حقًا قانونيًا في الاحتفاظ بإمكانية الوصول إلى الأنظمة خلال فترة الإشعار (Notice Period) بعد الاستقالة؟`,en:`Yesterday an employee resign in writing. today HR and the tech team would like to terminate access to such employee. under saudi law does the employee have a legal right to access during the resignation notice period?`},criteria:[
+    `يجب أولًا تحديد نوع العقد: المحدد المدة: تطبق أحكام الاستقالة في المادة (79 مكرر)، غير المحدد المدة: يطبق الإنهاء بالإشعار وفق المادة (75).`,
+    `لا يقرر نظام العمل حقًا مستقلًا للعامل في الاحتفاظ بحساباته أو بجميع صلاحيات الدخول التقنية.`,
+    `يجوز للمنشأة تقييد الصلاحيات لأسباب أمنية أو تشغيلية، لكن لا ينبغي اعتبار ذلك إنهاءً للعقد أو إعفاءً غير مدفوع من العمل.`,
+    `إذا سحبت الشركة الصلاحيات ومنعت الموظف من العمل رغم استعداده، فيستمر استحقاقه للأجر وفق المادة (62)، ولا يجوز مؤاخذته على عدم أداء عمل لم تمكنه الشركة منه.`,
+    `الإجراء الأكثر سلامة: صلاحيات محدودة للتسليم، أو تكليف بديل، أو إعفاء مكتوب من العمل مع استمرار الأجر والخدمة حتى انتهاء العقد.`,
+  ]},
+  {q:{ar:`السلام عليكم دخلت مع صديق لي شراكه في عقار بـ 300 الف ريال و بدون اكتب اي اثبات او شي يضمن حقي  (كتبت فقط في ايصال الحواله قيمه شراكه ) وكانت المده أكثر من 5 سنوات  علماً انه خلال هذه السنوات اشترى وباع وعمر له استراحات واجرها و اشترئ استراحه ب2 مليون وبعد ما ارتفع سعرها باعها ب 4 مليون
+
+والان يماطل بي وقال لك فوائد200  الف فقط ؟
+
+ثم كلمني اليوم يقولي رح للمحامي الفلاني استلم الشيك يعني بيوثق علي
+
+وانا كان رافض يثبت حقي في ناجز
+
+علماً لما اعطيته ما وثقت شي
+
+هل اقبل بالمبلغ و اوقع واستلم الشيك او اشتكيه في المحكمه واخليه يحلف يمين ؟؟؟`,en:`Hello,
+
+I entered into a real estate partnership with a friend for SAR 300,000, but I did not prepare any written agreement or document to protect my rights. The only thing I wrote in the bank transfer receipt was “partnership amount.”
+
+The partnership has continued for more than five years. During this period, he bought and sold properties, developed rest houses, rented them out, and purchased a rest house for SAR 2 million, then sold it for SAR 4 million after its value increased.
+
+Now he is delaying matters and has told me that my profits are only SAR 200,000.
+
+Today, he called me and told me to go to a certain lawyer to collect the cheque, which makes me think that he wants me to sign a document that may affect my rights.
+
+He previously refused to formally document my share through Najiz, even though I did not document anything when I originally transferred the money to him.
+
+Should I accept the amount, sign the documents, and collect the cheque, or should I file a lawsuit against him and ask the court to require him to take an oath?`},criteria:[
+    `ينتبه إلى نقص الوقائع، ولا يفترض أن جميع عمليات شراء العقارات وبيعها وتطويرها وتأجيرها داخلة ضمن الشراكة؛ بل يبين أن استحقاق السائل في أرباحها يتوقف على إثبات نطاق الاتفاق، والعقارات التي شملها، وكيفية استخدام مبلغ الشراكة.`,
+    `يفرّق بين إثبات تحويل أصل المبلغ وإثبات تفاصيل الشراكة؛ فالحوالة البنكية تثبت تحويل مبلغ (300,000) ريال إلى الطرف الآخر، وعبارة «قيمة شراكة» لا تثبت وحدها نسبة الشراكة، أو مدتها، أو نطاقها، أو آلية توزيع الأرباح، ولا تثبت أن الطرف الآخر وافق على جميع هذه التفاصيل.`,
+    `يناقش وسائل الإثبات المتاحة بالرجوع إلى المواد (53)، و(54)، و(55) من نظام الإثبات بشأن الدليل الرقمي وحكمه في الإثبات، والمادة (66) بشأن وجوب إثبات التصرف الذي تزيد قيمته على مائة ألف ريال بالكتابة`,
+    `يتجنب الجزم بأن وصف «قيمة شراكة» المدون من السائل في الحوالة يُعد وحده مبدأ ثبوت بالكتابة؛ لأن مبدأ الثبوت بالكتابة يلزم أن يكون صادرًا من الخصم.`,
+    `يجيب عن التصرف الإجرائي العاجل، فينصح السائل بعدم توقيع أي مخالصة أو إبراء ذمة أو تنازل قبل الاطلاع على نص المستند ومراجعته من محامٍ مستقل، والتحقق مما إذا كان الشيك يشمل أصل مبلغ الشراكة إضافة إلى الأرباح، أم يمثل كامل التسوية المقترحة.`,
+    `يتجنب تقديم اليمين بوصفها وسيلة مضمونة لكسب الدعوى؛ فيبين أن عبء إثبات الحق يقع ابتداءً على المدعي، وأن توجيه اليمين يخضع لأحكام نظام الإثبات، وقد يترتب على حلف الخصم حسم الواقعة لمصلحته.`,
+    `لا يجزم بالمحكمة المختصة أو بنوع الدعوى قبل تكييف العلاقة؛ فقد تكون شراكة في عقار معين، أو شركة مضاربة، أو وكالة في الاستثمار، أو مطالبة مالية، ويختلف الاختصاص والطلبات القضائية بحسب التكييف والوقائع الثابتة.`,
+  ]},
+  {q:{ar:`استشارة قانونية، عملت في إحدى الجامعات الحكومية لمدة تقارب السبعة سنوات، أربعة سنوات منها كنت فيها مبتعث من من قبل الجامعة، وكنت أستلم بدلات، ولما عدت تقريبا من عام 2018 قررت الجامعة أن المبتعث لا يستحق نوعين من البدلات كنت أستلمها أيام بعثتي، وقررت استرجاعها مني بأثر رجعي من خلال الخصم الشهري من راتبي، والآن أنا قدمت استقالتي، وأرغب في استرجاع المبالغ المأخوذة من حسابي بأثر رجعي ورفع قضية عليهم، لأن كثير من أصدقائي رفعوا القضية وكسبوها، هل يحق لي؟ وما هي المبررات النظامية، وما هي الإجراءات التي أتبعها؟`,en:`Legal consultation:
+
+I worked at a government university for nearly seven years. For four of those years, I was on a scholarship sponsored by the university, during which I continued to receive certain allowances.
+
+After I returned, around 2018, the university decided that employees on scholarship were not entitled to two types of allowances that I had received during my scholarship period. It therefore decided to recover those amounts retroactively by making monthly deductions from my salary.
+
+I have now submitted my resignation and would like to recover the amounts that were deducted from my salary retroactively and file a lawsuit against the university, especially since many of my colleagues filed similar cases and won.
+
+Do I have the right to claim these amounts? What are the legal grounds that may support my claim, and what procedures should I follow`},criteria:[
+    `لا يجزم بأحقية السائل في استرداد المبالغ قبل معرفة نوع كل بدل، وشروط استحقاقه أثناء الابتعاث، وسند الجامعة في الاسترداد؛ فقد تختلف النتيجة من بدل إلى آخر.`,
+    `يوضح أن الاستقالة لا تمنع المطالبة بالحقوق المالية السابقة، وأن النزاع يدخل من حيث الأصل في اختصاص المحاكم الإدارية بوصفه متعلقًا بحقوق موظف لدى جهة عامة.`,
+    `يكيّف المطالبة بحسب ظاهر الوقائع بوصفها دعوى حقوق وظيفية لرد مبالغ مستقطعة، ويتجنب اعتبارها تلقائيًا دعوى إلغاء قرار`,
+    `يناقش حسن نية الموظف، وعلم الجامعة بابتعاثه عند صرف البدلات، وعدم وجود غش أو تدليس.`,
+    `يراعي المدد والإجراءات المقررة في المادة (8) من نظام المرافعات أمام ديوان المظالم.`,
+  ]},
+  {q:{ar:`عندي محل جوالات في جدة وقبل سنتين ونص دخلت شريك مع صاحبي خالد براس مال متساوي ووثقنا عند كاتب عدل الأرباح والخسائر ٥٠٪ ٥٠٪ وأي قرار مصيري لازم موافقة الطرفين هذا كله موجود بالعقد، بس من ست أشهر خالد صار يتصرف لحاله سحب من حساب الشركة ٨٠ ألف وقال سلفة مستعجلة وما رجعها ولين الحين، وأنا آخر مرة شفت كشف الحساب من ثلاث شهور لأنه هو اللي متحكم بالدخول على الحساب البنكي مب أنا، وفوق كذا فاتح حساب سناب ثاني باسم المحل يسوق فيه لحاله بس
+
+والمصيبة إني قبل أسبوع اكتشفت إنه يفاوض أحد الموردين الرئيسيين يسحب التعامل معنا وينقله لمحل ثاني ناوي يفتحه لحاله باسم مختلف نفس نوعية البضاعة بالضبط
+
+فأنا خايف جدا يهرب باقي الفلوس أو يفرغ الحساب قبل لا أتحرك، أبغى أعرف:
+
+هالتصرفات كلها (السحب من غير علمي، حجب كشف الحساب عني، التفاوض مع المورد لمصلحته) تعتبر إخلال بالعقد يخولني أفسخه وأطالبه بتعويض؟
+
+وهل أقدر أسوي حجز تحفظي مستعجل على حصته أو حساب الشركة قبل لا يهرب أكثر، وكيف الإجراء بأسرع وقت؟
+
+وإذا فعلا فتح محل ثاني ونقل الموردين معه، هذا يعتبر منافسة غير مشروعة أو خيانة أمانة حتى لو العقد ما فيه بند صريح يمنعه من كذا؟`,en:`I own a mobile phone shop in Jeddah. Two and a half years ago, my friend Khalid and I entered into a partnership with equal capital contributions. We formally documented the partnership before a notary public, agreeing that profits and losses would be shared equally, 50% each, and that any major decision would require the approval of both partners. All of this is clearly stated in the partnership agreement.
+
+However, over the past six months, Khalid has started acting on his own. He withdrew SAR 80,000 from the company’s bank account, claiming that it was an urgent personal loan, but he has not repaid it to this day. The last time I was able to review the bank statement was three months ago because he controls access to the company’s bank account and I do not.
+
+In addition, he created a separate Snapchat account using the shop’s name and has been marketing through it independently.
+
+The most serious issue is that, one week ago, I discovered that he was negotiating with one of our main suppliers to stop dealing with our shop and transfer the business relationship to another shop that he intends to open under a different name, selling exactly the same type of products.
+
+I am extremely concerned that he may transfer or withdraw the remaining funds from the company’s account before I can take action. I would like to know:
+
+Do these actions—withdrawing money without my knowledge, preventing me from accessing the company’s bank statements, and negotiating with a supplier for his own benefit—constitute a breach of the partnership agreement that would entitle me to terminate the partnership and claim compensation?
+
+Can I urgently apply for a precautionary attachment over his partnership share or the company’s bank account before he transfers or withdraws more funds? What is the fastest procedure for doing so?
+
+Finally, if he actually opens another shop and transfers our suppliers to it, could this be considered unfair competition or breach of trust, even if the partnership agreement does not contain an express non-compete clause?`},criteria:[
+    `يحدد ابتداءً شكل الكيان فيتحقق مما إذا كانت شركة مقيدة وفق نظام الشركات، وما نوعها، وما إذا كان خالد مديرًا، أو أن العلاقة مجرد عقد شركة خاضع لنظام المعاملات المدنية`,
+    `لا يطبق مواد نظام الشركات دون هذا التحديد.`,
+    `يجعل العقد أساس المسؤولية، فيبحث مخالفة شرط موافقة الطرفين على القرارات المصيرية، ويبين أن سحب أموال النشاط وحجب حساباته ومحاولة تحويل مورده قد تشكل إخلالًا`,
+    `يوضح جواز طلب تدبير مستعجل عند وجود خطر حقيقي على الأموال، مثل منع خالد من الانفراد بالسحب أو التصرف، أو الحراسة القضائية، أو التحفظ على المستندات، أو الحجز على أمواله أو حصته بقدر الحق؛ ويتجنب افتراض تجميد حساب الشركة كاملًا دون بحث ملكيته وأثر ذلك في النشاط.`,
+    `يفرق بين مجرد التفكير أو التفاوض لفتح نشاط منافس وبين مباشرة المنافسة واستغلال أصول الشركة أو معلوماتها أو فرصها؛ ويقرر المسؤولية والتعويض عند ثبوت الفعل والضرر وفق شكل الشركة وصفة خالد.`,
+    `ينصح فورًا بحفظ العقد وكشوف الحساب ورسائل الإقرار بالسلفة ومراسلات المورد وأدلة حجب الحساب، وتوجيه إنذار برد المبلغ وتقديم الحسابات، مع عدم تأخير الطلب المستعجل إذا ظهرت قرائن جدية على نقل الأموال.`,
+  ]},
+];
+
+/* دمج دفعة أسئلة في البنك المحفوظ.
+
+   لماذا هجرة وقت التشغيل لا إضافة في DEF_QBANK: البنك يُقرأ بـ load(K.qbank,DEF_QBANK)
+   والنسخة المحفوظة تغلب الافتراضية، فالإضافة إلى الافتراضي وحده لا تصل لأحد.
+
+   يُنفَّذ مرة واحدة ويُسجَّل معرّفه، حتى لا ترجع الأسئلة إن حذفها المستخدم لاحقًا.
+   وداخل التنفيذة الواحدة لا يمكن أن يتكرّر سؤال: الموجود يُستبدَل ولا يُضاف. */
+function qNorm(s){
+  return String(s==null?'':s)
+    .replace(/[\u064B-\u0652\u0670\u0640]/g,'')
+    .replace(/[\u0623\u0625\u0622]/g,'\u0627').replace(/\u0649/g,'\u064A')
+    .replace(/\u0629/g,'\u0647').replace(/\u0624/g,'\u0648').replace(/\u0626/g,'\u064A')
+    .replace(/[^\u0621-\u064A0-9a-zA-Z\s]/g,' ').replace(/\s+/g,' ').trim();
+}
+/* معامل دايس على مجموعتي الكلمات — يمسك إعادة الصياغة ولا يتأثر بترتيب الجُمل */
+function qSimilarity(a,b){
+  const A=new Set(qNorm(a).split(' ').filter(Boolean));
+  const B=new Set(qNorm(b).split(' ').filter(Boolean));
+  if(!A.size||!B.size)return 0;
+  let inter=0;A.forEach(w=>{if(B.has(w))inter++;});
+  return 2*inter/(A.size+B.size);
+}
+const BANK_IMPORT_MATCH=0.85;
+function applyBankImport(id,win,items){
+  if(BANK_IMPORTS.indexOf(id)>-1)return null;
+  const mark=()=>{BANK_IMPORTS.push(id);save(K.bankImports,BANK_IMPORTS);};
+  if(!QBANK[win]||!QBANK[win].cats||!QBANK[win].cats[0]){mark();return null;}
+  let added=0;const replaced=[];
+  items.forEach(it=>{
+    let hit=null;
+    Object.entries(QBANK).forEach(([wk,w])=>(w.cats||[]).forEach(c=>(c.tests||[]).forEach(t=>{
+      const s=qSimilarity(bilingualExact(t.q,'ar'),it.q.ar);
+      if(s>=BANK_IMPORT_MATCH&&(!hit||s>hit.s))hit={t,s,win:wk};
+    })));
+    if(hit){hit.t.q=clone(it.q);hit.t.criteria=clone(it.criteria);replaced.push(hit.win);}
+    else{QBANK[win].cats[0].tests.push(clone(it));added++;}
+  });
+  mark();save(K.qbank,QBANK);
+  /* الاستيراد يغيّر بنكًا مشتركًا بين الفريق، فلا يمر بصمت على من يفتح التطبيق بعده */
+  if(added||replaced.length)setTimeout(()=>toast(`بنك الأسئلة: أُضيف ${added} سؤال${replaced.length?` واستُبدل ${replaced.length}`:''} في ${QBANK[win].label}`),700);
+  return {added,replaced};
+}
+applyBankImport('analytical-2026-08-04','analytical',IMPORT_ANALYTICAL_2026_08_04);
 
 /* ===== تحليل المنافسين ===== */
 const DEF_COMP={
@@ -1049,6 +1224,7 @@ Object.assign(DOMAIN_SETTERS,{
   [K.settings]:v=>{SETTINGS=v;},
   [K.texts]:v=>{TEXTS=v;},
   [K.qbank]:v=>{QBANK=v;},
+  [K.bankImports]:v=>{BANK_IMPORTS=v;},
   [K.comp]:v=>{COMP_DEFS=v;},
   [K.compRuns]:v=>{COMP_RUNS=v;},
   [K.competitors]:v=>{COMPETITORS=v;},
@@ -1272,6 +1448,7 @@ function renderBankResults(win){
         <div class="head"><span class="caret">▶</span><span class="title" style="font-size:13.5px;flex:1;font-weight:500;">${esc(bilingualText(t.q,lang))}</span>
         <button class="copybtn" data-bcopy="0|${ti}" title="نسخ السؤال"><svg class="icon"><use href="#ic-copy"/></svg></button></div>
         <div class="body">
+          <div class="answerbox" style="margin-top:0;background:var(--card-2);"><span class="lbl">نص السؤال</span><div class="txt">${esc(bilingualText(t.q,lang))}</div></div>
           <div class="criteria-box"><span class="lbl">عناصر الإجابة الصحيحة</span><ul>${criteria}</ul></div>
         </div>
       </div>`;
