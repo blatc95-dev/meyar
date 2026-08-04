@@ -1108,8 +1108,9 @@ function qSimilarity(a,b){
 const BANK_IMPORT_MATCH=0.85;
 function applyBankImport(id,win,items){
   if(BANK_IMPORTS.indexOf(id)>-1)return null;
-  const mark=()=>{BANK_IMPORTS.push(id);save(K.bankImports,BANK_IMPORTS);};
-  if(!QBANK[win]||!QBANK[win].cats||!QBANK[win].cats[0]){mark();return null;}
+  /* القسم الهدف غائب: حالة غير متوقّعة، فلا نُعلّم الاستيراد منجزًا حتى يُعاد
+     المحاولة إن ظهر القسم لاحقًا، بدل إسقاط الدفعة إلى الأبد. */
+  if(!QBANK[win]||!QBANK[win].cats||!QBANK[win].cats[0])return null;
   let added=0;const replaced=[];
   items.forEach(it=>{
     let hit=null;
@@ -1120,7 +1121,11 @@ function applyBankImport(id,win,items){
     if(hit){hit.t.q=clone(it.q);hit.t.criteria=clone(it.criteria);replaced.push(hit.win);}
     else{QBANK[win].cats[0].tests.push(clone(it));added++;}
   });
-  mark();save(K.qbank,QBANK);
+  /* البنك يُحفظ قبل العلامة لا بعدها: العلامة مشتركة بين الفريق، فلو سبقت حفظ
+     البنك وفشل حفظه لظلّ الاستيراد «منجزًا» عند الجميع بلا أسئلة، ولا يعيد أحد
+     المحاولة أبدًا. بهذا الترتيب أسوأ الأحوال إعادة استيراد لا فقدانه. */
+  save(K.qbank,QBANK);
+  BANK_IMPORTS.push(id);save(K.bankImports,BANK_IMPORTS);
   /* الاستيراد يغيّر بنكًا مشتركًا بين الفريق، فلا يمر بصمت على من يفتح التطبيق بعده */
   if(added||replaced.length)setTimeout(()=>toast(`بنك الأسئلة: أُضيف ${added} سؤال${replaced.length?` واستُبدل ${replaced.length}`:''} في ${QBANK[win].label}`),700);
   return {added,replaced};
