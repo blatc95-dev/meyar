@@ -1108,9 +1108,15 @@ function qSimilarity(a,b){
 const BANK_IMPORT_MATCH=0.85;
 function applyBankImport(id,win,items){
   if(BANK_IMPORTS.indexOf(id)>-1)return null;
-  /* القسم الهدف غائب: حالة غير متوقّعة، فلا نُعلّم الاستيراد منجزًا حتى يُعاد
-     المحاولة إن ظهر القسم لاحقًا، بدل إسقاط الدفعة إلى الأبد. */
-  if(!QBANK[win]||!QBANK[win].cats||!QBANK[win].cats[0])return null;
+  /* القسم الهدف قد يكون غائبًا أو مشوّهًا في بنك مُعدَّل يدويًا منذ زمن. لا نُسقط
+     الدفعة في هذه الحالة — نُنشئ القسم من الافتراضي ونكمل، لأن غياب القسم ليس
+     سببًا لضياع أسئلة طُلب إدخالها. */
+  if(!QBANK[win]){
+    const d=DEF_QBANK[win];
+    QBANK[win]={label:(d&&d.label)||win,type:(d&&d.type)||'flat',sub:(d&&d.sub)||'',cats:[{title:'الكل',tests:[]}]};
+  }
+  if(!Array.isArray(QBANK[win].cats)||!QBANK[win].cats.length)QBANK[win].cats=[{title:'الكل',tests:[]}];
+  if(!Array.isArray(QBANK[win].cats[0].tests))QBANK[win].cats[0].tests=[];
   let added=0;const replaced=[];
   items.forEach(it=>{
     let hit=null;
@@ -1130,7 +1136,10 @@ function applyBankImport(id,win,items){
   if(added||replaced.length)setTimeout(()=>toast(`بنك الأسئلة: أُضيف ${added} سؤال${replaced.length?` واستُبدل ${replaced.length}`:''} في ${QBANK[win].label}`),700);
   return {added,replaced};
 }
-applyBankImport('analytical-2026-08-04','analytical',IMPORT_ANALYTICAL_2026_08_04);
+/* المعرّف مرقّى إلى -b ليُعاد الاستيراد مرة واحدة: النسخة الأولى كانت تكتب علامة
+   «تم» قبل حفظ البنك، فأمكن أن تبقى العلامة عند الفريق بلا أسئلة فلا يعيد أحد
+   المحاولة. إعادة الاستيراد غير مضرّة — السؤال الموجود يُستبدل ولا يُضاف. */
+applyBankImport('analytical-2026-08-04-b','analytical',IMPORT_ANALYTICAL_2026_08_04);
 
 /* ===== تحليل المنافسين ===== */
 const DEF_COMP={
