@@ -271,6 +271,8 @@
   .conv-num{flex:0 0 auto;width:22px;height:22px;border-radius:50%;background:var(--brand-2);color:#fff;font-size:11.5px;font-weight:700;display:grid;place-items:center;margin-top:1px;}
   .conv-text{flex:1;font-size:13.5px;color:var(--ink-2);padding-top:2px;}
   .conv-arrow{text-align:center;color:var(--muted);font-size:15px;line-height:1;padding:3px 0;}
+  /* وسم السؤال التابع — كلمة لا رقم، فلا تصلح له دائرة conv-num ذات العرض الثابت */
+  .conv-tag{flex:0 0 auto;padding:2px 8px;border-radius:999px;background:var(--brand-2);color:#fff;font-size:10.5px;font-weight:700;line-height:1.6;margin-top:2px;}
   .conv-msg-edit{align-items:flex-start;}
   .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
   .selbox{width:16px;height:16px;accent-color:var(--fail);}
@@ -775,7 +777,8 @@ const QBANK_META={
   commands:{icon:'command-square'},
   contracts:{icon:'note-text'},
   conversations:{icon:'message-edit'},
-  fileUpload:{icon:'folder-cloud'},
+  fileUploadAr:{icon:'folder-cloud'},
+  fileUploadEn:{icon:'folder'},
 };
 const DEF_QBANK={
   expiry:{
@@ -931,13 +934,46 @@ const DEF_QBANK={
     sub:'محادثات متسلسلة تحاكي تبادل الأسئلة الحقيقي مع المنتج ضمن سياق واحد، بدل سؤال وجواب منفصلين — كل سؤال يبني على ما قبله، ولكل محادثة معايير تحدد متى تُعتبر ناجحة بمجملها.',
     cats:[{title:'كل المحادثات',tests:[]}],
   },
-  fileUpload:{
-    label:'اختبار رفع الملفات',
+  /* اختبارات الملفات قسمان بحسب لغة الملف لا بحسب لغة الطلب: ملف عربي بأسئلة عربية
+     اختبارٌ مختلف تمامًا عن ملف إنجليزي بأسئلة إنجليزية، فلا يصح تمثيلهما كترجمتين
+     لطلب واحد. ولذلك نص السؤال هنا نصٌّ واحد لا كائن {ar,en}: لغته لغة قسمه.
+     وبنية الاختبار «ملف ← أسئلة» لأن الملف هو وحدة العمل: يُرفع مرة واحدة ثم
+     تُطرح عليه عدة أسئلة، ولكل سؤال سؤالٌ تابع اختياري يُطرح في نفس المحادثة. */
+  fileUploadAr:{
+    label:'اختبار الملفات العربية',
     type:'fileupload',
-    sub:'اختبارات ترفق ملفًا فعليًا مع طلب مرافق، لفحص قدرة المنتج على قراءة الملف المرفوع وفهم محتواه والتعامل معه بدقة.',
-    cats:[{title:'كل الاختبارات',tests:[]}],
+    fileLang:'ar',
+    sub:'ملفات عربية تُرفَع فعليًا على المنتج، ولكل ملف مجموعة أسئلة عليه — لفحص قدرته على قراءة الملف المرفوع وفهم محتواه والربط بين بنوده المتفرقة.',
+    cats:[{title:'كل الملفات',tests:[]}],
+  },
+  fileUploadEn:{
+    label:'اختبار الملفات الإنجليزية',
+    type:'fileupload',
+    fileLang:'en',
+    sub:'ملفات إنجليزية تُرفَع فعليًا على المنتج، ولكل ملف مجموعة أسئلة إنجليزية عليه — لفحص قدرته على قراءة الملف المرفوع وفهم محتواه والربط بين بنوده المتفرقة.',
+    cats:[{title:'كل الملفات',tests:[]}],
   },
 };
+const FILE_LANG_LABEL={ar:'عربي',en:'إنجليزي'};
+function winFileLang(w){return (w&&w.fileLang)||'ar';}
+function isFileWin(w){return !!w&&w.type==='fileupload';}
+/* أسئلة ملفٍ واحد — المصدر الوحيد لعدّ الأسئلة في قسم ملفات وللسحب منه */
+function fileTestQuestions(t){return (t&&t.questions)||[];}
+function fileFollowUp(q){const f=q&&q.followUp;return (f&&(f.q||'').trim())?f:null;}
+function fileMetaLine(f){
+  if(!f)return '';
+  const p=[];
+  if(f.format)p.push(f.format);
+  if(f.pages)p.push(f.pages+' صفحة');
+  return p.join(' · ');
+}
+/* ملفات المستودع تُخزَّن بمسار نسبي (assets/files/...) ليبقى الرابط صحيحًا أينما
+   نُشر الموقع، لكن وسيط الذكاء الاصطناعي خارجي فلا يفهم النسبي — يُطلَق قبل الإرسال. */
+function fileAbsUrl(u){
+  u=(u||'').trim();
+  if(!u)return '';
+  try{return new URL(u,location.href).href;}catch(e){return u;}
+}
 function migrateQBankGeneral(bank){
   if(!bank.general)return bank;
   const TAG_MAP={'حالات السريان والإلغاء':'expiry','القدرات التحليلية':'analytical','الاستحضار وعدم الهلوسة':'hallucination','شمول قاعدة البيانات':'coverage','تعديلات المواد':'amendments'};
@@ -952,9 +988,36 @@ function migrateQBankGeneral(bank){
   delete bank.general;
   return bank;
 }
+/* هجرة قسم «اختبار رفع الملفات» الواحد إلى قسمَي لغة الملف.
+   الاختبار القديم كان صفًّا مسطّحًا {q:{ar,en},fileLink,goal,criteria}: الرابط
+   يتكرر مع كل سؤال، واللغتان ترجمتان لطلب واحد. يُحوَّل كل صفٍّ إلى ملفٍ بسؤال
+   واحد، ويُوضع في القسم الذي يوافق اللغة المكتوب بها فعلًا. */
+function migrateQBankFiles(bank){
+  ['fileUploadAr','fileUploadEn'].forEach(k=>{
+    if(!bank[k])bank[k]=clone(DEF_QBANK[k]);
+    else bank[k].fileLang=DEF_QBANK[k].fileLang;
+  });
+  const old=bank.fileUpload;
+  if(old){
+    ((old.cats||[]).flatMap(c=>c.tests||[])).forEach(t=>{
+      const ar=bilingualExact(t.q,'ar'),en=bilingualExact(t.q,'en');
+      const key=(!ar&&en)?'fileUploadEn':'fileUploadAr';
+      const text=key==='fileUploadEn'?en:ar;
+      bank[key].cats[0].tests.push({
+        title:(t.goal||text||'ملف').slice(0,70),
+        file:{name:'',url:t.fileLink||'',format:'',pages:''},
+        goal:t.goal||'',
+        questions:[{q:text||'',criteria:critArray(t.criteria),followUp:null}],
+      });
+    });
+    delete bank.fileUpload;
+  }
+  return bank;
+}
 let BANK_IMPORTS=load(K.bankImports,[]);
 let QBANK=load(K.qbank,DEF_QBANK);
 if(QBANK.general){QBANK=migrateQBankGeneral(QBANK);save(K.qbank,QBANK);}
+if(QBANK.fileUpload||!QBANK.fileUploadAr||!QBANK.fileUploadEn){QBANK=migrateQBankFiles(QBANK);save(K.qbank,QBANK);}
 
 /* دفعة أسئلة مستوردة من ملف «تصدير بنك الأسئلة» — تُدمج في القدرات التحليلية.
    نص السؤال محفوظ بفواصل أسطره كما ورد، لأن أكثرها وقائع متعدّدة الفقرات. */
@@ -1141,6 +1204,96 @@ function applyBankImport(id,win,items){
    المحاولة. إعادة الاستيراد غير مضرّة — السؤال الموجود يُستبدل ولا يُضاف. */
 applyBankImport('analytical-2026-08-04-b','analytical',IMPORT_ANALYTICAL_2026_08_04);
 
+/* دفعة اختبار ملفات إنجليزية: اتفاقية خدمات مهنية (٢٠ صفحة) والأسئلة المستخرجة
+   منها. الملف داخل المستودع لا على Drive، فرابطه النسبي تنزيلٌ مباشر.
+   نص السؤال ومعاييره بالإنجليزية لأن الملف إنجليزي والمقيّم يعمل بلغته. */
+const IMPORT_FILE_PSA_EN={
+  title:'Professional Services Agreement — Template (20 pages)',
+  file:{name:'PROFESSIONAL SERVICES AGREEMENT — english (20 pages).pdf',url:'assets/files/professional-services-agreement-en-20p.pdf',format:'PDF',pages:20},
+  goal:'التحقق من قراءة المنتج لملف إنجليزي طويل (٢٠ صفحة) واستخراج الحكم من بنود متفرقة والربط بينها، دون قبول المقدّمة الخاطئة في السؤال ودون اختلاق بنود.',
+  questions:[
+    {q:`Question 1 (False Fact): The Consultant may treat additional services requested verbally by the Client as a Variation and immediately perform them for additional payment. Is this correct?`,
+     criteria:[
+       `Answers No, and does not accept the question's premise that a verbal request is enough.`,
+       `States that a Client-initiated Variation must be issued by written notice (Clause 5.2).`,
+       `States that the Consultant must then provide a written estimate of the time, cost and other effects within ten days (Clause 5.3).`,
+       `States that the Consultant may proceed only after receiving the Client's further written instruction (Clause 5.4).`,
+       `Notes that the Fee may only be adjusted through a Variation, and that additional amounts must be agreed in writing before they are incurred (Clauses 10.1 and 10.3).`,
+     ],
+     followUp:{q:`Follow-up Question: Can the Consultant claim a Variation where additional work is required to correct its own defective Services or Deliverables?`,
+       criteria:[
+         `Answers No — no Variation may be claimed where the additional work is required because of the Consultant's action, inaction, default or negligence (Clause 5.5(a)).`,
+         `States that the Consultant must re-perform non-compliant Services at its own cost (Clause 4.14).`,
+       ]}},
+    {q:`Question 2 (Payment and review scenario): The Client does not comment on a Deliverable during the 30-Business-Day Review Period. Does that automatically constitute final acceptance and relieve the Consultant from responsibility for defects?`,
+     criteria:[
+       `Answers No — any approval, deemed approval, failure to review or failure to comment is only for contract administration and monitoring (Clause 6.1).`,
+       `States that it does not relieve the Consultant from its liabilities or responsibilities, nor prejudice the Client's rights.`,
+       `States that payment remains subject to the review process and to possible deductions for non-compliant Services or Deliverables (Clause 6.2).`,
+     ],
+     followUp:{q:`Follow-up Question: May the Consultant alter a Deliverable after it has been approved by the Client?`,
+       criteria:[
+         `States that this requires the Client's prior written approval (Clause 6.3).`,
+         `Adds that for a Deliverable which was submitted but not approved, the Consultant must advise the Client of the alteration, addition or omission.`,
+       ]}},
+    {q:`Question 3 (Cross-clause termination question): The Client terminates the Agreement for convenience after the Consultant has received payments exceeding the value of the Services actually completed. What is the Consultant entitled to retain, and what must it repay?`,
+     criteria:[
+       `States that the Consultant is entitled only to fees and expenses for Services and Deliverables actually provided up to the termination date, calculated by the Client on a pro rata basis (Clause 13.2).`,
+       `States that any overpayment must be reimbursed to the Client within five Business Days after written demand (Clause 13.3).`,
+       `States that the Consultant is not entitled to compensation for lost profit, overheads or other indirect or consequential losses arising from the termination.`,
+     ],
+     followUp:{q:`Follow-up Question: May the Consultant simply stop work and retain unfinished work product after termination?`,
+       criteria:[
+         `Answers No — the Consultant must bring the Services to an orderly end and cooperate with any replacement consultant (Clause 14.1).`,
+         `States that within ten Business Days it must return all Deliverables, work in progress, documents, software, equipment and other Client property.`,
+         `Notes the signed declaration confirming their return.`,
+       ]}},
+    {q:`Question 4 (Liability comparison): The Agreement excludes indirect and consequential loss, so the Consultant's liability for negligence and indemnification claims is also excluded. Is this correct?`,
+     criteria:[
+       `Answers No — the exclusion of indirect and consequential losses does not apply to liability arising from fraudulent misrepresentation, wilful misconduct or negligence (Clauses 19.1 and 19.2).`,
+       `Notes that it does not apply to liability that cannot lawfully be excluded or limited.`,
+       `Notes that it does not apply to liability under the indemnification clause.`,
+     ],
+     followUp:{q:`Follow-up Question: Is the Consultant's indemnity limited only to claims discovered before termination?`,
+       criteria:[
+         `Answers No — the indemnity also covers claims arising during the Agreement, or based on facts existing during the Agreement, that are discovered only after completion or termination (Clause 21).`,
+         `States that it does not apply to losses caused by the Client's own act or neglect.`,
+       ]}},
+    {q:`Question 5 (Drafting and authority test): Can the Consultant's Representative agree to amend the Agreement on behalf of the Consultant without any further written agreement between the Parties?`,
+     criteria:[
+       `States that the Client is contractually entitled to rely on the Consultant's Representative as having authority to commit the Consultant, including in relation to amendments, additions and deletions (Clause 9.2).`,
+       `States that Clause 27.8 separately requires that no amendment or other contractual change is valid unless agreed in writing by both Parties.`,
+       `Reconciles both clauses: the Representative may bind the Consultant, but the amendment must still be documented in writing and agreed by both Parties.`,
+     ],
+     followUp:{q:`Follow-up Question: Identify one related drafting risk in the Agreement's execution and language provisions.`,
+       criteria:[
+         `Identifies Clause 27.15: the Agreement states it was prepared in both Arabic and English with Arabic prevailing, although the supplied text is English only and the Schedules are expressly English only.`,
+         `Recommends that the final execution version confirm a complete Arabic counterpart exists and that both language versions are aligned.`,
+       ]}},
+  ],
+};
+/* دفعة ملفات — تُطابَق بمسار الملف لا بنص السؤال، فالملف هو هوية الاختبار.
+   يُحفظ البنك قبل العلامة لنفس السبب المشروح في applyBankImport. */
+function applyFileBankImport(id,win,tests){
+  if(BANK_IMPORTS.indexOf(id)>-1)return null;
+  if(!QBANK[win])QBANK[win]=clone(DEF_QBANK[win]);
+  if(!Array.isArray(QBANK[win].cats)||!QBANK[win].cats.length)QBANK[win].cats=[{title:'كل الملفات',tests:[]}];
+  if(!Array.isArray(QBANK[win].cats[0].tests))QBANK[win].cats[0].tests=[];
+  const list=QBANK[win].cats[0].tests;
+  let added=0,replaced=0;
+  tests.forEach(t=>{
+    const url=((t.file||{}).url||'').trim();
+    const i=url?list.findIndex(x=>(((x.file||{}).url)||'').trim()===url):-1;
+    if(i>-1){list[i]=clone(t);replaced++;}
+    else{list.push(clone(t));added++;}
+  });
+  save(K.qbank,QBANK);
+  BANK_IMPORTS.push(id);save(K.bankImports,BANK_IMPORTS);
+  if(added||replaced)setTimeout(()=>toast(`${QBANK[win].label}: ${added?`أُضيف ${added} ملف`:''}${added&&replaced?' و':''}${replaced?`حُدِّث ${replaced} ملف`:''}`),700);
+  return {added,replaced};
+}
+applyFileBankImport('files-en-psa-20p-2026-08-05','fileUploadEn',[IMPORT_FILE_PSA_EN]);
+
 /* ===== تحليل المنافسين ===== */
 const DEF_COMP={
   research:{label:'البحث القانوني',ready:true,cats:[
@@ -1257,19 +1410,20 @@ function toast(m){const t=document.getElementById('toast');t.textContent=m;t.cla
 function copyText(t,msg){msg=msg||'تم نسخ السؤال';if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(()=>toast(msg)).catch(()=>fb(t));}else fb(t);
   function fb(x){const a=document.createElement('textarea');a.value=x;a.style.position='fixed';a.style.left='-9999px';document.body.appendChild(a);a.select();try{document.execCommand('copy');toast(msg);}catch(e){}document.body.removeChild(a);}}
 function flatten(cats){const f=[];cats.forEach((c,ci)=>c.tests.forEach(t=>f.push({...t,cat:c.title,catIdx:ci})));return f;}
-/* ===== استيراد اختبار الجودة من بنك الأسئلة ===== */
+/* ===== استيراد اختبار الجودة من بنك الأسئلة (المسار اليدوي القديم) =====
+   أقسام الملفات مستثناة منه: بنيتها «ملف ← أسئلة» لا يفهمها هذا المسار، وله شاشته
+   الخاصة في الاختبار الجديد (نوع «اختبار رفع الملفات»). */
 function qualityTypeOptions(){
-  return bankWinEntries().map(([k,w,n])=>({key:'win:'+k,label:w.label,n}));
+  return bankWinEntries().filter(([k,w])=>!isFileWin(w)).map(([k,w,n])=>({key:'win:'+k,label:w.label,n}));
 }
 function normalizeQItem(win,t){
   const type=QBANK[win].type;
   if(type==='conversation')return {kind:'conversation',title:t.title,messages:clone(t.messages||[]),criteria:t.criteria,srcWin:win};
-  if(type==='fileupload')return {kind:'fileupload',q:t.q,fileLink:t.fileLink,goal:t.goal,criteria:t.criteria,srcWin:win};
   return {kind:'single',q:t.q,criteria:t.criteria,srcWin:win};
 }
 function qualityPool(typeKeys){
   const items=[];
-  const pushWin=(w)=>QBANK[w].cats.forEach(c=>c.tests.forEach(t=>items.push(normalizeQItem(w,t))));
+  const pushWin=(w)=>{if(isFileWin(QBANK[w]))return;QBANK[w].cats.forEach(c=>c.tests.forEach(t=>items.push(normalizeQItem(w,t))));};
   if(typeKeys.includes('__all__')){
     Object.keys(QBANK).forEach(pushWin);
     return items;
@@ -1339,8 +1493,15 @@ const app={view:'home',sub:null,ctx:{}};
 /* المنتجات المخفيّة في V2 (comp / updates / files): الكود والبيانات باقية كما هي،
    ويكفي إعادة إدراجها في NAV_PRODUCTS و SETTAB_GROUPS لإرجاعها للواجهة. */
 const SOON_PRODUCTS=[];
-function bankCount(){return Object.values(QBANK).reduce((n,w)=>n+w.cats.reduce((m,c)=>m+c.tests.length,0),0);}
-function bankWinCount(w){return w?w.cats.reduce((m,c)=>m+c.tests.length,0):0;}
+function bankCount(){return Object.values(QBANK).reduce((n,w)=>n+bankWinCount(w),0);}
+/* في قسم ملفات العنصر المعدود هو السؤال لا الملف، فيبقى العدّاد متطابقًا مع عدد
+   البنود المتاحة للاختبار (السؤال التابع جزء من سؤاله لا سؤال مستقل). */
+function bankWinCount(w){
+  if(!w)return 0;
+  if(isFileWin(w))return w.cats.reduce((m,c)=>m+c.tests.reduce((k,t)=>k+fileTestQuestions(t).length,0),0);
+  return w.cats.reduce((m,c)=>m+c.tests.length,0);
+}
+function bankWinFileCount(w){return w?w.cats.reduce((m,c)=>m+c.tests.length,0):0;}
 /* الأقسام التي فيها سؤال واحد على الأقل — المصدر الوحيد لما يُعرض للمستخدم،
    في صفحة البنك وفي خيارات الاختبار على حدٍّ سواء. */
 function bankWinEntries(){return Object.entries(QBANK).map(([k,w])=>[k,w,bankWinCount(w)]).filter(e=>e[2]>0);}
@@ -1415,7 +1576,7 @@ function renderQBankHome(){
       <div class="bc-ic"><svg class="icon"><use href="#ic-${meta.icon}"/></svg></div>
       <div class="bc-title">${esc(w.label)}</div>
       <div class="bc-desc">${esc(w.sub)}</div>
-      <span class="bc-count">${n} سؤال</span>
+      <span class="bc-count">${isFileWin(w)?`${bankWinFileCount(w)} ملف · ${n} سؤال`:`${n} سؤال`}</span>
     </div>`;
   }).join('');
   screen.innerHTML=`<div class="card hero">
@@ -1432,13 +1593,18 @@ function renderQBank(){
   /* لو حُذفت أسئلة القسم كلها بينما هو مفتوح، نرجع لقائمة الأقسام بدل عرض قسم فارغ */
   if(!win||!QBANK[win]||!bankWinCount(QBANK[win])){app.ctx.bankWin=null;renderQBankHome();return;}
   const w=QBANK[win];
+  /* قسم الملفات بلا مفتاح لغة: لغته لغة ملفاته، ومفتاح عربي/English هنا كان يوحي
+     بأن الاختبار واحد بترجمتين — وهو أصل الخلل الذي فُصل القسمان لأجله. */
+  const langRow=isFileWin(w)
+    ?`<div class="row" style="margin-top:12px;"><span class="chip">لغة الملفات: ${esc(FILE_LANG_LABEL[winFileLang(w)])}</span><span class="chip">${bankWinFileCount(w)} ملف</span><span class="chip">${bankWinCount(w)} سؤال</span></div>`
+    :`<div class="optpills" style="margin-top:12px;"><button class="optpill ${(app.ctx.bankLang||'ar')==='ar'?'on':''}" data-blang="ar">عربي</button><button class="optpill ${app.ctx.bankLang==='en'?'on':''}" data-blang="en">English</button></div>`;
   screen.innerHTML=`<div class="card hero">
       <button class="bankback" id="bankBack">→ كل الأقسام</button>
       <div class="eyebrow" data-edit-key="qbank.eyebrow">${esc(t('qbank.eyebrow','مرجع الاختبار'))}</div>
       <h1 class="h1">${esc(w.label)}</h1>
       <p class="sub" data-edit-bank="${win}">${esc(w.sub)}</p>
-      <div class="optpills" style="margin-top:12px;"><button class="optpill ${(app.ctx.bankLang||'ar')==='ar'?'on':''}" data-blang="ar">عربي</button><button class="optpill ${app.ctx.bankLang==='en'?'on':''}" data-blang="en">English</button></div>
-      <div class="field" style="margin-top:14px;margin-bottom:0;"><input id="bankSearch" placeholder="ابحث في الأسئلة..." value="${esc(app.ctx.bankSearch||'')}"></div>
+      ${langRow}
+      <div class="field" style="margin-top:14px;margin-bottom:0;"><input id="bankSearch" placeholder="${isFileWin(w)?'ابحث في الملفات وأسئلتها...':'ابحث في الأسئلة...'}" value="${esc(app.ctx.bankSearch||'')}"></div>
     </div>
     <div id="bankResults"></div>`;
   document.getElementById('bankBack').onclick=()=>{app.ctx.bankWin=null;app.ctx.bankSearch='';render();window.scrollTo(0,0);};
@@ -1493,17 +1659,41 @@ function renderBankResults(win){
     document.getElementById('bankResults').innerHTML=rows||'<div class="card"><div class="empty">لا نتائج مطابقة.</div></div>';
   } else if(w.type==='fileupload'){
     const all=w.cats[0].tests;
-    const tests=all.filter(t=>!q||(bilingualText(t.q,lang)+' '+(t.goal||'')).toLowerCase().includes(q));
+    const tests=all.filter(t=>{
+      if(!q)return true;
+      const hay=(t.title||'')+' '+((t.file||{}).name||'')+' '+(t.goal||'')+' '+fileTestQuestions(t).map(x=>(x.q||'')+' '+((x.followUp||{}).q||'')).join(' ');
+      return hay.toLowerCase().includes(q);
+    });
     const rows=tests.map(t=>{
       const ti=all.indexOf(t);
-      const criteria=(t.criteria||[]).map(x=>`<li>${esc(x)}</li>`).join('');
+      const qs=fileTestQuestions(t);
+      const nFu=qs.filter(fileFollowUp).length;
+      const critList=arr=>`<ul dir="auto">${critArray(arr).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`;
+      const qsHtml=qs.map((x,qi)=>{
+        const fu=fileFollowUp(x);
+        return `<div class="conv-msg"><span class="conv-num">${qi+1}</span>
+            <span class="conv-text" dir="auto">${esc(x.q)}</span>
+            <button class="copybtn" data-bcopyfq="0|${ti}|${qi}" title="نسخ السؤال"><svg class="icon"><use href="#ic-copy"/></svg></button></div>
+          <div class="criteria-box" style="margin-top:8px;"><span class="lbl">عناصر الإجابة الصحيحة</span>${critList(x.criteria)}</div>
+          ${fu?`<div class="conv-arrow">↓</div>
+            <div class="conv-msg"><span class="conv-tag">تابع</span>
+              <span class="conv-text" dir="auto">${esc(fu.q)}</span>
+              <button class="copybtn" data-bcopyfu="0|${ti}|${qi}" title="نسخ السؤال التابع"><svg class="icon"><use href="#ic-copy"/></svg></button></div>
+            <div class="criteria-box" style="margin-top:8px;"><span class="lbl">عناصر الإجابة الصحيحة للسؤال التابع</span>${critList(fu.criteria)}</div>`:''}
+          ${qi<qs.length-1?'<div style="height:1px;background:var(--line);margin:16px 0;"></div>':''}`;
+      }).join('');
+      const file=t.file||{},meta=fileMetaLine(file);
       return `<div class="subacc ${t._open?'open':''}" data-bq="0|${ti}">
-        <div class="head"><span class="caret">▶</span><span class="title" style="font-size:13.5px;flex:1;font-weight:500;">${esc(bilingualText(t.q,lang))}</span>
-        <button class="copybtn" data-bcopy="0|${ti}" title="نسخ الطلب"><svg class="icon"><use href="#ic-copy"/></svg></button></div>
+        <div class="head"><span class="caret">▶</span><span class="title" style="font-size:13.5px;flex:1;font-weight:500;">${esc(t.title)||esc(file.name)||'ملف بلا عنوان'}</span>
+        <span class="badge-n" style="margin-inline-start:8px;">${qs.length} سؤال${nFu?` + ${nFu} تابع`:''}</span></div>
         <div class="body">
-          ${t.fileLink?`<div class="row" style="margin-bottom:10px;"><a href="${esc(t.fileLink)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm"><svg class="icon"><use href="#ic-external-link"/></svg> فتح الملف</a></div>`:'<div class="muted-note" style="margin-bottom:10px;">لا يوجد رابط ملف.</div>'}
+          <div class="answerbox" style="margin-top:0;background:var(--card-2);"><span class="lbl">الملف المرفوع</span>
+            <div class="txt">${esc(file.name||'—')}${meta?` <span class="muted-note">· ${esc(meta)}</span>`:''}</div>
+            ${file.url?`<div class="row" style="margin-top:10px;"><a href="${esc(file.url)}" download class="btn btn-primary btn-sm"><svg class="icon"><use href="#ic-paperclip"/></svg> تنزيل الملف</a><a href="${esc(file.url)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm"><svg class="icon"><use href="#ic-external-link"/></svg> فتح في تبويب</a></div>`:'<div class="muted-note" style="margin-top:8px;">لا يوجد ملف مرفق — أضِفه من الإعدادات ← بنك الأسئلة.</div>'}
+          </div>
           ${t.goal?`<div class="tip"><span class="ic"><svg class="icon"><use href="#ic-lamp"/></svg></span><div><b>الهدف من الاختبار:</b> ${esc(t.goal)}</div></div>`:''}
-          <div class="criteria-box"><span class="lbl">معايير التقييم</span><ul>${criteria}</ul></div>
+          <div class="lbl-sm">أسئلة هذا الملف</div>
+          <div class="conv-flow">${qsHtml||'<div class="muted-note">لا أسئلة بعد.</div>'}</div>
         </div>
       </div>`;
     }).join('');
@@ -1533,6 +1723,8 @@ function bindBankResults(win,lang){
   const w=QBANK[win];
   screen.querySelectorAll('[data-bcat]').forEach(a=>a.querySelector('.head').onclick=()=>{const ci=+a.dataset.bcat;w.cats[ci]._open=!w.cats[ci]._open;renderBankResults(win);});
   screen.querySelectorAll('[data-bq]').forEach(a=>a.querySelector('.head').onclick=(e)=>{if(e.target.closest('[data-bcopy],[data-bcopyconv]'))return;const[ci,ti]=a.dataset.bq.split('|');w.cats[+ci].tests[+ti]._open=!w.cats[+ci].tests[+ti]._open;a.classList.toggle('open');});
+  screen.querySelectorAll('[data-bcopyfq]').forEach(b=>b.onclick=(e)=>{e.stopPropagation();const[ci,ti,qi]=b.dataset.bcopyfq.split('|');copyText(fileTestQuestions(w.cats[+ci].tests[+ti])[+qi].q);});
+  screen.querySelectorAll('[data-bcopyfu]').forEach(b=>b.onclick=(e)=>{e.stopPropagation();const[ci,ti,qi]=b.dataset.bcopyfu.split('|');const fu=fileFollowUp(fileTestQuestions(w.cats[+ci].tests[+ti])[+qi]);if(fu)copyText(fu.q,'تم نسخ السؤال التابع');});
   screen.querySelectorAll('[data-bcopy]').forEach(b=>b.onclick=(e)=>{e.stopPropagation();const[ci,ti]=b.dataset.bcopy.split('|');copyText(bilingualText(w.cats[+ci].tests[+ti].q,lang));});
   screen.querySelectorAll('[data-bcopyconv]').forEach(b=>b.onclick=(e)=>{e.stopPropagation();const[ci,ti]=b.dataset.bcopyconv.split('|');const conv=w.cats[+ci].tests[+ti];copyText((conv.messages||[]).map(m=>bilingualText(m.q,lang)).join('\n\n'),'تم نسخ المحادثة');});
   screen.querySelectorAll('[data-bcopymsg]').forEach(b=>b.onclick=(e)=>{e.stopPropagation();const[ci,ti,mi]=b.dataset.bcopymsg.split('|');const conv=w.cats[+ci].tests[+ti];copyText(bilingualText(conv.messages[+mi].q,lang));});
@@ -1560,6 +1752,7 @@ function homeStats(){
     all:homeAgg(V2_RUNS),
     smoke:homeAgg(V2_RUNS.filter(r=>r.kind==='smoke')),
     quality:homeAgg(V2_RUNS.filter(r=>r.kind==='quality')),
+    files:homeAgg(V2_RUNS.filter(r=>r.kind==='files')),
     disputed:V2_RUNS.reduce((m,r)=>m+(r.items||[]).filter(x=>x.review&&x.review.agree===false).length,0),
     last:V2_RUNS.length?V2_RUNS[0]:null,
   };
@@ -1610,7 +1803,8 @@ function renderHome(){
       <div class="muted-note" style="margin-top:12px;" data-edit-key="home.stats.note">${esc(t('home.stats.note','النِّسب محسوبة من الاختبارات التي ينفّذها الذكاء الاصطناعي دون الاختبارات اليدوية القديمة، لأن مقياسها مختلف. ونسبة اختبار الدخان تعني حصّة الأسئلة التي نجحت، أما نسبة اختبار الجودة فهي حصّة عناصر الإجابة الصحيحة التي تحقّقت.'))}</div>
     </div>
     ${kindBlock('smoke',s.smoke)}
-    ${kindBlock('quality',s.quality)}`;
+    ${kindBlock('quality',s.quality)}
+    ${kindBlock('files',s.files)}`;
   document.getElementById('hNew').onclick=()=>{go('dashboard');v2Start();};
   document.getElementById('hBank').onclick=()=>go('qbank');
   document.getElementById('hHist').onclick=()=>go('history');
@@ -2391,7 +2585,16 @@ const AI={
 const V2_KINDS={
   smoke:{label:'اختبار دخان',icon:'search',desc:'فحص سريع بعدد محدود من الأسئلة للتأكد أن المنتج يعمل دون أعطال. التقييم مبسّط: نجح أو لم ينجح لكل سؤال.',defaultCount:8,judge:'binary'},
   quality:{label:'اختبار جودة',icon:'judge',desc:'فحص معمّق بعدد أكبر من الأسئلة. المقيّم يحكم على كل معيار من معايير الإجابة الصحيحة على حدة، والنسبة تُبنى عليها.',defaultCount:20,judge:'criteria'},
+  /* نوع مستقل لا قسم في البنك: مسار عمله مختلف (ملف يُنزَّل ويُرفع على المنتج)،
+     ولغته لغة الملف لا لغة يختارها المستخدم، فخلطه بجلسة أسئلة نصية يفسد الاثنين. */
+  files:{label:'اختبار رفع الملفات',icon:'folder-cloud',desc:'يُرفع ملف فعلي على المنتج ثم تُطرح عليه أسئلة الملف. يختار الموظف نوع الملفات: عربية أو إنجليزية. التقييم بعناصر الإجابة الصحيحة كاختبار الجودة.',defaultCount:5,judge:'criteria'},
 };
+function isFilesKind(k){return k==='files';}
+/* أقسام الملفات مرتبطة بنوع «اختبار رفع الملفات» وحده، فلا تظهر في قوائم أقسام
+   الدخان والجودة ولا تُسحب منها حين يُترك الاختيار فارغًا. */
+function fileWinKeys(){return Object.keys(QBANK).filter(k=>isFileWin(QBANK[k]));}
+function fileWinForLang(lang){return fileWinKeys().find(k=>winFileLang(QBANK[k])===lang)||fileWinKeys()[0]||'';}
+function textWinKeys(){return Object.keys(QBANK).filter(k=>!isFileWin(QBANK[k]));}
 function v2KindLabel(k){return (V2_KINDS[k]||{}).label||k;}
 /* نمط البحث خصيصة للجلسة لا للسؤال: أسئلة البنك لا تحمل نمطًا، وإنما يُحدَّد قبل
    بدء الاختبار فيُطبَّق على الجلسة كاملة. اختبار الجودة يقتصر على نمط واحد حتى
@@ -2416,34 +2619,68 @@ function runSearchMode(run){return run&&run.searchMode||'normal';}
 function itemSearchMode(it){return it&&it.searchMode||'normal';}
 /* في جلسة «الوضعان» عدد البنود ضِعف عدد الأسئلة، فلا يصح تسمية البنود «أسئلة» */
 function v2UnitLabel(run){return runSearchMode(run)==='both'?'بند':'سؤال';}
+/* جلسة الملفات لغتها لغة ملفاتها، فتُقرأ «ملفات إنجليزية» لا «English» وحدها */
+function v2RunLangLabel(run){
+  if(run&&run.kind==='files')return 'ملفات '+(FILE_LANG_LABEL[run.fileLang||run.lang]||'عربي');
+  return run&&run.lang==='en'?'English':'عربي';
+}
+function v2RunEyebrow(run){
+  return [v2KindLabel(run.kind),searchModeLabel(runSearchMode(run)),v2RunLangLabel(run)].concat(run.model?[run.model]:[]).join(' · ');
+}
 function critArray(c){if(!c)return [];return Array.isArray(c)?c.filter(x=>(x||'').trim()):[String(c)].filter(x=>x.trim());}
 
-function v2ItemFromBank(win,ci,ti,lang){
+/* اختبار الملف الواحد يولّد بندًا لكل سؤال من أسئلته، لا بندًا واحدًا: الأسئلة على
+   الملف مستقلة عن بعضها، أما السؤال التابع فيُضاف كدورٍ ثانٍ في نفس المحادثة
+   ليصله سياق سابقه، ومعاييره تُضاف لمعايير سؤاله فيُقيَّمان معًا. */
+function v2ItemsFromBankTest(win,ci,ti,lang){
   const w=QBANK[win],t=w.cats[ci].tests[ti];
-  const base={ref:{win,ci,ti},srcLabel:w.label,criteria:critArray(t.criteria),fileLink:t.fileLink||'',status:'pending',error:'',
-    turns:[],judge:null,review:{agree:null,reason:'',note:''}};
-  if(w.type==='conversation'){
-    return Object.assign(base,{kind:'conversation',title:t.title||'محادثة',
-      turns:(t.messages||[]).map(m=>({q:bilingualText(m.q,lang),answer:null}))});
-  }
+  const mk=extra=>Object.assign({ref:{win,ci,ti},srcLabel:w.label,criteria:[],fileLink:'',status:'pending',error:'',
+    turns:[],judge:null,review:{agree:null,reason:'',note:''}},extra);
   if(w.type==='fileupload'){
-    return Object.assign(base,{kind:'fileupload',title:bilingualText(t.q,lang),goal:t.goal||'',
-      turns:[{q:bilingualText(t.q,lang),answer:null}]});
+    const file=t.file||{};
+    return fileTestQuestions(t).map((q,qi)=>{
+      const fu=fileFollowUp(q);
+      return mk({kind:'fileupload',ref:{win,ci,ti,qi},title:q.q||'',
+        fileLink:file.url||'',fileName:file.name||'',fileMeta:fileMetaLine(file),
+        docTitle:t.title||'',goal:t.goal||'',fileLang:winFileLang(w),
+        criteria:critArray(q.criteria).concat(fu?critArray(fu.criteria):[]),
+        turns:[{q:q.q||'',answer:null}].concat(fu?[{q:fu.q,answer:null}]:[])});
+    });
   }
-  return Object.assign(base,{kind:'single',title:bilingualText(t.q,lang),turns:[{q:bilingualText(t.q,lang),answer:null}]});
+  if(w.type==='conversation'){
+    return [mk({kind:'conversation',title:t.title||'محادثة',criteria:critArray(t.criteria),
+      turns:(t.messages||[]).map(m=>({q:bilingualText(m.q,lang),answer:null}))})];
+  }
+  return [mk({kind:'single',title:bilingualText(t.q,lang),criteria:critArray(t.criteria),
+    turns:[{q:bilingualText(t.q,lang),answer:null}]})];
 }
-function v2BankPool(wins,lang,onlyScorable){
+/* fileRefs (اختياري) يقصر السحب على ملفات بعينها بمفتاح "win|ci|ti" */
+function v2BankPool(wins,lang,onlyScorable,fileRefs){
   const out=[];
-  (wins.length?wins:Object.keys(QBANK)).forEach(win=>{
+  (wins.length?wins:textWinKeys()).forEach(win=>{
     const w=QBANK[win];if(!w)return;
-    w.cats.forEach((c,ci)=>c.tests.forEach((t,ti)=>out.push(v2ItemFromBank(win,ci,ti,lang))));
+    w.cats.forEach((c,ci)=>c.tests.forEach((t,ti)=>{
+      if(fileRefs&&fileRefs.length&&isFileWin(w)&&fileRefs.indexOf(win+'|'+ci+'|'+ti)<0)return;
+      out.push(...v2ItemsFromBankTest(win,ci,ti,lang));
+    }));
   });
   return out.filter(it=>it.turns.length&&it.turns.every(x=>(x.q||'').trim())&&(!onlyScorable||it.criteria.length));
+}
+/* ملفات قسمٍ ما مع عدد أسئلتها — قائمة اختيار الملفات في شاشة إنشاء الاختبار */
+function v2FileOptions(win){
+  const w=QBANK[win];if(!isFileWin(w))return [];
+  const out=[];
+  w.cats.forEach((c,ci)=>c.tests.forEach((t,ti)=>{
+    const qs=fileTestQuestions(t).filter(q=>(q.q||'').trim());
+    out.push({key:win+'|'+ci+'|'+ti,title:t.title||((t.file||{}).name)||'ملف بلا عنوان',
+      meta:fileMetaLine(t.file),n:qs.length,scorable:qs.filter(q=>critArray(q.criteria).length||(fileFollowUp(q)&&critArray(fileFollowUp(q).criteria).length)).length});
+  }));
+  return out;
 }
 /* عدد الأسئلة القابلة للتقييم بالمعايير في كل قسم — أسئلة بلا معايير لا يمكن
    إعطاؤها نسبة في اختبار الجودة، فنبيّن ذلك للمستخدم قبل البدء. */
 function v2WinOptions(lang){
-  return bankWinEntries().map(([k,w,n])=>{
+  return bankWinEntries().filter(([k,w])=>!isFileWin(w)).map(([k,w,n])=>{
     let scorable=0;
     w.cats.forEach(c=>c.tests.forEach(t=>{if(critArray(t.criteria).length)scorable++;}));
     return {key:k,label:w.label,n,scorable};
@@ -2451,27 +2688,67 @@ function v2WinOptions(lang){
 }
 
 function v2Start(){
-  app.ctx.v2={kind:'quality',lang:'ar',searchMode:v2DefaultSearchMode('quality'),model:'',wins:[],count:V2_KINDS.quality.defaultCount,onlyScorable:true,reason:''};
+  app.ctx.v2={kind:'quality',lang:'ar',searchMode:v2DefaultSearchMode('quality'),model:'',wins:[],count:V2_KINDS.quality.defaultCount,onlyScorable:true,reason:'',fileLang:'ar',files:[]};
   app.sub='v2setup';render();window.scrollTo(0,0);
 }
+/* الجلسة تُبنى دائمًا من هذه الحقول المشتقّة، فلا تتسرّب حالة نوعٍ إلى نوع آخر:
+   في اختبار الملفات القسم واللغة يأتيان من نوع الملفات المختار لا من خطوة اللغة. */
+function v2EffWins(s){return isFilesKind(s.kind)?[fileWinForLang(s.fileLang)].filter(Boolean):s.wins;}
+function v2EffLang(s){return isFilesKind(s.kind)?s.fileLang:s.lang;}
+function v2EffFiles(s){return isFilesKind(s.kind)?s.files:[];}
+function v2EffScorable(s){return s.kind!=='smoke'&&s.onlyScorable;}
+function v2Pool(s){return v2BankPool(v2EffWins(s),v2EffLang(s),v2EffScorable(s),v2EffFiles(s));}
 
 function v2Setup(){
   const s=app.ctx.v2;setCrumb('اختبار جديد');
+  const isFiles=isFilesKind(s.kind);
   const wins=v2WinOptions();
-  const scorableOn=s.kind==='quality'&&s.onlyScorable;
-  const poolN=v2BankPool(s.wins,s.lang,scorableOn).length;
-  const noCrit=v2BankPool(s.wins,s.lang,false).length-v2BankPool(s.wins,s.lang,true).length;
+  const scorableOn=v2EffScorable(s);
+  const poolN=v2Pool(s).length;
+  const eWins=v2EffWins(s),eLang=v2EffLang(s),eFiles=v2EffFiles(s);
+  const noCrit=v2BankPool(eWins,eLang,false,eFiles).length-v2BankPool(eWins,eLang,true,eFiles).length;
   const kindCards=Object.entries(V2_KINDS).map(([k,v])=>`<button class="kindcard ${s.kind===k?'on':''}" data-kind="${k}">
     <div class="kc-t"><svg class="icon"><use href="#ic-${v.icon}"/></svg> ${esc(v.label)}</div>
     <div class="kc-d">${esc(v.desc)}</div></button>`).join('');
   const modePills=v2SearchModeOptions(s.kind).map(m=>`<button class="optpill ${s.searchMode===m?'on':''}" data-vsmode="${m}">${esc(searchModeLabel(m))}</button>`).join('');
   const modeNote=s.kind==='smoke'
     ?'«الوضعان» يسأل كل سؤال مرتين — مرة بالبحث العادي ومرة بالتفصيلي — وتُسجَّل نتيجة كل نمط على حِدة، فيتبيّن أيّهما تعطّل. اختر نمطًا واحدًا لفحص أسرع.'
-    :'اختبار الجودة يُنفَّذ بنمط واحد حتى تبقى نسبته قابلة للمقارنة مع الجلسات الأخرى. لمقارنة النمطين شغّل جلستين ثم افتح شاشة المقارنة من السجل.';
+    :isFiles
+      ?'اختبار الملفات يُنفَّذ بنمط واحد حتى تبقى نسبته قابلة للمقارنة مع الجلسات الأخرى على نفس الملف.'
+      :'اختبار الجودة يُنفَّذ بنمط واحد حتى تبقى نسبته قابلة للمقارنة مع الجلسات الأخرى. لمقارنة النمطين شغّل جلستين ثم افتح شاشة المقارنة من السجل.';
   const winsHtml=wins.map(o=>{
     const gap=o.n-o.scorable;
     return `<label class="qoption ${s.wins.includes(o.key)?'sel':''}" data-win="${esc(o.key)}"><input type="checkbox" ${s.wins.includes(o.key)?'checked':''}><span class="qtext">${esc(o.label)}${gap?`<span class="cn" style="display:block;font-size:11.5px;color:var(--muted);margin-top:3px;">${gap} من أسئلته بلا معايير إجابة</span>`:''}</span><span class="chip" style="flex:0 0 auto;">${o.n} سؤال</span></label>`;
   }).join('');
+
+  /* ٣ · اللغة: في اختبار الملفات ليست لغة يختارها المستخدم، وإنما هي نوع الملفات
+     نفسه — فاختيار «ملفات إنجليزية» يُثبّت لغة الجلسة على الإنجليزية تلقائيًا. */
+  const fileLangPills=['ar','en'].map(L=>{
+    const key=fileWinForLang(L),w=QBANK[key];
+    const n=w?bankWinCount(w):0;
+    return `<button class="optpill ${s.fileLang===L?'on':''}" data-vflang="${L}">${esc(w?w.label:FILE_LANG_LABEL[L])} <span class="badge-n" style="margin-inline-start:6px;">${n}</span></button>`;
+  }).join('');
+  const fileOpts=isFiles?v2FileOptions(fileWinForLang(s.fileLang)):[];
+  const filesHtml=fileOpts.map(o=>{
+    const gap=o.n-o.scorable;
+    return `<label class="qoption ${s.files.includes(o.key)?'sel':''}" data-vfile="${esc(o.key)}"><input type="checkbox" ${s.files.includes(o.key)?'checked':''}><span class="qtext">${esc(o.title)}${o.meta?`<span class="cn" style="display:block;font-size:11.5px;color:var(--muted);margin-top:3px;">${esc(o.meta)}${gap?` · ${gap} من أسئلته بلا معايير إجابة`:''}</span>`:(gap?`<span class="cn" style="display:block;font-size:11.5px;color:var(--muted);margin-top:3px;">${gap} من أسئلته بلا معايير إجابة</span>`:'')}</span><span class="chip" style="flex:0 0 auto;">${o.n} سؤال</span></label>`;
+  }).join('');
+
+  const langSection=isFiles
+    ?`<div class="section-h" style="margin-top:20px;">٣ · نوع الملفات</div>
+      <div class="optpills">${fileLangPills}</div>
+      <div class="muted-note" style="margin-top:8px;" data-edit-key="v2.setup.filelang.note">${esc(t('v2.setup.filelang.note','لغة الجلسة تتبع نوع الملفات: ملفات عربية تُسأل بالعربية وملفات إنجليزية تُسأل بالإنجليزية، فلا يُسأل ملفٌ بلغةٍ غير لغته.'))}</div>`
+    :`<div class="section-h" style="margin-top:20px;">٣ · لغة الاختبار</div>
+      <div class="optpills"><button class="optpill ${s.lang==='ar'?'on':''}" data-vlang="ar">عربي</button><button class="optpill ${s.lang==='en'?'on':''}" data-vlang="en">English</button></div>`;
+
+  const poolSection=isFiles
+    ?`<div class="section-h" style="margin-top:20px;">٥ · الملفات</div>
+      <p class="muted-note" style="margin:0 0 10px;" data-edit-key="v2.setup.files.note">${esc(t('v2.setup.files.note','اترك الملفات دون تحديد لاختبار كل ملفات هذا النوع. كل سؤال من أسئلة الملف يُنفَّذ في محادثة مستقلة على نفس الملف، وسؤاله التابع يُطرح داخل نفس المحادثة.'))}</p>
+      ${filesHtml||'<div class="muted-note">لا توجد ملفات في هذا النوع بعد. أضِفها من الإعدادات ← بنك الأسئلة.</div>'}`
+    :`<div class="section-h" style="margin-top:20px;">٥ · الأسئلة</div>
+      <p class="muted-note" style="margin:0 0 10px;">اترك الأقسام دون تحديد لسحب الأسئلة من بنك الأسئلة كاملًا.</p>
+      ${winsHtml||'<div class="muted-note">لا توجد أسئلة في بنك الأسئلة بعد.</div>'}`;
+
   screen.innerHTML=`<div class="card">
     <div class="eyebrow" data-edit-key="v2.setup.eyebrow">${esc(t('v2.setup.eyebrow','قبل البدء'))}</div>
     <h1 class="h1" data-edit-key="v2.setup.title">${esc(t('v2.setup.title','بدء اختبار جديد'))}</h1>
@@ -2485,8 +2762,7 @@ function v2Setup(){
     <div class="optpills">${modePills}</div>
     <div class="muted-note" style="margin-top:8px;">${esc(modeNote)}</div>
 
-    <div class="section-h" style="margin-top:20px;">٣ · لغة الاختبار</div>
-    <div class="optpills"><button class="optpill ${s.lang==='ar'?'on':''}" data-vlang="ar">عربي</button><button class="optpill ${s.lang==='en'?'on':''}" data-vlang="en">English</button></div>
+    ${langSection}
 
     <div class="section-h" style="margin-top:20px;">٤ · النموذج المُختبَر</div>
     <div class="field"><select id="v_model" ${MODELS.length?'':'disabled'}>
@@ -2494,13 +2770,11 @@ function v2Setup(){
       ${MODELS.map(m=>`<option value="${esc(m.name)}" ${s.model===m.name?'selected':''}>${esc(m.name)}</option>`).join('')}
     </select>${MODELS.length?'':'<div class="muted-note" style="margin-top:6px;">أضِف نماذج من الإعدادات ← عام قبل بدء الاختبار.</div>'}</div>
 
-    <div class="section-h" style="margin-top:20px;">٥ · الأسئلة</div>
-    <p class="muted-note" style="margin:0 0 10px;">اترك الأقسام دون تحديد لسحب الأسئلة من بنك الأسئلة كاملًا.</p>
-    ${winsHtml||'<div class="muted-note">لا توجد أسئلة في بنك الأسئلة بعد.</div>'}
-    ${s.kind==='quality'?`<label class="qoption ${s.onlyScorable?'sel':''}" data-onlyscorable style="margin-top:10px;"><input type="checkbox" ${s.onlyScorable?'checked':''}><span class="qtext">اقتصر على الأسئلة التي لها معايير إجابة صحيحة${noCrit?`<span class="cn" style="display:block;font-size:11.5px;color:var(--muted);margin-top:3px;">${noCrit} سؤال في اختيارك الحالي بلا معايير — لا يمكن إعطاؤه نسبة في اختبار الجودة.</span>`:''}</span></label>`:''}
+    ${poolSection}
+    ${s.kind!=='smoke'?`<label class="qoption ${s.onlyScorable?'sel':''}" data-onlyscorable style="margin-top:10px;"><input type="checkbox" ${s.onlyScorable?'checked':''}><span class="qtext">اقتصر على الأسئلة التي لها معايير إجابة صحيحة${noCrit?`<span class="cn" style="display:block;font-size:11.5px;color:var(--muted);margin-top:3px;">${noCrit} سؤال في اختيارك الحالي بلا معايير — لا يمكن إعطاؤه نسبة.</span>`:''}</span></label>`:''}
     <div class="field" style="margin-top:14px;"><label>عدد الأسئلة (المتاح الآن: ${poolN})</label><input id="v_count" type="number" min="1" max="${Math.max(poolN,1)}" value="${Math.min(s.count,Math.max(poolN,1))}"></div>
     ${s.searchMode==='both'?`<div class="muted-note" style="margin-top:-6px;margin-bottom:12px;">${Math.min(s.count,Math.max(poolN,1))} سؤال × نمطَي بحث = ${Math.min(s.count,Math.max(poolN,1))*2} محادثة.</div>`:''}
-    ${poolN?'':'<div class="warnmsg show">لا توجد أسئلة مطابقة لهذا الاختيار.</div>'}
+    ${poolN?'':`<div class="warnmsg show">${isFiles?'لا توجد أسئلة في ملفات هذا الاختيار.':'لا توجد أسئلة مطابقة لهذا الاختيار.'}</div>`}
 
     <div class="section-h" style="margin-top:20px;">٦ · معلومات إضافية (اختيارية)</div>
     <div class="field"><label>سبب الاختبار</label><textarea id="v_reason" placeholder="مثال: التحقق بعد تحديث نموذج الاسترجاع">${esc(s.reason)}</textarea></div>
@@ -2514,23 +2788,36 @@ function v2Setup(){
        اختيار المستخدم — عدا «الوضعان» فهو غير متاح في الجودة. */
     if(s.searchMode===v2DefaultSearchMode(prev))s.searchMode=v2DefaultSearchMode(s.kind);
     else if(!v2SearchModeOptions(s.kind).includes(s.searchMode))s.searchMode=v2DefaultSearchMode(s.kind);
+    /* لا يُفتح اختبار الملفات على نوعٍ فارغ إن كان النوع الآخر فيه ملفات — المستخدم
+       يرى قائمة خاوية فيحسب أنه لا توجد ملفات أصلًا. */
+    if(isFilesKind(s.kind)){
+      const cur=fileWinForLang(s.fileLang);
+      if(!bankWinCount(QBANK[cur])){
+        const other=s.fileLang==='ar'?'en':'ar';
+        if(bankWinCount(QBANK[fileWinForLang(other)])){s.fileLang=other;s.files=[];}
+      }
+    }
     v2Setup();});
   screen.querySelectorAll('[data-vsmode]').forEach(b=>b.onclick=()=>{sync();s.searchMode=b.dataset.vsmode;v2Setup();});
   screen.querySelectorAll('[data-vlang]').forEach(b=>b.onclick=()=>{sync();s.lang=b.dataset.vlang;v2Setup();});
+  /* تغيير نوع الملفات يُلغي اختيار الملفات: مفاتيحها تحمل اسم قسمها فلا تصلح لقسم آخر */
+  screen.querySelectorAll('[data-vflang]').forEach(b=>b.onclick=()=>{sync();s.fileLang=b.dataset.vflang;s.files=[];v2Setup();});
   screen.querySelectorAll('[data-win]').forEach(el=>el.querySelector('input').onchange=()=>{sync();const k=el.dataset.win,i=s.wins.indexOf(k);if(i>-1)s.wins.splice(i,1);else s.wins.push(k);v2Setup();});
+  screen.querySelectorAll('[data-vfile]').forEach(el=>el.querySelector('input').onchange=()=>{sync();const k=el.dataset.vfile,i=s.files.indexOf(k);if(i>-1)s.files.splice(i,1);else s.files.push(k);v2Setup();});
   const os=screen.querySelector('[data-onlyscorable] input');if(os)os.onchange=()=>{sync();s.onlyScorable=!s.onlyScorable;v2Setup();};
   document.getElementById('cancel').onclick=()=>{app.sub=null;app.ctx.v2=null;render();};
   document.getElementById('start').onclick=()=>{
     sync();
     const w=document.getElementById('w');
     if(MODELS.length&&!s.model){w.textContent='اختر النموذج المُختبَر أولًا.';w.classList.add('show');return;}
-    const pool=v2BankPool(s.wins,s.lang,scorableOn);
-    if(!pool.length){w.textContent='لا توجد أسئلة مطابقة لهذا الاختيار.';w.classList.add('show');return;}
+    const pool=v2Pool(s);
+    if(!pool.length){w.textContent=isFiles?'لا توجد أسئلة في ملفات هذا الاختيار.':'لا توجد أسئلة مطابقة لهذا الاختيار.';w.classList.add('show');return;}
     app.ctx.v2run={
       id:'v2'+Date.now()+Math.random().toString(36).slice(2,7),
-      kind:s.kind,employee:CURRENT_USER_EMAIL,date:today(),lang:s.lang,searchMode:s.searchMode,model:s.model,
+      kind:s.kind,employee:CURRENT_USER_EMAIL,date:today(),lang:v2EffLang(s),searchMode:s.searchMode,model:s.model,
       reason:s.reason,aiMode:aiEffectiveMode(),judgeModel:aiLiveJudge()?(AI_CONFIG.judgeModel||''):'',
-      wins:s.wins.slice(),onlyScorable:scorableOn,questionCount:Math.min(s.count,pool.length),
+      wins:v2EffWins(s),fileLang:isFiles?s.fileLang:'',files:v2EffFiles(s).slice(),
+      onlyScorable:scorableOn,questionCount:Math.min(s.count,pool.length),
       items:v2ExpandModes(sample(pool,Math.min(s.count,pool.length)),s.searchMode),
       score:null,savedAt:null,
     };
@@ -2553,12 +2840,13 @@ function v2PaintProgress(){
     const cls=it.status==='judged'?'done':it.status==='error'?'error':(it.status==='running'||it.status==='judging')?'running':'';
     const st={pending:'بالانتظار',running:'جارٍ سؤال النموذج',judging:'جارٍ التقييم',judged:'تم',error:'تعذّر'}[it.status]||'';
     const modeTag=runSearchMode(run)==='both'?`<span class="chip" style="flex:0 0 auto;margin-inline-end:8px;">${esc(searchModeShort(itemSearchMode(it)))}</span>`:'';
-    return `<div class="runprog ${cls}"><span class="rp-n">${it.status==='judged'?'<svg class="icon"><use href="#ic-tick"/></svg>':i+1}</span><span class="rp-t">${modeTag}${esc(it.title)}</span><span class="rp-s">${esc(st)}</span></div>`;
+    const fileTag=it.kind==='fileupload'&&it.fileName?`<span class="chip" style="flex:0 0 auto;margin-inline-end:8px;">${esc(it.fileName)}</span>`:'';
+    return `<div class="runprog ${cls}"><span class="rp-n">${it.status==='judged'?'<svg class="icon"><use href="#ic-tick"/></svg>':i+1}</span><span class="rp-t">${modeTag}${fileTag}<span dir="auto">${esc(it.title)}</span></span><span class="rp-s">${esc(st)}</span></div>`;
   }).join('');
   screen.innerHTML=`<div class="card">
-    <div class="eyebrow">${esc(v2KindLabel(run.kind))} · ${esc(searchModeLabel(runSearchMode(run)))} · ${esc(run.lang==='en'?'English':'عربي')}${run.model?' · '+esc(run.model):''}</div>
+    <div class="eyebrow">${esc(v2RunEyebrow(run))}</div>
     <h1 class="h1">جارٍ تنفيذ الاختبار</h1>
-    <p class="sub">يُنشئ البرنامج محادثة لكل سؤال ويرسلها للنموذج المُختبَر، ثم يقيّم كل إجابة حسب عناصر الإجابة الصحيحة. لا تغلق الصفحة.</p>
+    <p class="sub">${run.kind==='files'?'يرفع البرنامج الملف مع كل سؤال من أسئلته في محادثة مستقلة، ثم يقيّم الإجابة حسب عناصر الإجابة الصحيحة. لا تغلق الصفحة.':'يُنشئ البرنامج محادثة لكل سؤال ويرسلها للنموذج المُختبَر، ثم يقيّم كل إجابة حسب عناصر الإجابة الصحيحة. لا تغلق الصفحة.'}</p>
     ${run.aiMode!=='live'?`<div class="tip"><span class="ic"><svg class="icon"><use href="#ic-lamp"/></svg></span><div>${esc(aiModeLabel(run.aiMode))} — بعض النتائج أو كلها تجريبية.</div></div>`:''}
     <div class="progbar"><span style="width:${pct}%"></span></div>
     <div class="muted-note" style="margin-top:8px;">${done} من ${run.items.length} · ${pct}%</div>
@@ -2576,7 +2864,7 @@ async function v2Execute(run){
       const it=run.items[i];
       try{
         it.status='running';if(app.sub==='v2running')v2PaintProgress();
-        const r=await AI.ask({model:run.model,lang:run.lang,searchMode:itemSearchMode(it),turns:it.turns,fileLink:it.fileLink});
+        const r=await AI.ask({model:run.model,lang:run.lang,searchMode:itemSearchMode(it),turns:it.turns,fileLink:fileAbsUrl(it.fileLink)});
         it.turns.forEach((turn,ti)=>{turn.answer=r.answers[ti]!=null?r.answers[ti]:'';});
         it.conversationId=r.conversationId||'';it.conversationUrl=r.conversationUrl||'';
         it.status='judging';if(app.sub==='v2running')v2PaintProgress();
@@ -2626,7 +2914,7 @@ function v2ScoreCellHtml(it){
 function v2Review(){
   const run=app.ctx.v2run;setCrumb('مراجعة التقييم');
   screen.innerHTML=`<div class="card">
-    <div class="eyebrow">${esc(v2KindLabel(run.kind))} · ${esc(searchModeLabel(runSearchMode(run)))} · ${esc(run.lang==='en'?'English':'عربي')}</div>
+    <div class="eyebrow">${esc(v2KindLabel(run.kind))} · ${esc(searchModeLabel(runSearchMode(run)))} · ${esc(v2RunLangLabel(run))}</div>
     <h1 class="h1" data-edit-key="v2.review.title">${esc(t('v2.review.title','مراجعة نتائج الاختبار'))}</h1>
     <p class="sub" data-edit-key="v2.review.sub">${esc(t('v2.review.sub','راجع تقييم الذكاء الاصطناعي لكل إجابة. إن كان التقييم غير صحيح فحدّد السبب واكتب توضيحًا — تُحفظ ملاحظاتك مع نتيجة الاختبار.'))}</p>
     <div id="v2sum"></div>
@@ -2684,15 +2972,18 @@ function v2CardHtml(it,i,run){
       ?`<div class="scorebig ${it.judge.pass?'pass':'fail'}"><div class="sv"><svg class="icon" style="width:19px;height:19px;"><use href="#ic-${it.judge.pass?'tick':'x'}"/></svg></div><div class="sl">${it.judge.pass?'نجح':'لم ينجح'}</div></div>`
       :`<div class="scorebig ${pctN==null?'':scoreClass(pctN)}"><div class="sv">${pctN==null?'—':pctN+'%'}</div><div class="sl">الدرجة</div></div>`);
 
+  /* في اختبار الملف الدور الثاني سؤالٌ تابع لا سؤال مستقل، فتسميته بالرقم تُوهم
+     أنه سؤال آخر من أسئلة الملف. */
+  const turnLbl=ti=>it.turns.length<2?'السؤال':(it.kind==='fileupload'?(ti?'السؤال التابع':'السؤال'):'السؤال '+(ti+1));
   const turnsHtml=it.turns.map((turn,ti)=>`
     <div style="margin-top:${ti?'14px':'12px'};">
       <div class="answerbox" style="background:var(--card-2);">
-        <span class="lbl">${it.turns.length>1?'السؤال '+(ti+1):'السؤال'}</span>
-        <div class="txt">${esc(turn.q)}</div>
+        <span class="lbl">${esc(turnLbl(ti))}</span>
+        <div class="txt" dir="auto">${esc(turn.q)}</div>
       </div>
       <div class="answerbox collapsed" data-ans="${i}|${ti}">
         <span class="lbl">إجابة النموذج${run.model?' · '+esc(run.model):''}</span>
-        <div class="txt">${esc(turn.answer||'—')}</div>
+        <div class="txt" dir="auto">${esc(turn.answer||'—')}</div>
       </div>
       ${(turn.answer||'').length>210?`<button class="morebtn" data-more="${i}|${ti}">عرض الإجابة كاملة</button>`:''}
     </div>`).join('');
@@ -2705,7 +2996,7 @@ function v2CardHtml(it,i,run){
   }else if(it.judge&&!it.criteria.length){
     judgeHtml=`<div class="tip" style="margin-top:13px;"><span class="ic"><svg class="icon"><use href="#ic-lamp"/></svg></span><div>لا توجد معايير إجابة صحيحة لهذا السؤال في بنك الأسئلة، فلا يمكن إعطاؤه نسبة وهو غير محتسب في نتيجة الاختبار. أضِف معاييره من الإعدادات ← بنك الأسئلة.</div></div>`;
   }else if(it.judge){
-    const lis=(it.judge.criteria||[]).map(c=>`<li class="${c.met?'met':'unmet'}"><span class="mk"><svg class="icon"><use href="#ic-${c.met?'tick':'x'}"/></svg></span><span class="ct">${esc(c.text)}${c.note?`<span class="cn">${esc(c.note)}</span>`:''}</span></li>`).join('');
+    const lis=(it.judge.criteria||[]).map(c=>`<li class="${c.met?'met':'unmet'}"><span class="mk"><svg class="icon"><use href="#ic-${c.met?'tick':'x'}"/></svg></span><span class="ct" dir="auto">${esc(c.text)}${c.note?`<span class="cn">${esc(c.note)}</span>`:''}</span></li>`).join('');
     judgeHtml=`<div class="criteria-box" style="margin-top:13px;"><span class="lbl">تقييم عناصر الإجابة الصحيحة</span><ul class="critlist">${lis}</ul></div>`;
   }
 
@@ -2723,12 +3014,14 @@ function v2CardHtml(it,i,run){
 
   return `<div class="v2card">
     <div class="v2head">
-      <div class="v2q"><span class="chip" style="margin-inline-end:8px;">${i+1}</span>${runSearchMode(run)==='both'?`<span class="chip" style="margin-inline-end:8px;">${esc(searchModeShort(itemSearchMode(it)))}</span>`:''}${esc(it.title)}
-        <div class="muted-note" style="margin-top:6px;font-weight:400;">${esc(it.srcLabel)} · ${esc(searchModeLabel(itemSearchMode(it)))}${it.kind==='conversation'?' · محادثة من '+it.turns.length+' أسئلة':''}${it.fileLink?' · بملف مرفق':''}</div>
+      <div class="v2q"><span class="chip" style="margin-inline-end:8px;">${i+1}</span>${runSearchMode(run)==='both'?`<span class="chip" style="margin-inline-end:8px;">${esc(searchModeShort(itemSearchMode(it)))}</span>`:''}<span dir="auto">${esc(it.title)}</span>
+        <div class="muted-note" style="margin-top:6px;font-weight:400;">${esc(it.srcLabel)} · ${esc(searchModeLabel(itemSearchMode(it)))}${it.kind==='conversation'?' · محادثة من '+it.turns.length+' أسئلة':''}${it.kind==='fileupload'&&it.docTitle?' · '+esc(it.docTitle):''}${it.kind==='fileupload'&&it.turns.length>1?' · بسؤال تابع':''}</div>
       </div>
       ${scoreHtml}
     </div>
-    ${it.fileLink?`<div class="row" style="margin-top:10px;"><a href="${esc(it.fileLink)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm"><svg class="icon"><use href="#ic-paperclip"/></svg> الملف المرفق</a></div>`:''}
+    ${it.fileLink?`<div class="answerbox" style="margin-top:10px;background:var(--card-2);"><span class="lbl">الملف المرفوع</span>
+      <div class="txt">${esc(it.fileName||it.fileLink)}${it.fileMeta?` <span class="muted-note">· ${esc(it.fileMeta)}</span>`:''}</div>
+      <div class="row" style="margin-top:10px;"><a href="${esc(it.fileLink)}" download class="btn btn-ghost btn-sm"><svg class="icon"><use href="#ic-paperclip"/></svg> تنزيل الملف</a><a href="${esc(it.fileLink)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm"><svg class="icon"><use href="#ic-external-link"/></svg> فتح في تبويب</a></div></div>`:''}
     ${turnsHtml}
     ${judgeHtml}
     ${verify}
@@ -2755,7 +3048,8 @@ function v2BindCards(){
 function v2SummaryText(run){
   const pct=v2RunScore(run);
   const L=['📋 تقرير '+v2KindLabel(run.kind)+' — منصة مِعيار',`${SETTINGS.team} — ${SETTINGS.product}`,'———————————————',
-    `الموظف: ${run.employee}`,`التاريخ: ${run.date}`,`نمط البحث: ${searchModeLabel(runSearchMode(run))}`,`اللغة: ${run.lang==='en'?'English':'عربي'}`];
+    `الموظف: ${run.employee}`,`التاريخ: ${run.date}`,`نمط البحث: ${searchModeLabel(runSearchMode(run))}`,
+    run.kind==='files'?`نوع الملفات: ${v2RunLangLabel(run)}`:`اللغة: ${run.lang==='en'?'English':'عربي'}`];
   if(run.model)L.push(`النموذج المُختبَر: ${run.model}`);
   if(run.aiMode&&run.aiMode!=='live')L.push('⚠ '+aiModeLabel(run.aiMode)+' — بعض النتائج أو كلها تجريبية');
   if(run.reason)L.push(`سبب الاختبار: ${run.reason}`);
@@ -2763,7 +3057,8 @@ function v2SummaryText(run){
   run.items.forEach((it,i)=>{
     const s=v2ItemScore(it);
     const head=it.status==='error'?'⚠ تعذّر':(it.judge&&it.judge.mode==='binary'?(it.judge.pass?'✅ نجح':'❌ لم ينجح'):`${s>=0.8?'✅':s>=0.5?'🟡':'❌'} ${Math.round(s*100)}%`);
-    L.push('',`${i+1}. ${head} — ${runSearchMode(run)==='both'?'['+searchModeShort(itemSearchMode(it))+'] ':''}${it.title}`);
+    L.push('',`${i+1}. ${head} — ${runSearchMode(run)==='both'?'['+searchModeShort(itemSearchMode(it))+'] ':''}${it.kind==='fileupload'&&it.fileName?'['+it.fileName+'] ':''}${it.title}`);
+    if(it.kind==='fileupload'&&it.turns.length>1)L.push(`   ↳ سؤال تابع: ${it.turns[1].q}`);
     if(it.judge&&it.judge.mode==='criteria')(it.judge.criteria||[]).forEach(c=>L.push(`   ${c.met?'✓':'✗'} ${c.text}`));
     else if(it.judge)L.push(`   ${it.judge.summary}`);
     if(it.review.agree===false)L.push(`   ⚑ اعتراض على التقييم: ${it.review.reason}${it.review.note?' — '+it.review.note:''}`);
@@ -2785,7 +3080,7 @@ function v2RunRow(r,i){
   const badge=`<span class="badge ${pct==null?'draft':pct>=80?'pass':pct>=50?'draft':'fail'}">${pct==null?'—':pct+'%'}</span>`;
   const disputed=r.items.filter(x=>x.review&&x.review.agree===false).length;
   return `<div class="lrow"><div class="ri"><div class="t">${esc(v2KindLabel(r.kind))} · ${esc(r.model||'—')}</div>
-    <div class="m">${esc(r.date)} • ${esc(r.employee||'—')} • ${r.items.length} ${esc(v2UnitLabel(r))} • ${esc(searchModeLabel(runSearchMode(r)))} • ${r.lang==='en'?'English':'عربي'}${disputed?` • <span style="color:var(--fail);">${disputed} اعتراض</span>`:''}${r.aiMode&&r.aiMode!=='live'?' • '+esc(aiModeLabel(r.aiMode)):''}</div></div>
+    <div class="m">${esc(r.date)} • ${esc(r.employee||'—')} • ${r.items.length} ${esc(v2UnitLabel(r))} • ${esc(searchModeLabel(runSearchMode(r)))} • ${esc(v2RunLangLabel(r))}${disputed?` • <span style="color:var(--fail);">${disputed} اعتراض</span>`:''}${r.aiMode&&r.aiMode!=='live'?' • '+esc(aiModeLabel(r.aiMode)):''}</div></div>
     ${badge}
     <button class="btn btn-ghost btn-sm" data-vrun="${i}"><svg class="icon"><use href="#ic-external-link"/></svg> استعراض</button>
     <button class="iconbtn" data-vcopy="${i}"><svg class="icon"><use href="#ic-copy"/></svg></button>
@@ -2862,7 +3157,7 @@ function renderV2RunView(){
   const disputed=run.items.filter(x=>x.review&&x.review.agree===false);
   screen.innerHTML=`<div class="card">
     <button class="bankback" id="back">→ سجل الاختبارات</button>
-    <div class="eyebrow">${esc(v2KindLabel(run.kind))} · ${esc(searchModeLabel(runSearchMode(run)))} · ${esc(run.lang==='en'?'English':'عربي')}</div>
+    <div class="eyebrow">${esc(v2KindLabel(run.kind))} · ${esc(searchModeLabel(runSearchMode(run)))} · ${esc(v2RunLangLabel(run))}</div>
     <h1 class="h1">${esc(run.model||'اختبار')} — ${pct==null?'—':pct+'%'}</h1>
     <div style="margin-top:10px;font-size:13.5px;color:var(--muted);">
       <b style="color:var(--ink-2)">الموظف:</b> ${esc(run.employee||'—')} • <b style="color:var(--ink-2)">التاريخ:</b> ${esc(run.date)} • <b style="color:var(--ink-2)">عدد البنود:</b> ${run.items.length} ${esc(v2UnitLabel(run))}${runSearchMode(run)==='both'&&run.questionCount?` (${run.questionCount} سؤال × نمطَي بحث)`:''}
@@ -2889,15 +3184,18 @@ function v2ReadonlyCard(it,i,run){
     ?`<div class="scorebig ${it.judge.pass?'pass':'fail'}"><div class="sv"><svg class="icon" style="width:19px;height:19px;"><use href="#ic-${it.judge.pass?'tick':'x'}"/></svg></div><div class="sl">${it.judge.pass?'نجح':'لم ينجح'}</div></div>`
     :`<div class="scorebig ${pctN==null?'':scoreClass(pctN)}"><div class="sv">${pctN==null?'—':pctN+'%'}</div><div class="sl">الدرجة</div></div>`;
   const crit=it.judge&&it.judge.mode==='criteria'
-    ?`<div class="criteria-box" style="margin-top:13px;"><span class="lbl">تقييم عناصر الإجابة الصحيحة</span><ul class="critlist">${(it.judge.criteria||[]).map(c=>`<li class="${c.met?'met':'unmet'}"><span class="mk"><svg class="icon"><use href="#ic-${c.met?'tick':'x'}"/></svg></span><span class="ct">${esc(c.text)}${c.note?`<span class="cn">${esc(c.note)}</span>`:''}</span></li>`).join('')}</ul></div>`
+    ?`<div class="criteria-box" style="margin-top:13px;"><span class="lbl">تقييم عناصر الإجابة الصحيحة</span><ul class="critlist">${(it.judge.criteria||[]).map(c=>`<li class="${c.met?'met':'unmet'}"><span class="mk"><svg class="icon"><use href="#ic-${c.met?'tick':'x'}"/></svg></span><span class="ct" dir="auto">${esc(c.text)}${c.note?`<span class="cn">${esc(c.note)}</span>`:''}</span></li>`).join('')}</ul></div>`
     :(it.judge?`<div class="criteria-box" style="margin-top:13px;"><span class="lbl">حكم المقيّم</span><p style="margin:0;">${esc(it.judge.summary)}</p></div>`:'');
   const rv=it.review||{};
   return `<div class="v2card">
-    <div class="v2head"><div class="v2q"><span class="chip" style="margin-inline-end:8px;">${i+1}</span>${runSearchMode(run)==='both'?`<span class="chip" style="margin-inline-end:8px;">${esc(searchModeShort(itemSearchMode(it)))}</span>`:''}${esc(it.title)}
-      <div class="muted-note" style="margin-top:6px;font-weight:400;">${esc(it.srcLabel||'')} · ${esc(searchModeLabel(itemSearchMode(it)))}</div></div>${scoreHtml}</div>
+    <div class="v2head"><div class="v2q"><span class="chip" style="margin-inline-end:8px;">${i+1}</span>${runSearchMode(run)==='both'?`<span class="chip" style="margin-inline-end:8px;">${esc(searchModeShort(itemSearchMode(it)))}</span>`:''}<span dir="auto">${esc(it.title)}</span>
+      <div class="muted-note" style="margin-top:6px;font-weight:400;">${esc(it.srcLabel||'')} · ${esc(searchModeLabel(itemSearchMode(it)))}${it.kind==='fileupload'&&it.docTitle?' · '+esc(it.docTitle):''}</div></div>${scoreHtml}</div>
+    ${it.fileLink?`<div class="answerbox" style="margin-top:10px;background:var(--card-2);"><span class="lbl">الملف المرفوع</span>
+      <div class="txt">${esc(it.fileName||it.fileLink)}${it.fileMeta?` <span class="muted-note">· ${esc(it.fileMeta)}</span>`:''}</div>
+      <div class="row" style="margin-top:10px;"><a href="${esc(it.fileLink)}" download class="btn btn-ghost btn-sm"><svg class="icon"><use href="#ic-paperclip"/></svg> تنزيل الملف</a></div></div>`:''}
     ${it.turns.map((turn,ti)=>`<div style="margin-top:12px;">
-      <div class="answerbox" style="background:var(--card-2);"><span class="lbl">${it.turns.length>1?'السؤال '+(ti+1):'السؤال'}</span><div class="txt">${esc(turn.q)}</div></div>
-      <div class="answerbox collapsed" data-ans="v${i}|${ti}"><span class="lbl">إجابة النموذج</span><div class="txt">${esc(turn.answer||'—')}</div></div>
+      <div class="answerbox" style="background:var(--card-2);"><span class="lbl">${it.turns.length<2?'السؤال':(it.kind==='fileupload'?(ti?'السؤال التابع':'السؤال'):'السؤال '+(ti+1))}</span><div class="txt" dir="auto">${esc(turn.q)}</div></div>
+      <div class="answerbox collapsed" data-ans="v${i}|${ti}"><span class="lbl">إجابة النموذج</span><div class="txt" dir="auto">${esc(turn.answer||'—')}</div></div>
       ${(turn.answer||'').length>210?`<button class="morebtn" data-more="v${i}|${ti}">عرض الإجابة كاملة</button>`:''}
     </div>`).join('')}
     ${crit}
@@ -2933,7 +3231,7 @@ function renderV2Compare(){
   const overview=`<div class="cmpwrap"><table class="v2tbl">
     <tr><th>النموذج</th><th>النوع</th><th>نمط البحث</th><th>اللغة</th><th>التاريخ</th><th>الأسئلة</th><th>النتيجة</th><th>اعتراضات المختبِر</th></tr>
     ${picked.map(r=>{const d=r.items.filter(x=>x.review&&x.review.agree===false).length;return `<tr>
-      <td><b>${esc(r.model||'—')}</b></td><td>${esc(v2KindLabel(r.kind))}</td><td>${esc(searchModeLabel(runSearchMode(r)))}</td><td>${r.lang==='en'?'English':'عربي'}</td><td>${esc(r.date)}</td><td>${r.items.length}</td>
+      <td><b>${esc(r.model||'—')}</b></td><td>${esc(v2KindLabel(r.kind))}</td><td>${esc(searchModeLabel(runSearchMode(r)))}</td><td>${esc(v2RunLangLabel(r))}</td><td>${esc(r.date)}</td><td>${r.items.length}</td>
       <td><b style="color:${r.score==null?'':scoreColor(r.score)}">${r.score==null?'—':r.score+'%'}</b><div class="mini-bar"><span style="width:${r.score||0}%;background:${scoreColor(r.score||0)}"></span></div></td>
       <td>${d||'—'}</td></tr>`;}).join('')}
   </table></div>`;
@@ -3818,26 +4116,56 @@ function settingsBankConversation(w){
   return `<div class="lbl-sm">المحادثات</div>${tests}
     <div style="margin-top:14px;"><button class="btn btn-ghost" id="addBankTest"><svg class="icon"><use href="#ic-plus"/></svg> إضافة محادثة</button></div>`;
 }
+/* محرّر قسم ملفات: الملف هو العنصر، وأسئلته داخله. نص السؤال هنا نصٌّ واحد لا
+   حقلان (ar/en) — لغته لغة القسم، فلا معنى لترجمة سؤالٍ عن ملفٍ بلغةٍ واحدة. */
 function settingsBankFileUpload(w){
   const cat=w.cats[0];
+  const flang=winFileLang(w);
+  const ph=flang==='en'?'Question text (English)':'نص السؤال (عربي)';
+  const phFu=flang==='en'?'Follow-up question (English) — optional':'نص السؤال التابع (عربي) — اختياري';
+  const critLine=(attr,val,delAttr)=>`<div class="qline"><textarea ${attr} placeholder="عنصر من عناصر الإجابة الصحيحة">${esc(val)}</textarea><button class="iconbtn del" ${delAttr}><svg class="icon"><use href="#ic-x"/></svg></button></div>`;
   const tests=cat.tests.map((t,ti)=>{
-    const criteria=(t.criteria||[]).map((x,xi)=>`<div class="qline"><textarea data-bcrit="0|${ti}|${xi}" placeholder="معيار تقييم">${esc(x)}</textarea><button class="iconbtn del" data-delcrit="0|${ti}|${xi}"><svg class="icon"><use href="#ic-x"/></svg></button></div>`).join('');
+    const file=t.file||{};
+    const qs=fileTestQuestions(t);
+    const qsHtml=qs.map((q,qi)=>{
+      const fu=q.followUp||null;
+      const crits=(q.criteria||[]).map((x,xi)=>critLine(`data-bfqcrit="${ti}|${qi}|${xi}"`,x,`data-delbfqcrit="${ti}|${qi}|${xi}"`)).join('');
+      const fuCrits=fu?((fu.criteria||[]).map((x,xi)=>critLine(`data-bffucrit="${ti}|${qi}|${xi}"`,x,`data-delbffucrit="${ti}|${qi}|${xi}"`)).join('')):'';
+      return `<div class="acc open" style="margin-top:10px;"><div class="body" style="display:block;">
+        <div class="row" style="justify-content:space-between;align-items:center;"><div class="lbl-sm" style="margin:0;">السؤال ${qi+1}</div>
+          <button class="iconbtn del" data-delbfq="${ti}|${qi}" title="حذف السؤال"><svg class="icon"><use href="#ic-trash"/></svg></button></div>
+        <textarea data-bfq="${ti}|${qi}" placeholder="${esc(ph)}" ${flang==='en'?'dir="ltr"':''}>${esc(q.q||'')}</textarea>
+        <div class="lbl-sm">عناصر الإجابة الصحيحة</div>${crits||'<div class="muted-note">لا عناصر بعد.</div>'}
+        <button class="iconbtn" data-addbfqcrit="${ti}|${qi}" style="margin-top:6px;"><svg class="icon"><use href="#ic-plus"/></svg> عنصر</button>
+        <div class="lbl-sm" style="margin-top:14px;">السؤال التابع (يُطرح في نفس المحادثة بعد السؤال أعلاه)</div>
+        <textarea data-bffu="${ti}|${qi}" placeholder="${esc(phFu)}" ${flang==='en'?'dir="ltr"':''}>${esc(fu?(fu.q||''):'')}</textarea>
+        ${fu&&(fu.q||'').trim()?`<div class="lbl-sm">عناصر الإجابة الصحيحة للسؤال التابع</div>${fuCrits||'<div class="muted-note">لا عناصر بعد.</div>'}
+          <button class="iconbtn" data-addbffucrit="${ti}|${qi}" style="margin-top:6px;"><svg class="icon"><use href="#ic-plus"/></svg> عنصر</button>`:''}
+      </div></div>`;
+    }).join('');
     return `<div class="subacc ${t._open?'open':''}" data-bsub="0|${ti}"><div class="head">
       <span class="caret">▶</span>
       <input type="checkbox" class="selbox" data-bsel="0|${ti}" ${t._sel?'checked':''} onclick="event.stopPropagation()">
-      <span class="title" style="font-size:13.5px;">${esc(bilingualText(t.q,'ar'))||'(بدون نص)'}</span></div>
+      <span class="title" style="font-size:13.5px;flex:1;">${esc(t.title)||esc(file.name)||'(ملف بدون عنوان)'}</span>
+      <span class="badge-n" style="margin-inline-start:8px;">${qs.length} سؤال</span></div>
       <div class="body">
-        <div class="lbl-sm">نص الطلب المرافق للملف (عربي)</div><textarea data-bqlang="0|${ti}|ar">${esc(bilingualExact(t.q,'ar'))}</textarea>
-        <div class="lbl-sm">Accompanying request text (English, optional)</div><textarea data-bqlang="0|${ti}|en">${esc(bilingualExact(t.q,'en'))}</textarea>
-        <div class="lbl-sm">رابط الملف</div><input data-bf="0|${ti}|fileLink" value="${esc(t.fileLink||'')}" placeholder="رابط الملف (Google Drive مثلًا)">
-        <div class="lbl-sm">الهدف من الاختبار</div><textarea data-bf="0|${ti}|goal" placeholder="ما الذي يهدف هذا الاختبار للتحقق منه؟">${esc(t.goal||'')}</textarea>
-        <div class="lbl-sm">معايير التقييم</div>${criteria||'<div class="muted-note">لا معايير بعد.</div>'}
-        <button class="iconbtn" data-addcrit="0|${ti}" style="margin-top:6px;"><svg class="icon"><use href="#ic-plus"/></svg> معيار</button>
-        <div class="row" style="margin-top:10px;"><button class="btn btn-primary btn-sm" data-bsavetest="0|${ti}"><svg class="icon"><use href="#ic-save"/></svg> حفظ الاختبار</button><button class="iconbtn del" data-bdeltest="0|${ti}"><svg class="icon"><use href="#ic-trash"/></svg> حذف الاختبار</button></div>
+        <div class="lbl-sm">عنوان الملف</div><input data-bfile="${ti}|title" value="${esc(t.title||'')}" placeholder="مثال: اتفاقية خدمات مهنية — نموذج (٢٠ صفحة)">
+        <div class="lbl-sm">اسم الملف كما يُعرض</div><input data-bfilef="${ti}|name" value="${esc(file.name||'')}" placeholder="اسم الملف مع لاحقته">
+        <div class="lbl-sm">رابط الملف</div><input data-bfilef="${ti}|url" value="${esc(file.url||'')}" placeholder="assets/files/اسم-الملف.pdf">
+        <div class="muted-note" style="margin-top:6px;">ضَع الملف في مجلد <code>assets/files</code> داخل المستودع واكتب مساره النسبي هنا، فيصبح تنزيله مباشرًا بزر واحد. أي رابط خارجي يعمل أيضًا، لكن روابط المشاهدة في Google Drive ليست تنزيلًا مباشرًا.</div>
+        <div class="row" style="margin-top:10px;">
+          <div class="field" style="flex:1;margin:0;"><label>الصيغة</label><input data-bfilef="${ti}|format" value="${esc(file.format||'')}" placeholder="PDF"></div>
+          <div class="field" style="flex:1;margin:0;"><label>عدد الصفحات</label><input data-bfilef="${ti}|pages" value="${esc(file.pages||'')}" placeholder="20"></div>
+        </div>
+        <div class="lbl-sm">الهدف من الاختبار</div><textarea data-bfile="${ti}|goal" placeholder="ما الذي يهدف هذا الملف للتحقق منه؟">${esc(t.goal||'')}</textarea>
+        <div class="lbl-sm" style="margin-top:14px;">أسئلة هذا الملف — لغتها ${esc(FILE_LANG_LABEL[flang])}</div>
+        ${qsHtml||'<div class="muted-note">لا أسئلة بعد.</div>'}
+        <div class="row" style="margin-top:10px;"><button class="btn btn-ghost btn-sm" data-addbfq="${ti}"><svg class="icon"><use href="#ic-plus"/></svg> إضافة سؤال</button></div>
+        <div class="row" style="margin-top:10px;"><button class="btn btn-primary btn-sm" data-bsavetest="0|${ti}"><svg class="icon"><use href="#ic-save"/></svg> حفظ الملف</button><button class="iconbtn del" data-bdeltest="0|${ti}"><svg class="icon"><use href="#ic-trash"/></svg> حذف الملف</button></div>
       </div></div>`;
   }).join('');
-  return `<div class="lbl-sm">الاختبارات</div>${tests}
-    <div style="margin-top:14px;"><button class="btn btn-ghost" id="addBankTest"><svg class="icon"><use href="#ic-plus"/></svg> إضافة اختبار</button></div>`;
+  return `<div class="lbl-sm">الملفات</div>${tests||'<div class="muted-note">لا ملفات بعد.</div>'}
+    <div style="margin-top:14px;"><button class="btn btn-ghost" id="addBankTest"><svg class="icon"><use href="#ic-plus"/></svg> إضافة ملف</button></div>`;
 }
 function settingsBankTyped(w){
   const cats=w.cats.map((c,ci)=>{
@@ -3861,7 +4189,7 @@ function settingsBank(){
       <h2 class="h2" style="margin:0;">إدارة بنك الأسئلة</h2>
       <div class="row"><button class="btn btn-ghost btn-sm" id="resetBank"><svg class="icon"><use href="#ic-refresh"/></svg> استعادة الافتراضي</button>${(flat||isConv||isFile)?`<button class="btn btn-ghost btn-sm" id="delSelBank"><svg class="icon"><use href="#ic-trash"/></svg> حذف المحدد</button>`:''}<button class="btn btn-primary btn-sm" id="saveBank"><svg class="icon"><use href="#ic-save"/></svg> حفظ التغييرات</button></div>
     </div>
-    <p class="sub" style="margin-top:8px;">${flat?'أضِف أو عدّل أو احذف الأسئلة وعناصر الإجابة الصحيحة.':isConv?'أضِف أو عدّل أو احذف المحادثات وأسئلتها المتسلسلة ومعايير نجاحها.':isFile?'أضِف أو عدّل أو احذف اختبارات رفع الملفات، رابط كل ملف ونوعه وهدفه ومعايير تقييمه.':'أضِف أو عدّل أو احذف أنواع السؤال وأسئلتها، وعدّل نص التنبيه أعلى الصفحة.'}</p>
+    <p class="sub" style="margin-top:8px;">${flat?'أضِف أو عدّل أو احذف الأسئلة وعناصر الإجابة الصحيحة.':isConv?'أضِف أو عدّل أو احذف المحادثات وأسئلتها المتسلسلة ومعايير نجاحها.':isFile?'أضِف أو عدّل أو احذف ملفات الاختبار وأسئلة كل ملف. الملف هو وحدة الاختبار: يُرفع مرة واحدة وتُطرح عليه أسئلته، ولكل سؤال سؤالٌ تابع اختياري يُطرح في نفس المحادثة. ولغة الأسئلة هنا هي لغة القسم، فلا حاجة لكتابتها بلغتين.':'أضِف أو عدّل أو احذف أنواع السؤال وأسئلتها، وعدّل نص التنبيه أعلى الصفحة.'}</p>
     <div class="tabbar" style="margin-top:14px;">${winTabs}</div>
     <div class="lbl-sm">${flat||isConv||isFile?'مقدّمة الصفحة':'نص التنبيه أعلى الصفحة'}</div><input data-bwinf="${win}" value="${esc(w.sub)}">
     <div class="warnmsg" id="bankWarn"></div>
@@ -3886,10 +4214,38 @@ function bindBank(){
   if(document.getElementById('addBankTest'))document.getElementById('addBankTest').onclick=()=>{
     const w=adminBank[win];
     if(w.type==='conversation')w.cats[0].tests.push({title:'',messages:[{q:''}],criteria:'',_open:true});
-    else if(w.type==='fileupload')w.cats[0].tests.push({q:'',fileLink:'',goal:'',criteria:[''],_open:true});
+    else if(w.type==='fileupload')w.cats[0].tests.push({title:'',file:{name:'',url:'',format:'',pages:''},goal:'',questions:[{q:'',criteria:[''],followUp:null}],_open:true});
     else w.cats[0].tests.push({q:'',criteria:[''],_open:true});
     re();
   };
+  /* --- محرّر أقسام الملفات --- */
+  const fileTest=key=>{const[ti]=key.split('|');return adminBank[win].cats[0].tests[+ti];};
+  const fileQ=key=>{const[ti,qi]=key.split('|');const t=adminBank[win].cats[0].tests[+ti];t.questions=t.questions||[];return t.questions[+qi];};
+  screen.querySelectorAll('[data-bfile]').forEach(el=>el.oninput=e=>{const[ti,f]=el.dataset.bfile.split('|');adminBank[win].cats[0].tests[+ti][f]=e.target.value;});
+  screen.querySelectorAll('[data-bfilef]').forEach(el=>el.oninput=e=>{const[ti,f]=el.dataset.bfilef.split('|');const t=adminBank[win].cats[0].tests[+ti];t.file=t.file||{};t.file[f]=e.target.value;});
+  screen.querySelectorAll('[data-bfq]').forEach(el=>el.oninput=e=>{fileQ(el.dataset.bfq).q=e.target.value;});
+  screen.querySelectorAll('[data-bfqcrit]').forEach(el=>el.oninput=e=>{const[ti,qi,xi]=el.dataset.bfqcrit.split('|');const q=fileQ(ti+'|'+qi);q.criteria=q.criteria||[];q.criteria[+xi]=e.target.value;});
+  /* كتابة نص السؤال التابع تُنشئه، ومحوه كاملًا يحذفه بمعاييره — فلا يبقى تابعٌ فارغ
+     يُحسب سؤالًا ولا معايير معلّقة على سؤال غير موجود. */
+  screen.querySelectorAll('[data-bffu]').forEach(el=>{
+    const had=!!fileQ(el.dataset.bffu).followUp;
+    el.oninput=e=>{
+      const q=fileQ(el.dataset.bffu),v=e.target.value;
+      if(!v.trim()){q.followUp=null;return;}
+      q.followUp=q.followUp||{q:'',criteria:['']};
+      q.followUp.q=v;
+    };
+    /* حقول معايير التابع تظهر أو تُخفى مع وجوده، فيُعاد الرسم عند تغيّر وجوده لا
+       مع كل حرف — إعادة رسمٍ في oninput تُفقد مؤشّر الكتابة. */
+    el.onchange=()=>{const q=fileQ(el.dataset.bffu);if(!!q.followUp!==had)re();};
+  });
+  screen.querySelectorAll('[data-bffucrit]').forEach(el=>el.oninput=e=>{const[ti,qi,xi]=el.dataset.bffucrit.split('|');const q=fileQ(ti+'|'+qi);if(!q.followUp)return;q.followUp.criteria=q.followUp.criteria||[];q.followUp.criteria[+xi]=e.target.value;});
+  screen.querySelectorAll('[data-addbfqcrit]').forEach(b=>b.onclick=()=>{const q=fileQ(b.dataset.addbfqcrit);q.criteria=q.criteria||[];q.criteria.push('');fileTest(b.dataset.addbfqcrit)._open=true;re();});
+  screen.querySelectorAll('[data-delbfqcrit]').forEach(b=>b.onclick=()=>{const[ti,qi,xi]=b.dataset.delbfqcrit.split('|');const q=fileQ(ti+'|'+qi);(q.criteria||[]).splice(+xi,1);fileTest(ti)._open=true;re();});
+  screen.querySelectorAll('[data-addbffucrit]').forEach(b=>b.onclick=()=>{const q=fileQ(b.dataset.addbffucrit);if(!q.followUp)return;q.followUp.criteria=q.followUp.criteria||[];q.followUp.criteria.push('');fileTest(b.dataset.addbffucrit)._open=true;re();});
+  screen.querySelectorAll('[data-delbffucrit]').forEach(b=>b.onclick=()=>{const[ti,qi,xi]=b.dataset.delbffucrit.split('|');const q=fileQ(ti+'|'+qi);if(q.followUp)(q.followUp.criteria||[]).splice(+xi,1);fileTest(ti)._open=true;re();});
+  screen.querySelectorAll('[data-addbfq]').forEach(b=>b.onclick=()=>{const t=fileTest(b.dataset.addbfq);t.questions=t.questions||[];t.questions.push({q:'',criteria:[''],followUp:null});t._open=true;re();});
+  screen.querySelectorAll('[data-delbfq]').forEach(b=>b.onclick=()=>{const[ti,qi]=b.dataset.delbfq.split('|');if(!confirm('حذف هذا السؤال وسؤاله التابع؟'))return;const t=fileTest(ti);(t.questions||[]).splice(+qi,1);t._open=true;re();});
   screen.querySelectorAll('[data-bconvmsg]').forEach(el=>el.oninput=e=>{const[ti,mi,lang]=el.dataset.bconvmsg.split('|');bqSetLang(adminBank[win].cats[0].tests[+ti].messages[+mi],lang,e.target.value);});
   screen.querySelectorAll('[data-addconvmsg]').forEach(b=>b.onclick=()=>{const ti=+b.dataset.addconvmsg;const t=adminBank[win].cats[0].tests[ti];t.messages=t.messages||[];t.messages.push({q:''});t._open=true;re();});
   screen.querySelectorAll('[data-delconvmsg]').forEach(b=>b.onclick=()=>{const[ti,mi]=b.dataset.delconvmsg.split('|');const t=adminBank[win].cats[0].tests[+ti];t.messages.splice(+mi,1);t._open=true;re();});
@@ -3897,12 +4253,12 @@ function bindBank(){
   screen.querySelectorAll('[data-bsavetest]').forEach(b=>b.onclick=()=>{
     const warn=document.getElementById('bankWarn');
     warn.classList.remove('show');
-    persistBank();toast('تم حفظ السؤال');
+    persistBank();toast(isFileWin(adminBank[win])?'تم حفظ الملف':'تم حفظ السؤال');
   });
-  screen.querySelectorAll('[data-bdeltest]').forEach(b=>b.onclick=()=>{const[ci,ti]=b.dataset.bdeltest.split('|');if(confirm('حذف السؤال؟')){adminBank[win].cats[+ci].tests.splice(+ti,1);persistBank();toast('تم حذف السؤال');re();}});
+  screen.querySelectorAll('[data-bdeltest]').forEach(b=>b.onclick=()=>{const[ci,ti]=b.dataset.bdeltest.split('|');const isF=isFileWin(adminBank[win]);if(confirm(isF?'حذف الملف وكل أسئلته؟':'حذف السؤال؟')){adminBank[win].cats[+ci].tests.splice(+ti,1);persistBank();toast(isF?'تم حذف الملف':'تم حذف السؤال');re();}});
   screen.querySelectorAll('[data-bdelcat]').forEach(b=>b.onclick=()=>{const ci=+b.dataset.bdelcat;if(confirm('حذف النوع وكل أسئلته؟')){adminBank[win].cats.splice(ci,1);persistBank();toast('تم حذف النوع');re();}});
   if(document.getElementById('addBankCat'))document.getElementById('addBankCat').onclick=()=>{adminBank[win].cats.forEach(c=>c._open=false);adminBank[win].cats.push({title:'نوع جديد',tests:[],_open:true});re();};
-  if(document.getElementById('delSelBank'))document.getElementById('delSelBank').onclick=()=>{let n=0;adminBank[win].cats.forEach(c=>{const b=c.tests.length;c.tests=c.tests.filter(t=>!t._sel);n+=b-c.tests.length;});if(n){persistBank();toast(`حُذف ${n} سؤال`);re();}else toast('لم تحدّد شيئًا');};
+  if(document.getElementById('delSelBank'))document.getElementById('delSelBank').onclick=()=>{let n=0;adminBank[win].cats.forEach(c=>{const b=c.tests.length;c.tests=c.tests.filter(t=>!t._sel);n+=b-c.tests.length;});if(n){persistBank();toast(`حُذف ${n} ${isFileWin(adminBank[win])?'ملف':'سؤال'}`);re();}else toast('لم تحدّد شيئًا');};
   document.getElementById('saveBank').onclick=()=>{
     const warn=document.getElementById('bankWarn');
     warn.classList.remove('show');
