@@ -1304,6 +1304,151 @@ function applyFileBankImport(id,win,tests){
    Question:») وهي تسمية للسؤال لا جزءٌ منه، فكانت تصل للمنتج كتلميح. */
 applyFileBankImport('files-en-psa-20p-2026-08-05-b','fileUploadEn',[IMPORT_FILE_PSA_EN]);
 
+/* دفعة اختبار ملفات إنجليزية ثانية: عقد التشغيل والصيانة (O&M) — ملفٌ ثانٍ مستقل
+   بأسئلته الخاصة، لا أسئلةٌ تُضاف إلى ملف اتفاقية الخدمات المهنية.
+   السؤالان ٨ و١٠ في ملف التصدير مكرّران حرفيًّا — نصًّا وسؤالًا تابعًا وإجابةً —
+   فأُدرج مرة واحدة: تكراره يضاعف وزنه في المتوسط ويُطرح على المختبِر مرتين. */
+const IMPORT_FILE_OM_EN={
+  title:'Operation and Maintenance (O&M) Contract — Template TECHCO',
+  file:{name:'Operation and Maintenance (O&M) Contract — TEMPLATE TECHCO.pdf',url:'assets/files/operation-and-maintenance-contract-en.pdf',format:'PDF',pages:155},
+  goal:'التحقق من قراءة المنتج لعقد إنجليزي ضخم (١٥٥ صفحة) والربط بين بنوده وملاحقه المتفرقة، دون قبول المقدّمات الخاطئة في السؤال ودون تعميم حكمٍ مقيَّد بحالةٍ بعينها.',
+  questions:[
+    {q:`A lower-priority schedule imposes a stricter technical requirement than the Scope of Work. The stricter requirement was not priced, could not reasonably have been identified on the Signature Date and is later clarified by the Employer's Representative. Can the Service Provider rely on document priority or unforeseeability to avoid the obligation or claim additional Cost?`,
+     criteria:[
+       `Answers that generally it cannot.`,
+       `States that the higher technical standard prevails despite document priority (Paragraph 2.4).`,
+       `States that the clarification must be implemented immediately, with no entitlement to additional Cost arising from it (Paragraph 2.3).`,
+       `States that pricing risk sits with the Service Provider, subject only to express contractual exceptions elsewhere (Paragraph 5.2).`,
+     ],
+     followUp:{q:`What would make an answer to this question unreliable?`,
+       criteria:[
+         `Identifies that concluding the Service Provider can never recover additional time or payment would be unreliable.`,
+         `Notes that such a conclusion ignores the later provisions dealing with Variations, Claims, Employer Risks and Adjustments to the Services Fee.`,
+       ]}},
+    {q:`If Schedule 2 requires one technical standard but Schedule 4 imposes a higher and more stringent standard, which requirement applies?`,
+     criteria:[
+       `States that the higher or more stringent standard applies.`,
+       `Explains that Paragraph 2.4 overrides the normal document priority rule in Paragraph 2.2 where the inconsistency concerns the standard or quality of work.`,
+     ],
+     followUp:{q:`Would the same answer necessarily apply if the inconsistency concerned payment timing rather than the standard or quality of work?`,
+       criteria:[
+         `Answers No.`,
+         `States that Paragraph 2.4 overrides document priority only for inconsistencies relating to the standard or quality of work.`,
+         `States that payment timing would generally follow the ordinary document priority unless another clause provides otherwise.`,
+       ]}},
+    {q:`What must a Party do after discovering a technical ambiguity, inconsistency, discrepancy, error or defect, and can the Service Provider recover additional Cost arising from the clarification?`,
+     criteria:[
+       `States that the discovering Party must immediately notify the Employer's Representative.`,
+       `States that the Employer's Representative must issue any necessary clarification or instruction, which both Parties must implement without delay.`,
+       `States that the Service Provider is not entitled to additional Cost arising from that clarification.`,
+     ],
+     followUp:{q:`Does Paragraph 2.3 expressly prevent the Service Provider from obtaining an extension of time?`,
+       criteria:[
+         `Answers No.`,
+         `States that the paragraph expressly excludes relief from obligations and additional Cost, but does not specifically refer to an extension of time.`,
+         `Notes that any entitlement to time relief would need to be assessed under the later claims and variation provisions.`,
+       ]}},
+    {q:`Does the Service Provider accept the risk of costs that could not be determined on the Signature Date?`,
+     criteria:[
+       `Answers Yes.`,
+       `States that the Service Provider accepts all risks and costs of performing the Services, whether or not they were capable of ascertainment on the Signature Date.`,
+       `Notes the exception where the Contract expressly provides otherwise.`,
+     ],
+     followUp:{q:`Does this mean the Service Provider can never recover additional payment?`,
+       criteria:[
+         `Answers No.`,
+         `States that the clause expressly preserves any entitlement the Contract provides elsewhere, such as under the Variation, Claims or Adjustment provisions.`,
+       ]}},
+    {q:`Are the Employer and the Service Provider subject to the same restrictions on assignment and novation?`,
+     criteria:[
+       `Answers No.`,
+       `States that the Service Provider requires the Employer's prior written consent before assigning or novating its rights or obligations.`,
+       `States that the Employer has broader rights to assign or novate to Affiliates, Beneficiaries and certain third parties meeting the contractual requirements.`,
+     ],
+     followUp:{q:`Can the Employer novate the Contract to any third party regardless of its financial standing?`,
+       criteria:[
+         `Answers No.`,
+         `States that where the transferee is not an Affiliate or Beneficiary, the Employer must reasonably consider that the third party has satisfactory financial standing to perform the Employer's obligations.`,
+       ]}},
+    {q:`If the Employer fails to provide reasonable assistance with obtaining a Service Provider's Permit that requires the Employer's signature, is the Service Provider relieved of its obligation to obtain the Permit or entitled to additional payment?`,
+     criteria:[
+       `Answers No.`,
+       `States that the Employer must provide reasonable assistance where it is in a position to do so, including signing documents required for Service Provider's Permits (Clauses 2.1(f) and 2.1(h)).`,
+       `States that the Service Provider remains responsible for preparing the required paperwork and for obtaining and maintaining all Service Provider's Permits (Clauses 2.1(g) and 2.1(i)).`,
+       `States that no failure by the Employer to provide such assistance relieves the Service Provider of its contractual obligations.`,
+       `Notes that the costs of complying with these obligations are deemed included in the Services Fee.`,
+     ],
+     followUp:{q:`Who is responsible for preparing the paperwork for permits that must be issued in the Employer's name?`,
+       criteria:[
+         `States that the Service Provider must prepare all paperwork required by the relevant Authorities and applicable Laws (Clause 2.1(g)).`,
+         `States that it must submit that paperwork to the Employer for signature and/or stamping.`,
+       ]}},
+    {q:`During the Document Retention Period, can the Employer interview former employees of the Service Provider, and under what circumstances must the Service Provider reimburse the Employer for the audit costs?`,
+     criteria:[
+       `Answers Yes — the Employer may review Contract Records and interview both current and former employees of the Service Provider and its Subcontractors (Clause 2.3(d)).`,
+       `States that if an audit identifies improperly claimed Costs or other contractual non-compliance, the Service Provider must repay those amounts.`,
+       `States that where the improperly claimed Costs exceed SAR 100,000, individually or in aggregate, the Service Provider must also reimburse the Employer's reasonable audit and interview costs (Clause 2.3(f)).`,
+       `States that this reimbursement falls due within 30 days of a written request.`,
+     ],
+     followUp:{q:`For how long may the Employer exercise its audit rights?`,
+       criteria:[
+         `States that the rights run throughout the Document Retention Period (Clauses 2.3(a)-2.3(b)).`,
+         `States that the period lasts until the later of the applicable statutory retention period and the earlier of seven years after the Term Expiry Date or seven years after termination of the Contract.`,
+       ]}},
+    {q:`The Employer must always issue a 21-day Notice to Correct before terminating the Contract under Clause 12.2. Is this correct?`,
+     criteria:[
+       `Answers No, and does not accept the question's premise that the notice is always required.`,
+       `States that several termination grounds do require a prior Notice to Correct, or arise from failure to comply with one (Clauses 12.1 and 12.2(b)).`,
+       `States that the Contract expressly permits immediate termination for breach of a Solvency Warranty or an Insolvency Event.`,
+       `States that it also permits immediate termination for breach of the Prohibited Acts or Maintaining Cybersecurity Resilience provisions.`,
+       `States that it also permits immediate termination where the Service Provider becomes liable for the maximum KPI Deductions (Clause 12.2(a)).`,
+     ],
+     followUp:{q:`Following termination by the Employer for default, is the Service Provider entitled to simply leave the Site after ceasing work?`,
+       criteria:[
+         `Answers No.`,
+         `States that beyond ceasing work — other than work necessary for safety — the Service Provider must vacate the Site (Clause 12.2(d)(i)-(iv)).`,
+         `States that it must deliver all O&M Manuals and transfer Permits.`,
+         `States that it must deliver or remove Goods as directed and, if requested, novate or transfer relevant subcontracts to the Employer.`,
+       ]}},
+    {q:`If the Employer terminates the Contract purely for convenience, what payments is the Service Provider entitled to receive?`,
+     criteria:[
+       `States payment for Services properly performed up to the termination date (Clause 12.5(b)(i)).`,
+       `States any other reasonable and verifiable costs or liabilities reasonably incurred in expectation of completing the Services (Clause 12.5(b)(ii)).`,
+       `States reasonable and verifiable repatriation costs for staff and labour employed in KSA (Clause 12.5(b)(iii)).`,
+     ],
+     followUp:{q:`Can the Service Provider recover compensation for anticipated profit on the unperformed remainder of the Contract following termination for convenience?`,
+       criteria:[
+         `Answers No, not under Clause 12.5.`,
+         `States that the clause entitles the Service Provider only to the specific categories of payment listed.`,
+         `States that it provides no entitlement to anticipated profit on the unperformed balance of the Contract.`,
+       ]}},
+    {q:`The Service Provider may cancel or materially alter an insurance policy without the Employer's consent, provided it gives the Employer at least 30 days' prior notice. Is this correct?`,
+     criteria:[
+       `Answers No, and does not accept the question's premise that notice replaces consent.`,
+       `States that the Service Provider may not cancel or materially alter any insurance specified in Schedule 9 without the Employer's prior written approval (Clause 16.1(g)).`,
+       `States that it must separately require its insurers to give the Employer at least 30 days' prior notice of any material change, cancellation or non-renewal (Clause 16.1(h)).`,
+       `States that notice alone does not replace the approval requirement.`,
+     ],
+     followUp:{q:`What may the Employer do if the Service Provider fails to maintain the required insurance?`,
+       criteria:[
+         `States that the Employer may obtain and maintain the required insurance itself (Clause 16.1(i)).`,
+         `States that it may deduct the premiums from amounts due to the Service Provider or recover those premiums as a debt.`,
+       ]}},
+    {q:`If New Epidemic/Pandemic Laws prevent performance for 31 days, either Party may immediately terminate the Contract. Is this correct?`,
+     criteria:[
+       `Answers No, and does not accept the question's premise that both Parties hold the right.`,
+       `States that from day 31 the Service Provider may claim the relief specified in Clause 17.7(b)(ii) if the event continues.`,
+       `States that the contractual right to terminate belongs only to the Employer (Clause 17.7(b)(iii)).`,
+       `States that the Employer must issue a notice and that termination takes effect seven days later, so it is not an immediate right.`,
+     ],
+     followUp:{q:`What relief is available to the Service Provider during the first 30 days of a New Epidemic/Pandemic Laws event?`,
+       criteria:[
+         `States that no relief is available in respect of an extension of time or recovery of additional Costs arising from that event during the first 30 days (Clause 17.7(b)(i)).`,
+       ]}},
+  ],
+};
+applyFileBankImport('files-en-om-2026-08-05','fileUploadEn',[IMPORT_FILE_OM_EN]);
+
 /* ===== تحليل المنافسين ===== */
 const DEF_COMP={
   research:{label:'البحث القانوني',ready:true,cats:[
