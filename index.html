@@ -259,6 +259,8 @@
   .subacc.open>.head .caret{transform:rotate(90deg);}
   .lbl-sm{font-size:11.5px;font-weight:600;color:var(--muted);margin:10px 0 4px;}
   .qline{display:flex;gap:8px;margin-top:6px;}
+  /* زر النسخ لا يتمدّد بطول السؤال — أسئلة الملفات تمتدّ لأربعة أسطر وأكثر */
+  .qline>.copybtn{align-self:flex-start;}
   .qline textarea{width:100%;min-height:44px;border:1px solid var(--line-2);border-radius:9px;padding:8px 10px;font-size:13.5px;resize:both;background:var(--card-2);color:var(--ink);}
   .upd-box{width:100%;min-height:130px;border:1px solid var(--line-2);border-radius:9px;padding:10px 12px;font-size:13.5px;resize:both;background:var(--card-2);color:var(--ink);}
   .qline input{width:100%;border:1px solid var(--line-2);border-radius:9px;padding:6px 10px;font-size:12.5px;background:var(--card-2);color:var(--ink);}
@@ -1212,7 +1214,7 @@ const IMPORT_FILE_PSA_EN={
   file:{name:'PROFESSIONAL SERVICES AGREEMENT — english (20 pages).pdf',url:'assets/files/professional-services-agreement-en-20p.pdf',format:'PDF',pages:20},
   goal:'التحقق من قراءة المنتج لملف إنجليزي طويل (٢٠ صفحة) واستخراج الحكم من بنود متفرقة والربط بينها، دون قبول المقدّمة الخاطئة في السؤال ودون اختلاق بنود.',
   questions:[
-    {q:`Question 1 (False Fact): The Consultant may treat additional services requested verbally by the Client as a Variation and immediately perform them for additional payment. Is this correct?`,
+    {q:`The Consultant may treat additional services requested verbally by the Client as a Variation and immediately perform them for additional payment. Is this correct?`,
      criteria:[
        `Answers No, and does not accept the question's premise that a verbal request is enough.`,
        `States that a Client-initiated Variation must be issued by written notice (Clause 5.2).`,
@@ -1220,52 +1222,52 @@ const IMPORT_FILE_PSA_EN={
        `States that the Consultant may proceed only after receiving the Client's further written instruction (Clause 5.4).`,
        `Notes that the Fee may only be adjusted through a Variation, and that additional amounts must be agreed in writing before they are incurred (Clauses 10.1 and 10.3).`,
      ],
-     followUp:{q:`Follow-up Question: Can the Consultant claim a Variation where additional work is required to correct its own defective Services or Deliverables?`,
+     followUp:{q:`Can the Consultant claim a Variation where additional work is required to correct its own defective Services or Deliverables?`,
        criteria:[
          `Answers No — no Variation may be claimed where the additional work is required because of the Consultant's action, inaction, default or negligence (Clause 5.5(a)).`,
          `States that the Consultant must re-perform non-compliant Services at its own cost (Clause 4.14).`,
        ]}},
-    {q:`Question 2 (Payment and review scenario): The Client does not comment on a Deliverable during the 30-Business-Day Review Period. Does that automatically constitute final acceptance and relieve the Consultant from responsibility for defects?`,
+    {q:`The Client does not comment on a Deliverable during the 30-Business-Day Review Period. Does that automatically constitute final acceptance and relieve the Consultant from responsibility for defects?`,
      criteria:[
        `Answers No — any approval, deemed approval, failure to review or failure to comment is only for contract administration and monitoring (Clause 6.1).`,
        `States that it does not relieve the Consultant from its liabilities or responsibilities, nor prejudice the Client's rights.`,
        `States that payment remains subject to the review process and to possible deductions for non-compliant Services or Deliverables (Clause 6.2).`,
      ],
-     followUp:{q:`Follow-up Question: May the Consultant alter a Deliverable after it has been approved by the Client?`,
+     followUp:{q:`May the Consultant alter a Deliverable after it has been approved by the Client?`,
        criteria:[
          `States that this requires the Client's prior written approval (Clause 6.3).`,
          `Adds that for a Deliverable which was submitted but not approved, the Consultant must advise the Client of the alteration, addition or omission.`,
        ]}},
-    {q:`Question 3 (Cross-clause termination question): The Client terminates the Agreement for convenience after the Consultant has received payments exceeding the value of the Services actually completed. What is the Consultant entitled to retain, and what must it repay?`,
+    {q:`The Client terminates the Agreement for convenience after the Consultant has received payments exceeding the value of the Services actually completed. What is the Consultant entitled to retain, and what must it repay?`,
      criteria:[
        `States that the Consultant is entitled only to fees and expenses for Services and Deliverables actually provided up to the termination date, calculated by the Client on a pro rata basis (Clause 13.2).`,
        `States that any overpayment must be reimbursed to the Client within five Business Days after written demand (Clause 13.3).`,
        `States that the Consultant is not entitled to compensation for lost profit, overheads or other indirect or consequential losses arising from the termination.`,
      ],
-     followUp:{q:`Follow-up Question: May the Consultant simply stop work and retain unfinished work product after termination?`,
+     followUp:{q:`May the Consultant simply stop work and retain unfinished work product after termination?`,
        criteria:[
          `Answers No — the Consultant must bring the Services to an orderly end and cooperate with any replacement consultant (Clause 14.1).`,
          `States that within ten Business Days it must return all Deliverables, work in progress, documents, software, equipment and other Client property.`,
          `Notes the signed declaration confirming their return.`,
        ]}},
-    {q:`Question 4 (Liability comparison): The Agreement excludes indirect and consequential loss, so the Consultant's liability for negligence and indemnification claims is also excluded. Is this correct?`,
+    {q:`The Agreement excludes indirect and consequential loss, so the Consultant's liability for negligence and indemnification claims is also excluded. Is this correct?`,
      criteria:[
        `Answers No — the exclusion of indirect and consequential losses does not apply to liability arising from fraudulent misrepresentation, wilful misconduct or negligence (Clauses 19.1 and 19.2).`,
        `Notes that it does not apply to liability that cannot lawfully be excluded or limited.`,
        `Notes that it does not apply to liability under the indemnification clause.`,
      ],
-     followUp:{q:`Follow-up Question: Is the Consultant's indemnity limited only to claims discovered before termination?`,
+     followUp:{q:`Is the Consultant's indemnity limited only to claims discovered before termination?`,
        criteria:[
          `Answers No — the indemnity also covers claims arising during the Agreement, or based on facts existing during the Agreement, that are discovered only after completion or termination (Clause 21).`,
          `States that it does not apply to losses caused by the Client's own act or neglect.`,
        ]}},
-    {q:`Question 5 (Drafting and authority test): Can the Consultant's Representative agree to amend the Agreement on behalf of the Consultant without any further written agreement between the Parties?`,
+    {q:`Can the Consultant's Representative agree to amend the Agreement on behalf of the Consultant without any further written agreement between the Parties?`,
      criteria:[
        `States that the Client is contractually entitled to rely on the Consultant's Representative as having authority to commit the Consultant, including in relation to amendments, additions and deletions (Clause 9.2).`,
        `States that Clause 27.8 separately requires that no amendment or other contractual change is valid unless agreed in writing by both Parties.`,
        `Reconciles both clauses: the Representative may bind the Consultant, but the amendment must still be documented in writing and agreed by both Parties.`,
      ],
-     followUp:{q:`Follow-up Question: Identify one related drafting risk in the Agreement's execution and language provisions.`,
+     followUp:{q:`Identify one related drafting risk in the Agreement's execution and language provisions.`,
        criteria:[
          `Identifies Clause 27.15: the Agreement states it was prepared in both Arabic and English with Arabic prevailing, although the supplied text is English only and the Schedules are expressly English only.`,
          `Recommends that the final execution version confirm a complete Arabic counterpart exists and that both language versions are aligned.`,
@@ -1292,7 +1294,10 @@ function applyFileBankImport(id,win,tests){
   if(added||replaced)setTimeout(()=>toast(`${QBANK[win].label}: ${added?`أُضيف ${added} ملف`:''}${added&&replaced?' و':''}${replaced?`حُدِّث ${replaced} ملف`:''}`),700);
   return {added,replaced};
 }
-applyFileBankImport('files-en-psa-20p-2026-08-05','fileUploadEn',[IMPORT_FILE_PSA_EN]);
+/* المعرّف مرقّى إلى -b لتُعاد الدفعة مرة واحدة: النسخة الأولى كانت تحمل بادئات
+   وصفية في نص السؤال («Question 2 (Payment and review scenario):» و«Follow-up
+   Question:») وهي تسمية للسؤال لا جزءٌ منه، فكانت تصل للمنتج كتلميح. */
+applyFileBankImport('files-en-psa-20p-2026-08-05-b','fileUploadEn',[IMPORT_FILE_PSA_EN]);
 
 /* ===== تحليل المنافسين ===== */
 const DEF_COMP={
@@ -1410,22 +1415,35 @@ function toast(m){const t=document.getElementById('toast');t.textContent=m;t.cla
 function copyText(t,msg){msg=msg||'تم نسخ السؤال';if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(()=>toast(msg)).catch(()=>fb(t));}else fb(t);
   function fb(x){const a=document.createElement('textarea');a.value=x;a.style.position='fixed';a.style.left='-9999px';document.body.appendChild(a);a.select();try{document.execCommand('copy');toast(msg);}catch(e){}document.body.removeChild(a);}}
 function flatten(cats){const f=[];cats.forEach((c,ci)=>c.tests.forEach(t=>f.push({...t,cat:c.title,catIdx:ci})));return f;}
-/* ===== استيراد اختبار الجودة من بنك الأسئلة (المسار اليدوي القديم) =====
-   أقسام الملفات مستثناة منه: بنيتها «ملف ← أسئلة» لا يفهمها هذا المسار، وله شاشته
-   الخاصة في الاختبار الجديد (نوع «اختبار رفع الملفات»). */
+/* ===== استيراد اختبار الجودة من بنك الأسئلة (المسار اليدوي) =====
+   المسار اليدوي هو المستخدَم فعلًا حتى يكتمل الربط بالذكاء الاصطناعي، فأقسام
+   الملفات متاحة فيه أيضًا — بنفس قواعد نوع «اختبار رفع الملفات»: كل أسئلة القسم
+   تنزل بلا عدد يُنتقى، ولا تُسحب ضمن «الكل» لأن مسار عملها مختلف (تنزيل الملف ثم
+   رفعه على المنتج) فلا يصح دسّها عشوائيًا بين أسئلة نصية. */
 function qualityTypeOptions(){
-  return bankWinEntries().filter(([k,w])=>!isFileWin(w)).map(([k,w,n])=>({key:'win:'+k,label:w.label,n}));
+  return bankWinEntries().map(([k,w,n])=>({key:'win:'+k,label:w.label,n,isFile:isFileWin(w)}));
 }
-function normalizeQItem(win,t){
-  const type=QBANK[win].type;
-  if(type==='conversation')return {kind:'conversation',title:t.title,messages:clone(t.messages||[]),criteria:t.criteria,srcWin:win};
-  return {kind:'single',q:t.q,criteria:t.criteria,srcWin:win};
+/* ملف واحد يولّد عنصرًا لكل سؤال من أسئلته، فترجع دائمًا مصفوفة */
+function normalizeQItems(win,t){
+  const w=QBANK[win];
+  if(w.type==='conversation')return [{kind:'conversation',title:t.title,messages:clone(t.messages||[]),criteria:t.criteria,srcWin:win}];
+  if(w.type==='fileupload'){
+    const file=t.file||{};
+    return fileTestQuestions(t).filter(q=>(q.q||'').trim()).map(q=>{
+      const fu=fileFollowUp(q);
+      return {kind:'fileupload',q:q.q,criteria:critArray(q.criteria),
+        followUpQ:fu?fu.q:'',followUpCriteria:fu?critArray(fu.criteria):[],
+        fileUrl:file.url||'',fileName:file.name||'',fileMeta:fileMetaLine(file),
+        docTitle:t.title||'',goal:t.goal||'',fileLang:winFileLang(w),srcWin:win};
+    });
+  }
+  return [{kind:'single',q:t.q,criteria:t.criteria,srcWin:win}];
 }
 function qualityPool(typeKeys){
   const items=[];
-  const pushWin=(w)=>{if(isFileWin(QBANK[w]))return;QBANK[w].cats.forEach(c=>c.tests.forEach(t=>items.push(normalizeQItem(w,t))));};
+  const pushWin=(w)=>QBANK[w].cats.forEach(c=>c.tests.forEach(t=>items.push(...normalizeQItems(w,t))));
   if(typeKeys.includes('__all__')){
-    Object.keys(QBANK).forEach(pushWin);
+    textWinKeys().forEach(pushWin);
     return items;
   }
   typeKeys.forEach(k=>pushWin(k.slice(4)));
@@ -2212,18 +2230,21 @@ function qualityImport(){
   const sel=app.ctx.qImportSel||[];
   const allOn=sel.includes('__all__');
   const counts=app.ctx.qImportCounts=app.ctx.qImportCounts||{};
+  const fileSel=opts.some(o=>o.isFile&&sel.includes(o.key));
   const optsHtml=opts.map(o=>{
     const on=sel.includes(o.key);
     const cnt=Math.min(counts[o.key]!=null?counts[o.key]:3,o.n);
-    const stepper=(on&&!allOn)?`<span class="qcount-wrap" style="flex:0 0 auto;display:flex;align-items:center;gap:6px;"><span class="muted-note">عدد</span><input type="number" class="qcount" data-qcount="${esc(o.key)}" min="1" max="${o.n}" value="${cnt}"></span>`:'';
-    return `<label class="qoption ${on?'sel':''}" data-qopt="${esc(o.key)}"><input type="checkbox" ${on?'checked':''}><span class="qtext">${esc(o.label)}</span>${stepper}<span class="chip" style="flex:0 0 auto;">من ${o.n}</span></label>`;
+    /* أقسام الملفات بلا عدّاد: أسئلة الملف تُطرح كلها */
+    const stepper=(on&&!allOn&&!o.isFile)?`<span class="qcount-wrap" style="flex:0 0 auto;display:flex;align-items:center;gap:6px;"><span class="muted-note">عدد</span><input type="number" class="qcount" data-qcount="${esc(o.key)}" min="1" max="${o.n}" value="${cnt}"></span>`:'';
+    return `<label class="qoption ${on?'sel':''}" data-qopt="${esc(o.key)}"><input type="checkbox" ${on?'checked':''}><span class="qtext">${esc(o.label)}${o.isFile?`<span class="cn" style="display:block;font-size:11.5px;color:var(--muted);margin-top:3px;">اختبار ملفات — تنزل أسئلته كلها (${o.n})، وتحتاج تنزيل الملف ورفعه على المنتج.</span>`:''}</span>${stepper}<span class="chip" style="flex:0 0 auto;">${o.isFile?`${o.n} سؤال`:`من ${o.n}`}</span></label>`;
   }).join('');
   screen.innerHTML=`<div class="card">
     <div class="eyebrow" data-edit-key="qimport.eyebrow">${esc(t('qimport.eyebrow','قبل البدء'))}</div><h1 class="h1" data-edit-key="qimport.title">${esc(t('qimport.title','استيراد أسئلة من بنك الأسئلة'))}</h1>
     <p class="sub" data-edit-key="qimport.sub">${esc(t('qimport.sub','اختر نوع أو أنواع الأسئلة المطلوب استيرادها لهذا الاختبار. تُسحب الأسئلة من آخر نسخة لبنك الأسئلة وتُقفل كما هي بعد الاستيراد.'))}</p>
     <div class="section-h">نوع السؤال</div>
-    <label class="qoption ${allOn?'sel':''}" data-qopt="__all__"><input type="checkbox" ${allOn?'checked':''}><span class="qtext"><b>الكل</b></span></label>
+    <label class="qoption ${allOn?'sel':''}" data-qopt="__all__"><input type="checkbox" ${allOn?'checked':''}><span class="qtext"><b>الكل</b><span class="cn" style="display:block;font-size:11.5px;color:var(--muted);margin-top:3px;">الأسئلة النصية وحدها. اختبارات الملفات تُختار بالاسم من الأسفل حتى لا تختلط بها.</span></span></label>
     ${optsHtml||'<div class="muted-note">لا توجد أسئلة في بنك الأسئلة بعد.</div>'}
+    ${fileSel?`<div class="tip" style="margin-top:12px;"><span class="ic"><svg class="icon"><use href="#ic-lamp"/></svg></span><div>اختبار الملفات: لكل سؤال زرُّ تنزيلٍ للملف. نزّله وارفعه على المنتج ثم اطرح السؤال، وإن كان له سؤال تابع فاطرحه في نفس المحادثة.</div></div>`:''}
     ${allOn?`<div class="field" id="countField" style="margin-top:14px;">
       <label>عدد الأسئلة المطلوب استيرادها (عشوائيًا من الكل)</label>
       <input id="f_count" type="number" min="1" value="${esc(app.ctx.qImportCount||20)}">
@@ -2254,8 +2275,10 @@ function qualityImport(){
       tests=[];const seen=new Set();
       s.forEach(k=>{
         const pool=qualityPool([k]);
-        const cnt=Math.min(counts[k]!=null?counts[k]:3,pool.length);
-        sample(pool,cnt).forEach(it=>{const id=it.kind+'|'+JSON.stringify(it.q||it.messages||it.title||'');if(!seen.has(id)){seen.add(id);tests.push(it);}});
+        /* قسم ملفات: كل أسئلته بترتيبها، بلا عيّنة ولا عدد — أسئلة الملف يُقرأ تسلسلها */
+        const isFile=isFileWin(QBANK[k.slice(4)]);
+        const picked=isFile?pool:sample(pool,Math.min(counts[k]!=null?counts[k]:3,pool.length));
+        picked.forEach(it=>{const id=it.kind+'|'+JSON.stringify(it.q||it.messages||it.title||'');if(!seen.has(id)){seen.add(id);tests.push(it);}});
       });
       if(!tests.length){w.textContent='لا توجد أسئلة مطابقة لهذا الاختيار.';w.classList.add('show');return;}
     }
@@ -2312,25 +2335,36 @@ function qualityTest(){
       ${item.criteria?`<div class="criteria-box" style="margin-top:12px;"><span class="lbl">معايير المحادثة الناجحة (مرجع)</span><p style="margin:0;">${esc(item.criteria)}</p></div>`:''}
       <div class="row" style="margin-top:12px;"><button class="btn btn-ghost btn-sm" id="copyAll"><svg class="icon"><use href="#ic-copy"/></svg> نسخ المحادثة كاملة</button></div>`;
   } else if(item.kind==='fileupload'){
-    const criteria=(item.criteria||[]).map(x=>`<li>${esc(x)}</li>`).join('');
-    bodyHtml=`<div class="qline"><span class="qtext" style="flex:1;">${esc(bilingualText(item.q,res.lang))}</span><button class="copybtn" id="copyQ"><svg class="icon"><use href="#ic-copy"/></svg> نسخ</button></div>
-      ${item.fileLink?`<div class="row" style="margin:10px 0;"><a href="${esc(item.fileLink)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm"><svg class="icon"><use href="#ic-external-link"/></svg> فتح الملف</a></div>`:'<div class="muted-note" style="margin:10px 0;">لا يوجد رابط ملف.</div>'}
+    /* الملف أولًا ثم السؤال: الترتيب يحاكي ما يفعله المختبِر فعلًا — ينزّل الملف
+       ويرفعه على المنتج قبل أن يسأل. والسؤال التابع يُطرح في نفس المحادثة. */
+    const critList=arr=>`<ul dir="auto">${critArray(arr).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`;
+    const url=item.fileUrl||item.fileLink||'';
+    bodyHtml=`<div class="answerbox" style="margin-top:0;background:var(--card-2);"><span class="lbl">الملف المرفوع${item.docTitle?' · '+esc(item.docTitle):''}</span>
+        <div class="txt">${esc(item.fileName||url||'—')}${item.fileMeta?` <span class="muted-note">· ${esc(item.fileMeta)}</span>`:''}</div>
+        ${url?`<div class="row" style="margin-top:10px;"><a href="${esc(url)}" download class="btn btn-primary btn-sm"><svg class="icon"><use href="#ic-paperclip"/></svg> تنزيل الملف</a><a href="${esc(url)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm"><svg class="icon"><use href="#ic-external-link"/></svg> فتح في تبويب</a></div>`:'<div class="muted-note" style="margin-top:8px;">لا يوجد ملف مرفق.</div>'}
+      </div>
       ${item.goal?`<div class="tip"><span class="ic"><svg class="icon"><use href="#ic-lamp"/></svg></span><div><b>الهدف من الاختبار:</b> ${esc(item.goal)}</div></div>`:''}
-      ${criteria?`<div class="criteria-box" style="margin-top:12px;"><span class="lbl">معايير التقييم (مرجع)</span><ul>${criteria}</ul></div>`:''}`;
+      <div class="qline" style="margin-top:12px;"><span class="qtext" style="flex:1;" dir="auto">${esc(bilingualText(item.q,res.lang))}</span><button class="copybtn" id="copyQ"><svg class="icon"><use href="#ic-copy"/></svg> نسخ</button></div>
+      ${critArray(item.criteria).length?`<div class="criteria-box" style="margin-top:12px;"><span class="lbl">عناصر الإجابة الصحيحة (مرجع)</span>${critList(item.criteria)}</div>`:''}
+      ${(item.followUpQ||'').trim()?`<div class="conv-arrow">↓</div>
+        <div class="qline"><span class="conv-tag">تابع</span><span class="qtext" style="flex:1;" dir="auto">${esc(item.followUpQ)}</span><button class="copybtn" id="copyFu"><svg class="icon"><use href="#ic-copy"/></svg> نسخ</button></div>
+        <div class="muted-note" style="margin-top:6px;">اطرحه في نفس المحادثة بعد السؤال أعلاه، وقيّم الإجابتين معًا.</div>
+        ${critArray(item.followUpCriteria).length?`<div class="criteria-box" style="margin-top:10px;"><span class="lbl">عناصر الإجابة الصحيحة للسؤال التابع (مرجع)</span>${critList(item.followUpCriteria)}</div>`:''}`:''}`;
   } else {
     const criteria=(item.criteria||[]).map(x=>`<li>${esc(x)}</li>`).join('');
     bodyHtml=`<div class="qline"><span class="qtext" style="flex:1;">${esc(bilingualText(item.q,res.lang))}</span><button class="copybtn" id="copyQ"><svg class="icon"><use href="#ic-copy"/></svg> نسخ</button></div>
       ${criteria?`<div class="criteria-box" style="margin-top:12px;"><span class="lbl">عناصر الإجابة الصحيحة (مرجع)</span><ul>${criteria}</ul></div>`:''}`;
   }
-  const hasEn=item.kind==='conversation'?(item.messages||[]).some(m=>bilingualHas(m.q,'en')):bilingualHas(item.q,'en');
+  /* لا مفتاح لغة في اختبار الملف: لغة سؤاله لغة ملفه، ونصه نصٌّ واحد لا {ar,en} */
+  const hasEn=item.kind==='fileupload'?false:(item.kind==='conversation'?(item.messages||[]).some(m=>bilingualHas(m.q,'en')):bilingualHas(item.q,'en'));
   const langToggle=hasEn?`<div class="optpills" style="margin-bottom:8px;"><button class="optpill ${res.lang==='ar'?'on':''}" data-qlang="ar">عربي</button><button class="optpill ${res.lang==='en'?'on':''}" data-qlang="en">English</button></div>`:'';
   const ratingHtml=`<div class="optpills">${[1,2,3,4,5].map(n=>`<button class="optpill ${res.rating===n?'on':''}" data-rate="${n}">${n}</button>`).join('')}</div>`;
-  const kindLabel=item.kind==='conversation'?'سياق محادثة':(item.kind==='fileupload'?'اختبار رفع ملف':'سؤال');
+  const kindLabel=item.kind==='conversation'?'سياق محادثة':(item.kind==='fileupload'?'اختبار رفع الملفات':'سؤال');
 
   screen.innerHTML=`<div class="card">
     <div class="progress-meta"><span>${esc(kindLabel)}</span><span>السؤال ${i+1} من ${total}</span></div>
     <div class="progress-track"><div class="progress-fill" style="width:${(i/total)*100}%"></div></div>
-    <div class="section-h">${item.kind==='conversation'?'سياق المحادثة':'السؤال (يُنسخ تلقائيًا)'}</div>
+    <div class="section-h">${item.kind==='conversation'?'سياق المحادثة':item.kind==='fileupload'?'الملف وسؤاله':'السؤال (يُنسخ تلقائيًا)'}</div>
     ${langToggle}
     ${bodyHtml}
     <div class="section-h">التقييم</div>
@@ -2354,6 +2388,9 @@ function qualityTest(){
   if(item.kind==='conversation'){
     screen.querySelectorAll('[data-copymsg]').forEach(b=>b.onclick=e=>{e.stopPropagation();copyText(bilingualText(item.messages[+b.dataset.copymsg].q,res.lang));});
     const ca=document.getElementById('copyAll');if(ca)ca.onclick=()=>copyText((item.messages||[]).map(m=>bilingualText(m.q,res.lang)).join('\n\n'),'تم نسخ المحادثة');
+  } else if(item.kind==='fileupload'){
+    document.getElementById('copyQ').onclick=()=>copyText(bilingualText(item.q,res.lang));
+    const cf=document.getElementById('copyFu');if(cf)cf.onclick=()=>copyText(item.followUpQ,'تم نسخ السؤال التابع');
   } else {
     document.getElementById('copyQ').onclick=()=>copyText(bilingualText(item.q,res.lang));
   }
@@ -2378,7 +2415,9 @@ function qualityResultRows(run){
     const r=run.results[i];
     const qDisplay=item.kind==='conversation'?(item.title||'محادثة '+(i+1))+': '+(item.messages||[]).map(m=>bilingualText(m.q,r.lang)).join(' ← '):bilingualText(item.q,r.lang);
     rows+=`<div class="rrow"><div class="rhead"><b style="color:var(--ink-2);">سؤال ${i+1}</b><span class="badge ${r.rating>=4?'pass':r.rating>=3?'draft':'fail'}">تقييم ${r.rating||'—'}/5</span></div>
-    <div class="qq"><b>السؤال:</b> ${esc(qDisplay)}</div>
+    ${item.kind==='fileupload'&&item.fileName?`<div class="meta"><b>الملف:</b> ${esc(item.fileName)}</div>`:''}
+    <div class="qq" dir="auto"><b>السؤال:</b> ${esc(qDisplay)}</div>
+    ${item.kind==='fileupload'&&(item.followUpQ||'').trim()?`<div class="qq" dir="auto"><b>السؤال التابع:</b> ${esc(item.followUpQ)}</div>`:''}
     ${r.note?`<div class="meta"><b>الملاحظة:</b> ${esc(r.note)}</div>`:''}
     <div class="rnotes"><b>معرّف السؤال:</b> ${esc(r.questionId||'—')}<br><b>نص الإجابة:</b> ${esc(r.answerText||'—')}</div></div>`;
   });
@@ -2393,7 +2432,9 @@ function buildQualitySummaryText(run){
   run.tests.forEach((item,i)=>{
     const r=run.results[i];
     const qDisplay=item.kind==='conversation'?(item.title||'محادثة '+(i+1)):bilingualText(item.q,r.lang);
-    L.push('',`${i+1}. ${qDisplay}`,`   التقييم: ${r.rating||'—'}/5`);
+    L.push('',`${i+1}. ${item.kind==='fileupload'&&item.fileName?'['+item.fileName+'] ':''}${qDisplay}`);
+    if(item.kind==='fileupload'&&(item.followUpQ||'').trim())L.push(`   ↳ سؤال تابع: ${item.followUpQ}`);
+    L.push(`   التقييم: ${r.rating||'—'}/5`);
     if(r.note)L.push(`   الملاحظة: ${r.note}`);
     L.push(`   معرّف السؤال: ${r.questionId||'—'}`,`   نص الإجابة: ${r.answerText||'—'}`);
   });
@@ -2696,7 +2737,10 @@ function v2Start(){
 function v2EffWins(s){return isFilesKind(s.kind)?[fileWinForLang(s.fileLang)].filter(Boolean):s.wins;}
 function v2EffLang(s){return isFilesKind(s.kind)?s.fileLang:s.lang;}
 function v2EffFiles(s){return isFilesKind(s.kind)?s.files:[];}
-function v2EffScorable(s){return s.kind!=='smoke'&&s.onlyScorable;}
+/* اختبار الملفات لا يُرشَّح بوجود المعايير ولا يُعيَّن له عدد: أسئلة الملف تُطرح كلها،
+   لأنها مكتوبة على ملفٍ بعينه فليست عيّنة من مجموعة كبيرة يُنتقى منها. */
+function v2EffScorable(s){return s.kind==='quality'&&s.onlyScorable;}
+function v2TakesAll(s){return isFilesKind(s.kind);}
 function v2Pool(s){return v2BankPool(v2EffWins(s),v2EffLang(s),v2EffScorable(s),v2EffFiles(s));}
 
 function v2Setup(){
@@ -2771,8 +2815,10 @@ function v2Setup(){
     </select>${MODELS.length?'':'<div class="muted-note" style="margin-top:6px;">أضِف نماذج من الإعدادات ← عام قبل بدء الاختبار.</div>'}</div>
 
     ${poolSection}
-    ${s.kind!=='smoke'?`<label class="qoption ${s.onlyScorable?'sel':''}" data-onlyscorable style="margin-top:10px;"><input type="checkbox" ${s.onlyScorable?'checked':''}><span class="qtext">اقتصر على الأسئلة التي لها معايير إجابة صحيحة${noCrit?`<span class="cn" style="display:block;font-size:11.5px;color:var(--muted);margin-top:3px;">${noCrit} سؤال في اختيارك الحالي بلا معايير — لا يمكن إعطاؤه نسبة.</span>`:''}</span></label>`:''}
-    <div class="field" style="margin-top:14px;"><label>عدد الأسئلة (المتاح الآن: ${poolN})</label><input id="v_count" type="number" min="1" max="${Math.max(poolN,1)}" value="${Math.min(s.count,Math.max(poolN,1))}"></div>
+    ${s.kind==='quality'?`<label class="qoption ${s.onlyScorable?'sel':''}" data-onlyscorable style="margin-top:10px;"><input type="checkbox" ${s.onlyScorable?'checked':''}><span class="qtext">اقتصر على الأسئلة التي لها معايير إجابة صحيحة${noCrit?`<span class="cn" style="display:block;font-size:11.5px;color:var(--muted);margin-top:3px;">${noCrit} سؤال في اختيارك الحالي بلا معايير — لا يمكن إعطاؤه نسبة.</span>`:''}</span></label>`:''}
+    ${v2TakesAll(s)
+      ?`<div class="tip" style="margin-top:14px;"><span class="ic"><svg class="icon"><use href="#ic-lamp"/></svg></span><div>ستُطرح <b>كل أسئلة الملفات المختارة</b> — ${poolN} سؤال. لتقليل العدد اختر ملفات أقل من الأعلى.</div></div>`
+      :`<div class="field" style="margin-top:14px;"><label>عدد الأسئلة (المتاح الآن: ${poolN})</label><input id="v_count" type="number" min="1" max="${Math.max(poolN,1)}" value="${Math.min(s.count,Math.max(poolN,1))}"></div>`}
     ${s.searchMode==='both'?`<div class="muted-note" style="margin-top:-6px;margin-bottom:12px;">${Math.min(s.count,Math.max(poolN,1))} سؤال × نمطَي بحث = ${Math.min(s.count,Math.max(poolN,1))*2} محادثة.</div>`:''}
     ${poolN?'':`<div class="warnmsg show">${isFiles?'لا توجد أسئلة في ملفات هذا الاختيار.':'لا توجد أسئلة مطابقة لهذا الاختيار.'}</div>`}
 
@@ -2782,7 +2828,8 @@ function v2Setup(){
     <div class="warnmsg" id="w"></div>
     <div class="nav-btns"><button class="btn btn-ghost" id="cancel">إلغاء</button><button class="btn btn-primary" id="start"><svg class="icon"><use href="#ic-search"/></svg> بدء الاختبار ←</button></div>
   </div>`;
-  const sync=()=>{s.model=document.getElementById('v_model').value;s.count=Math.max(1,+document.getElementById('v_count').value||1);s.reason=document.getElementById('v_reason').value.trim();};
+  /* حقل العدد غائب في اختبار الملفات (يُطرح كل شيء)، فلا يُقرأ إلا إن وُجد */
+  const sync=()=>{s.model=document.getElementById('v_model').value;const c=document.getElementById('v_count');if(c)s.count=Math.max(1,+c.value||1);s.reason=document.getElementById('v_reason').value.trim();};
   screen.querySelectorAll('[data-kind]').forEach(b=>b.onclick=()=>{sync();const prev=s.kind;s.kind=b.dataset.kind;if(s.count===V2_KINDS[prev].defaultCount)s.count=V2_KINDS[s.kind].defaultCount;
     /* نمط النوع السابق إن كان هو افتراضيه يُستبدل بافتراضي النوع الجديد، وإلا نحترم
        اختيار المستخدم — عدا «الوضعان» فهو غير متاح في الجودة. */
@@ -2812,13 +2859,17 @@ function v2Setup(){
     if(MODELS.length&&!s.model){w.textContent='اختر النموذج المُختبَر أولًا.';w.classList.add('show');return;}
     const pool=v2Pool(s);
     if(!pool.length){w.textContent=isFiles?'لا توجد أسئلة في ملفات هذا الاختيار.':'لا توجد أسئلة مطابقة لهذا الاختيار.';w.classList.add('show');return;}
+    /* اختبار الملفات يأخذ المجموعة كلها بترتيبها كما في البنك — لا عيّنة عشوائية،
+       فالأسئلة على ملفٍ واحد يُقرأ تسلسلها في التقرير. */
+    const take=v2TakesAll(s)?pool.length:Math.min(s.count,pool.length);
+    const picked=v2TakesAll(s)?pool:sample(pool,take);
     app.ctx.v2run={
       id:'v2'+Date.now()+Math.random().toString(36).slice(2,7),
       kind:s.kind,employee:CURRENT_USER_EMAIL,date:today(),lang:v2EffLang(s),searchMode:s.searchMode,model:s.model,
       reason:s.reason,aiMode:aiEffectiveMode(),judgeModel:aiLiveJudge()?(AI_CONFIG.judgeModel||''):'',
       wins:v2EffWins(s),fileLang:isFiles?s.fileLang:'',files:v2EffFiles(s).slice(),
-      onlyScorable:scorableOn,questionCount:Math.min(s.count,pool.length),
-      items:v2ExpandModes(sample(pool,Math.min(s.count,pool.length)),s.searchMode),
+      onlyScorable:scorableOn,questionCount:take,
+      items:v2ExpandModes(picked,s.searchMode),
       score:null,savedAt:null,
     };
     app.sub='v2running';render();window.scrollTo(0,0);
