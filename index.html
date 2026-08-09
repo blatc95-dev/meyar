@@ -419,6 +419,13 @@
   /* جدول الأسئلة المشتركة: أعمدة ثابتة حتى تبقى درجات النماذج ظاهرة بلا تمرير أفقي */
   .v2tbl.fixed{table-layout:fixed;}
   .v2tbl.fixed td:first-child,.v2tbl.fixed th:first-child{width:46%;font-size:12.3px;line-height:1.7;}
+  /* جدول السجل: قيمه قصيرة وأعمدته كثيرة، فيُمنع كسر الكلمة ويُمرَّر أفقيًّا عند الضيق
+     بدل أن ينضغط عمود «GPT-4o» إلى ثلاثة أسطر. السبب وحده يلتف لأنه نصٌّ حر. */
+  .v2tbl.logtbl{min-width:max-content;}
+  .v2tbl.logtbl th,.v2tbl.logtbl td{white-space:nowrap;overflow-wrap:normal;vertical-align:middle;}
+  .v2tbl.logtbl tbody tr:hover{background:var(--card-2);}
+  .logreason{white-space:normal;max-width:230px;font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.5;}
+  .logsub{font-size:11.5px;color:var(--muted);margin-top:4px;}
   .cmpwrap{overflow-x:auto;}
   .mini-bar{height:6px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:5px;min-width:70px;}
   .mini-bar span{display:block;height:100%;border-radius:99px;}
@@ -2654,13 +2661,41 @@ function qualityImport(){
       });
       if(!tests.length){w.textContent='لا توجد أسئلة مطابقة لهذا الاختيار.';w.classList.add('show');return;}
     }
-    app.ctx.qrun={employee:CURRENT_USER_EMAIL,date:today(),reason:'',model:'',importTypes:s.slice(),tests,results:tests.map(()=>({rating:null,note:'',questionId:'',answerText:'',lang:'ar'})),step:0};
+    app.ctx.qrun={employee:CURRENT_USER_EMAIL,date:today(),reason:'',model:'',lang:'ar',searchMode:'normal',importTypes:s.slice(),tests,results:tests.map(()=>({rating:null,note:'',questionId:'',answerText:'',lang:'ar'})),step:0};
     app.ctx.qDraftIndex=null;
     app.sub='qIntro';render();window.scrollTo(0,0);
   };
 }
+/* لغة الجلسة ونمط بحثها في التدفّق اليدوي خصيصتان للجلسة كاملة لا لكل سؤال: المختبِر
+   يفتح المنتج مرة واحدة على لغةٍ ونمطِ بحثٍ ثم يمرّ على الأسئلة، فتبديلهما سؤالًا بسؤال
+   يفسد الجلسة ويجعل نتيجتها غير قابلة للقراءة. الدخان اليدوي مستثنى: حالاته ثنائية
+   الأوضاع تُنفَّذ في النمطين معًا أصلًا، ولغتها مفتاح لكل حالة على حِدة. */
+/* في جلسة الملفات اللغة تابعة لنوع الملفات، فتُقرأ منه أوّلًا — الجلسات المحفوظة قبل
+   إضافة الحقل لا تحمل lang، ولو قُرئت منه وحده لظهرت جلسة ملفات إنجليزية «عربي». */
+function manualLang(r){const L=r&&(r.fileLang||r.lang);return L==='en'?'en':'ar';}
+function manualSearchMode(r){return r&&r.searchMode==='detailed'?'detailed':'normal';}
+function manualLangLabel(lang){return lang==='en'?'English':'عربي';}
+function manualLangPills(r){
+  return ['ar','en'].map(L=>`<button class="optpill ${manualLang(r)===L?'on':''}" data-mlang="${L}">${manualLangLabel(L)}</button>`).join('');
+}
+function manualModePills(r){
+  return ['normal','detailed'].map(m=>`<button class="optpill ${manualSearchMode(r)===m?'on':''}" data-mmode="${m}">${esc(SEARCH_MODES[m])}</button>`).join('');
+}
+/* يُستدعى بعد رسم شاشة البدء ليربط الحقلين بالجلسة ويعيد رسم الشاشة نفسها */
+function bindManualSessionPills(r,rerender){
+  screen.querySelectorAll('[data-mlang]').forEach(b=>b.onclick=()=>{r.lang=b.dataset.mlang;rerender();});
+  screen.querySelectorAll('[data-mmode]').forEach(b=>b.onclick=()=>{r.searchMode=b.dataset.mmode;rerender();});
+}
+/* سطر «اللغة · نمط البحث» الذي يتكرّر في المراجعة والاستعراض وصفوف السجل */
+function manualSessionMeta(r){
+  return `<b style="color:var(--ink-2)">لغة الاختبار:</b> ${esc(manualLangLabel(manualLang(r)))} • <b style="color:var(--ink-2)">نوع البحث:</b> ${esc(SEARCH_MODES[manualSearchMode(r)])}`;
+}
 function qualityIntro(){
   const r=app.ctx.qrun;setCrumb('اختبار جودة جديد');
+  /* أسئلة البنك ليست كلها مترجمة، فيُبيَّن كم منها له نصٌّ إنجليزي قبل اختيار اللغة */
+  const enCount=r.tests.filter(item=>item.kind==='conversation'
+    ?(item.messages||[]).some(m=>bilingualHas(m.q,'en'))
+    :bilingualHas(item.q,'en')).length;
   screen.innerHTML=`<div class="card">
     <div class="eyebrow" data-edit-key="qintro.eyebrow">${esc(t('qintro.eyebrow','قبل البدء'))}</div><h1 class="h1" data-edit-key="qintro.title">${esc(t('qintro.title','بدء اختبار جودة جديد'))}</h1>
     <p class="sub" data-edit-key="qintro.sub">${esc(t('qintro.sub','عبّئ المعلومات الأساسية للجلسة.'))}</p>
@@ -2676,16 +2711,29 @@ function qualityIntro(){
       </select>
       ${MODELS.length?'':'<div class="muted-note" style="margin-top:6px;">أضِف نماذج من الإعدادات ← عام قبل بدء الاختبار.</div>'}
     </div>
-    <div class="row" style="margin-top:4px;"><span class="chip">عدد الأسئلة المستوردة: ${r.tests.length}</span></div>
+    <div class="grid2" style="margin-top:14px;">
+      <div><label style="display:block;font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:6px;">لغة الاختبار</label>
+        <div class="optpills">${manualLangPills(r)}</div></div>
+      <div><label style="display:block;font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:6px;">نوع البحث</label>
+        <div class="optpills">${manualModePills(r)}</div></div>
+    </div>
+    <div class="muted-note" style="margin-top:8px;">تُعرض الأسئلة بلغة الاختبار المختارة طوال الجلسة${manualLang(r)==='en'&&enCount<r.tests.length?` — ${r.tests.length-enCount} من ${r.tests.length} سؤال بلا نصٍّ إنجليزي فيُعرض بالعربية.`:'.'} ونمط البحث هو الوضع الذي تفتح به المنتج قبل طرح الأسئلة.</div>
+    <div class="row" style="margin-top:14px;"><span class="chip">عدد الأسئلة المستوردة: ${r.tests.length}</span></div>
     <div class="warnmsg" id="w"></div>
     <div class="nav-btns"><button class="btn btn-ghost" id="cancel">إلغاء</button><button class="btn btn-primary" id="start">بدء الاختبار ←</button></div>
   </div>`;
-  document.getElementById('cancel').onclick=()=>{app.sub=null;render();};
-  document.getElementById('start').onclick=()=>{
+  /* الحقول النصية تُقرأ قبل إعادة الرسم، وإلا ضاع ما كتبه المستخدم عند ضغط أي حبّة */
+  const sync=()=>{
     r.date=document.getElementById('f_dt').value||today();
     r.reason=document.getElementById('f_rs').value.trim();
     r.model=document.getElementById('f_model').value;
+  };
+  bindManualSessionPills(r,()=>{sync();qualityIntro();});
+  document.getElementById('cancel').onclick=()=>{app.sub=null;render();};
+  document.getElementById('start').onclick=()=>{
+    sync();
     if(MODELS.length&&!r.model){const w=document.getElementById('w');w.textContent='اختر المودل المُختبَر أولًا.';w.classList.add('show');return;}
+    r.results.forEach(res=>{res.lang=manualLang(r);});
     r.step=0;app.sub='qTest';render();window.scrollTo(0,0);
   };
 }
@@ -2695,7 +2743,9 @@ function qualityResume(i){app.ctx.qrun=clone(QUALITY_DRAFTS[i]);app.ctx.qDraftIn
 function qualityTest(){
   const r=app.ctx.qrun,i=r.step,item=r.tests[i],res=r.results[i],total=r.tests.length;
   setCrumb(`السؤال ${i+1}/${total}`);
-  res.lang=res.lang||'ar';
+  /* لغة العرض لغة الجلسة المختارة في شاشة البدء، وتُثبَّت في نتيجة كل سؤال ليُقرأ
+     التقرير المحفوظ باللغة التي طُرح بها فعلًا */
+  res.lang=manualLang(r);
   let bodyHtml;
   if(item.kind==='conversation'){
     const msgs=(item.messages||[]).map((m,mi,arr)=>{
@@ -2715,9 +2765,10 @@ function qualityTest(){
     bodyHtml=`<div class="qline"><span class="qtext" style="flex:1;">${esc(bilingualText(item.q,res.lang))}</span><button class="copybtn" id="copyQ"><svg class="icon"><use href="#ic-copy"/></svg> نسخ</button></div>
       ${criteria?`<div class="criteria-box" style="margin-top:12px;"><span class="lbl">عناصر الإجابة الصحيحة (مرجع)</span><ul>${criteria}</ul></div>`:''}`;
   }
-  /* لا مفتاح لغة في اختبار الملف: لغة سؤاله لغة ملفه، ونصه نصٌّ واحد لا {ar,en} */
+  /* لغة الجلسة ونمطها يُعرضان للتذكير فقط — يُختاران مرة واحدة في شاشة البدء.
+     ولا لغة لسؤال الملف أصلًا: نصه نصٌّ واحد لا {ar,en}، فلغته لغة ملفه. */
   const hasEn=item.kind==='fileupload'?false:(item.kind==='conversation'?(item.messages||[]).some(m=>bilingualHas(m.q,'en')):bilingualHas(item.q,'en'));
-  const langToggle=hasEn?`<div class="optpills" style="margin-bottom:8px;"><button class="optpill ${res.lang==='ar'?'on':''}" data-qlang="ar">عربي</button><button class="optpill ${res.lang==='en'?'on':''}" data-qlang="en">English</button></div>`:'';
+  const langToggle=`<div class="row" style="margin-bottom:10px;"><span class="chip">لغة الاختبار: ${esc(manualLangLabel(manualLang(r)))}</span><span class="chip">${esc(SEARCH_MODES[manualSearchMode(r)])}</span>${manualLang(r)==='en'&&!hasEn&&item.kind!=='fileupload'?'<span class="chip">لا نصّ إنجليزي لهذا السؤال — يُعرض بالعربية</span>':''}</div>`;
   const ratingHtml=`<div class="optpills">${[1,2,3,4,5].map(n=>`<button class="optpill ${res.rating===n?'on':''}" data-rate="${n}">${n}</button>`).join('')}</div>`;
   const kindLabel=item.kind==='conversation'?'سياق محادثة':(item.kind==='fileupload'?'اختبار رفع الملفات':'سؤال');
 
@@ -2754,7 +2805,6 @@ function qualityTest(){
   } else {
     document.getElementById('copyQ').onclick=()=>copyText(bilingualText(item.q,res.lang));
   }
-  screen.querySelectorAll('[data-qlang]').forEach(b=>b.onclick=()=>{res.lang=b.dataset.qlang;qualityTest();});
   screen.querySelectorAll('[data-rate]').forEach(b=>b.onclick=()=>{res.rating=+b.dataset.rate;qualityTest();});
   document.getElementById('note').oninput=e=>res.note=e.target.value;
   document.getElementById('qid').oninput=e=>res.questionId=e.target.value;
@@ -2787,6 +2837,7 @@ function buildQualitySummaryText(run){
   const avg=run.avgRating!=null?run.avgRating:(run.results.reduce((s,r)=>s+(r.rating||0),0)/run.results.length).toFixed(1);
   let L=['📋 تقرير اختبار الجودة — منصة مِعيار',`${SETTINGS.team} — ${SETTINGS.product}`,'———————————————',`الموظف: ${run.employee}`,`التاريخ: ${run.date}`];
   if(run.model)L.push(`المودل: ${run.model}`);
+  L.push(`لغة الاختبار: ${manualLangLabel(manualLang(run))}`,`نوع البحث: ${SEARCH_MODES[manualSearchMode(run)]}`);
   if(run.reason)L.push(`سبب الاختبار: ${run.reason}`);
   L.push(`متوسط التقييم: ${avg}/5  (${run.tests.length} سؤال)`,'———————————————');
   run.tests.forEach((item,i)=>{
@@ -2812,6 +2863,7 @@ function qualityReview(){
     <div style="margin-top:14px;font-size:13.5px;color:var(--muted);">
       <b style="color:var(--ink-2)">الموظف:</b> ${esc(run.employee)} • <b style="color:var(--ink-2)">التاريخ:</b> ${esc(run.date)}
       ${run.model?` • <b style="color:var(--ink-2)">المودل:</b> ${esc(run.model)}`:''}
+      • ${manualSessionMeta(run)}
       ${run.reason?` • <b style="color:var(--ink-2)">السبب:</b> ${esc(run.reason)}`:''}
     </div>
     ${qualityResultRows(run)}
@@ -2821,7 +2873,7 @@ function qualityReview(){
     </div>
   </div>`;
   document.getElementById('back').onclick=()=>{app.sub='qTest';run.step=run.tests.length-1;render();window.scrollTo(0,0);};
-  const persist=()=>{if(!app.ctx._qsaved){const saved={id:'qr'+Date.now()+Math.random().toString(36).slice(2,7),employee:run.employee,date:run.date,reason:run.reason,model:run.model,importTypes:run.importTypes,savedAt:new Date().toISOString(),tests:clone(run.tests),results:clone(run.results),avgRating:+avg};QUALITY_RUNS.unshift(saved);save(K.qualityRuns,QUALITY_RUNS);if(app.ctx.qDraftIndex!=null){QUALITY_DRAFTS.splice(app.ctx.qDraftIndex,1);save(K.qualityDrafts,QUALITY_DRAFTS);app.ctx.qDraftIndex=null;}app.ctx._qsaved=saved;toast('تم حفظ الاختبار');}return app.ctx._qsaved;};
+  const persist=()=>{if(!app.ctx._qsaved){const saved={id:'qr'+Date.now()+Math.random().toString(36).slice(2,7),employee:run.employee,date:run.date,reason:run.reason,model:run.model,lang:manualLang(run),searchMode:manualSearchMode(run),importTypes:run.importTypes,savedAt:new Date().toISOString(),tests:clone(run.tests),results:clone(run.results),avgRating:+avg};QUALITY_RUNS.unshift(saved);save(K.qualityRuns,QUALITY_RUNS);if(app.ctx.qDraftIndex!=null){QUALITY_DRAFTS.splice(app.ctx.qDraftIndex,1);save(K.qualityDrafts,QUALITY_DRAFTS);app.ctx.qDraftIndex=null;}app.ctx._qsaved=saved;toast('تم حفظ الاختبار');}return app.ctx._qsaved;};
   document.getElementById('copySum').onclick=()=>{const s=persist();copyText(buildQualitySummaryText(s));toast('تم نسخ ملخّص الاختبار');};
   document.getElementById('share').onclick=async()=>{const s=persist();await shareQualityRun(s);setTimeout(()=>{app.sub=null;app.ctx={};render();window.scrollTo(0,0);},600);};
 }
@@ -2841,6 +2893,7 @@ function renderQualityRunView(){
     <div style="margin-top:14px;font-size:13.5px;color:var(--muted);">
       <b style="color:var(--ink-2)">الموظف:</b> ${esc(run.employee)} • <b style="color:var(--ink-2)">التاريخ:</b> ${esc(run.date)}
       ${run.model?` • <b style="color:var(--ink-2)">المودل:</b> ${esc(run.model)}`:''}
+      • ${manualSessionMeta(run)}
       ${run.reason?` • <b style="color:var(--ink-2)">السبب:</b> ${esc(run.reason)}`:''}
     </div>
     ${qualityResultRows(run)}
@@ -3055,7 +3108,8 @@ function fileManualImport(){
     const w=document.getElementById('w');
     const tests=fileManualPool(win,s.files);
     if(!tests.length){w.textContent='لا توجد أسئلة في ملفات هذا الاختيار.';w.classList.add('show');return;}
-    app.ctx.fmrun={employee:CURRENT_USER_EMAIL,date:today(),reason:'',model:'',fileLang:s.lang,files:s.files.slice(),
+    /* lang هنا تابعة لـfileLang لا مستقلّة عنها — تُكتب لتقرأها دوال الجلسة اليدوية المشتركة */
+    app.ctx.fmrun={employee:CURRENT_USER_EMAIL,date:today(),reason:'',model:'',lang:s.lang,searchMode:'normal',fileLang:s.lang,files:s.files.slice(),
       tests,results:tests.map(()=>({rating:null,note:'',questionId:'',answerText:''})),step:0};
     app.ctx.fmDraftIndex=null;
     app.sub='fmIntro';render();window.scrollTo(0,0);
@@ -3077,15 +3131,27 @@ function fileManualIntro(){
         <option value="">${MODELS.length?'اختر المودل':'لا توجد نماذج مضافة بعد'}</option>
         ${MODELS.map(m=>`<option value="${esc(m.name)}" ${r.model===m.name?'selected':''}>${esc(m.name)}</option>`).join('')}
       </select>${MODELS.length?'':'<div class="muted-note" style="margin-top:6px;">أضِف نماذج من الإعدادات ← عام.</div>'}</div>
-    <div class="muted-note">نوع الملفات: ${esc(FILE_LANG_LABEL[r.fileLang]||'عربي')} · ${r.tests.length} سؤال</div>
+    <div class="grid2" style="margin-top:14px;">
+      <div><label style="display:block;font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:6px;">لغة الاختبار</label>
+        <div class="row"><span class="chip">${esc(manualLangLabel(manualLang(r)))}</span><span class="chip">ملفات ${esc(FILE_LANG_LABEL[r.fileLang]||'عربي')}</span></div></div>
+      <div><label style="display:block;font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:6px;">نوع البحث</label>
+        <div class="optpills">${manualModePills(r)}</div></div>
+    </div>
+    <div class="muted-note" style="margin-top:8px;">لغة الاختبار هنا تتبع نوع الملفات المختار في الخطوة السابقة، فلا تُختار على حِدة — سؤال الملف يُطرح بلغة ملفه. لتغييرها ارجع وبدّل نوع الملفات.</div>
+    <div class="muted-note" style="margin-top:6px;">${r.tests.length} سؤال</div>
     <div class="warnmsg" id="w"></div>
     <div class="nav-btns"><button class="btn btn-ghost" id="cancel">→ رجوع</button><button class="btn btn-primary" id="start">ابدأ ←</button></div>
   </div>`;
-  document.getElementById('cancel').onclick=()=>{app.sub='fmImport';render();};
-  document.getElementById('start').onclick=()=>{
+  /* الحقول النصية تُقرأ قبل إعادة الرسم، وإلا ضاع ما كتبه المستخدم عند ضغط أي حبّة */
+  const sync=()=>{
     r.date=document.getElementById('f_dt').value||today();
     r.reason=document.getElementById('f_rs').value.trim();
     r.model=document.getElementById('f_model').value;
+  };
+  bindManualSessionPills(r,()=>{sync();fileManualIntro();});
+  document.getElementById('cancel').onclick=()=>{app.sub='fmImport';render();};
+  document.getElementById('start').onclick=()=>{
+    sync();
     if(MODELS.length&&!r.model){const w=document.getElementById('w');w.textContent='اختر المودل المُختبَر أولًا.';w.classList.add('show');return;}
     r.step=0;app.sub='fmTest';render();window.scrollTo(0,0);
   };
@@ -3104,6 +3170,7 @@ function fileManualTest(){
     <div class="progress-meta"><span>اختبار رفع الملفات</span><span>السؤال ${i+1} من ${total}</span></div>
     <div class="progress-track"><div class="progress-fill" style="width:${(i/total)*100}%"></div></div>
     <div class="section-h">الملف وسؤاله</div>
+    <div class="row" style="margin-bottom:10px;"><span class="chip">لغة الاختبار: ${esc(manualLangLabel(manualLang(r)))}</span><span class="chip">${esc(SEARCH_MODES[manualSearchMode(r)])}</span></div>
     ${fileItemRefHtml(item,r.fileLang)}
     <div class="section-h">التقييم</div>
     <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:8px;">قيّم إجابة المنتج من 1 (ضعيف) إلى 5 (ممتاز)</label>
@@ -3155,6 +3222,7 @@ function buildFileManualSummaryText(run){
   const L=['📋 تقرير اختبار رفع الملفات اليدوي — منصة مِعيار',`${SETTINGS.team} — ${SETTINGS.product}`,'———————————————',
     `الموظف: ${run.employee}`,`التاريخ: ${run.date}`,`نوع الملفات: ملفات ${FILE_LANG_LABEL[run.fileLang]||'عربي'}`];
   if(run.model)L.push(`المودل: ${run.model}`);
+  L.push(`لغة الاختبار: ${manualLangLabel(manualLang(run))}`,`نوع البحث: ${SEARCH_MODES[manualSearchMode(run)]}`);
   if(run.reason)L.push(`سبب الاختبار: ${run.reason}`);
   L.push(`متوسط التقييم: ${avg}/5  (${run.tests.length} سؤال)`,'———————————————');
   run.tests.forEach((item,i)=>{
@@ -3186,6 +3254,7 @@ function fileManualReview(){
       <b style="color:var(--ink-2)">الموظف:</b> ${esc(run.employee)} • <b style="color:var(--ink-2)">التاريخ:</b> ${esc(run.date)}
       • <b style="color:var(--ink-2)">نوع الملفات:</b> ${esc(FILE_LANG_LABEL[run.fileLang]||'عربي')}
       ${run.model?` • <b style="color:var(--ink-2)">المودل:</b> ${esc(run.model)}`:''}
+      • ${manualSessionMeta(run)}
       ${run.reason?` • <b style="color:var(--ink-2)">السبب:</b> ${esc(run.reason)}`:''}
     </div>
     ${fileManualResultRows(run)}
@@ -3235,6 +3304,7 @@ function renderFileManualRunView(){
       <b style="color:var(--ink-2)">الموظف:</b> ${esc(run.employee)} • <b style="color:var(--ink-2)">التاريخ:</b> ${esc(run.date)}
       • <b style="color:var(--ink-2)">نوع الملفات:</b> ${esc(FILE_LANG_LABEL[run.fileLang]||'عربي')}
       ${run.model?` • <b style="color:var(--ink-2)">المودل:</b> ${esc(run.model)}`:''}
+      • ${manualSessionMeta(run)}
       ${run.reason?` • <b style="color:var(--ink-2)">السبب:</b> ${esc(run.reason)}`:''}
     </div>
     ${fileManualResultRows(run)}
@@ -3800,6 +3870,93 @@ function renderHistoryRouter(){
   if(app.ctx.histSub==='question')return renderV2QuestionView();
   return renderHistory();
 }
+/* السجل يُقرأ عمودًا بعمود لا بطاقةً بعد بطاقة: صفوفه كثيرة والغرض منه المقارنة بين
+   الجلسات، فجدولٌ واحد أوضح من قائمة بطاقات يتكرّر في كل منها اسمُ كل حقل مع قيمته.
+   لوحات التدفّق اليدوي تبقى بطاقات: فيها مسودات وأزرار إكمال لا صفوف متجانسة. */
+function logTable(headers,rowsHtml,empty){
+  if(!rowsHtml)return `<div class="empty">${esc(empty)}</div>`;
+  return `<div class="cmpwrap" style="margin-top:14px;"><table class="v2tbl logtbl" style="margin-top:0;">
+    <thead><tr>${headers.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rowsHtml}</tbody></table></div>`;
+}
+function logActionsCell(html){return `<td><div class="row" style="gap:6px;flex-wrap:nowrap;">${html}</div></td>`;}
+/* السبب نصٌّ حر قد يطول، فلا يُفرد عمودًا يوسّع الجدول — يُقرأ سطرًا تحت الموظف.
+   والبريد يُقصر على ما قبل @: النطاق واحد للفريق كله فلا يميّز صفًّا عن صف، وطوله
+   وحده كان يوسّع العمود ضعفين. البريد كاملًا في التلميح. */
+function logWhoCell(r){
+  const email=r.employee||'—',short=email.split('@')[0]||email;
+  return `<td dir="auto" title="${esc(email)}">${esc(short)}${r.reason?`<div class="logreason">${esc(r.reason)}</div>`:''}</td>`;
+}
+const LOG_V2_HEADERS=['النوع','النموذج','التاريخ','الموظف','البنود','نمط البحث','اللغة','النتيجة','إجراءات'];
+function v2RunTableRow(r,i){
+  const pct=r.score;
+  const badge=`<span class="badge ${pct==null?'draft':pct>=80?'pass':pct>=50?'draft':'fail'}">${pct==null?'—':pct+'%'}</span>`;
+  const disputed=r.items.filter(x=>x.review&&x.review.agree===false).length;
+  return `<tr>
+    <td>${esc(v2KindLabel(r.kind).replace(/^اختبار /,''))}</td>
+    <td dir="auto">${esc(r.model||'—')}</td>
+    <td dir="auto">${esc(r.date)}</td>
+    ${logWhoCell(r)}
+    <td title="${esc(v2UnitLabel(r))}">${r.items.length}</td>
+    <td title="${esc(searchModeLabel(runSearchMode(r)))}">${esc(runSearchMode(r)==='both'?'الوضعان':searchModeShort(runSearchMode(r)))}</td>
+    <td>${esc(v2RunLangLabel(r))}</td>
+    <td>${badge}${disputed?`<div class="logsub" style="color:var(--fail);">${disputed} اعتراض</div>`:''}${r.aiMode&&r.aiMode!=='live'?`<div class="logsub">${esc(aiModeLabel(r.aiMode))}</div>`:''}</td>
+    ${logActionsCell(`<button class="btn btn-ghost btn-sm" data-vrun="${i}"><svg class="icon"><use href="#ic-external-link"/></svg> استعراض</button>
+      <button class="iconbtn" data-vcopy="${i}"><svg class="icon"><use href="#ic-copy"/></svg></button>
+      <button class="iconbtn del" data-vdel="${i}"><svg class="icon"><use href="#ic-trash"/></svg></button>`)}
+  </tr>`;
+}
+/* صفوف الأرشيف — نفس أسماء data-* المستعملة في البطاقات فتعمل نفس الروابط */
+const LOG_SMOKE_HEADERS=['الموظف','التاريخ','المودل','الحالات','مجتاز','غير مجتاز','النتيجة','إجراءات'];
+function smokeRunTableRow(r,i){
+  const passed=r.results.filter(x=>x.result==='pass').length,failed=r.results.filter(x=>x.result==='fail').length;
+  return `<tr>${logWhoCell(r)}
+    <td dir="auto">${esc(r.date)}</td>
+    <td dir="auto">${esc(r.model||'—')}</td>
+    <td>${r.tests.length}</td>
+    <td>${passed}</td>
+    <td>${failed}</td>
+    <td>${failed===0?'<span class="badge pass">مجتاز بالكامل</span>':`<span class="badge fail">${failed} لم تجتَز</span>`}</td>
+    ${logActionsCell(`<button class="btn btn-ghost btn-sm" data-viewrun="${i}"><svg class="icon"><use href="#ic-external-link"/></svg> استعراض</button>
+      <button class="iconbtn" data-share="${i}"><svg class="icon"><use href="#ic-share"/></svg></button>
+      <button class="iconbtn del" data-delrun="${i}"><svg class="icon"><use href="#ic-trash"/></svg></button>`)}
+  </tr>`;
+}
+function manualAvg(r){
+  if(r.avgRating!=null)return r.avgRating;
+  const done=r.results.filter(x=>x.rating).length;
+  return done?(r.results.reduce((s,x)=>s+(x.rating||0),0)/done).toFixed(1):null;
+}
+function manualAvgBadge(avg){
+  return `<span class="badge ${avg>=4?'pass':avg>=2.5?'draft':'fail'}">${avg==null?'—':'متوسط '+avg+'/5'}</span>`;
+}
+const LOG_QUALITY_HEADERS=['الموظف','التاريخ','المودل','الأسئلة','لغة الاختبار','نوع البحث','المتوسط','إجراءات'];
+function qualityRunTableRow(r,i){
+  return `<tr>${logWhoCell(r)}
+    <td dir="auto">${esc(r.date)}</td>
+    <td dir="auto">${esc(r.model||'—')}</td>
+    <td>${r.tests.length}</td>
+    <td>${esc(manualLangLabel(manualLang(r)))}</td>
+    <td title="${esc(SEARCH_MODES[manualSearchMode(r)])}">${esc(SEARCH_MODE_SHORT[manualSearchMode(r)])}</td>
+    <td>${manualAvgBadge(manualAvg(r))}</td>
+    ${logActionsCell(`<button class="btn btn-ghost btn-sm" data-viewrun="${i}"><svg class="icon"><use href="#ic-external-link"/></svg> استعراض</button>
+      <button class="iconbtn" data-share="${i}"><svg class="icon"><use href="#ic-share"/></svg></button>
+      <button class="iconbtn del" data-delrun="${i}"><svg class="icon"><use href="#ic-trash"/></svg></button>`)}
+  </tr>`;
+}
+const LOG_FILES_HEADERS=['الموظف','التاريخ','المودل','نوع الملفات','الأسئلة','نوع البحث','المتوسط','إجراءات'];
+function fileManualRunTableRow(r,i){
+  return `<tr>${logWhoCell(r)}
+    <td dir="auto">${esc(r.date)}</td>
+    <td dir="auto">${esc(r.model||'—')}</td>
+    <td>${esc(FILE_LANG_LABEL[r.fileLang]||'عربي')}</td>
+    <td>${r.tests.length}</td>
+    <td title="${esc(SEARCH_MODES[manualSearchMode(r)])}">${esc(SEARCH_MODE_SHORT[manualSearchMode(r)])}</td>
+    <td>${manualAvgBadge(manualAvg(r))}</td>
+    ${logActionsCell(`<button class="btn btn-ghost btn-sm" data-fmviewrun="${i}"><svg class="icon"><use href="#ic-external-link"/></svg> استعراض</button>
+      <button class="iconbtn" data-fmshare="${i}"><svg class="icon"><use href="#ic-share"/></svg></button>
+      <button class="iconbtn del" data-fmdelrun="${i}"><svg class="icon"><use href="#ic-trash"/></svg></button>`)}
+  </tr>`;
+}
 function v2RunRow(r,i){
   const pct=r.score;
   const badge=`<span class="badge ${pct==null?'draft':pct>=80?'pass':pct>=50?'draft':'fail'}">${pct==null?'—':pct+'%'}</span>`;
@@ -3828,14 +3985,19 @@ function renderHistory(){
     screen.innerHTML=`${tabs}<div class="card hero">
       <div class="eyebrow">قبل الربط بالذكاء الاصطناعي</div><h1 class="h1">الأرشيف</h1>
       <p class="sub">الاختبارات اليدوية المسجَّلة في النسخة السابقة، محفوظة كما هي للرجوع إليها.</p></div>
-      <div class="card" id="arcSmoke"><h2 class="h2">اختبار الدخان اليدوي</h2>${RUNS.length?RUNS.map((r,i)=>runRow(r,i,false)).join(''):'<div class="empty">لا توجد اختبارات.</div>'}</div>
-      <div class="card" id="arcQuality"><h2 class="h2">اختبار الجودة اليدوي</h2>${QUALITY_RUNS.length?QUALITY_RUNS.map((r,i)=>qualityRunRow(r,i,false)).join(''):'<div class="empty">لا توجد اختبارات.</div>'}</div>
-      <div class="card" id="arcFiles"><h2 class="h2">اختبار رفع الملفات اليدوي</h2>${FILE_RUNS.length?FILE_RUNS.map((r,i)=>fileManualRunRow(r,i,false)).join(''):'<div class="empty">لا توجد اختبارات.</div>'}</div>`;
+      <div class="card" id="arcSmoke"><h2 class="h2">اختبار الدخان اليدوي</h2>${logTable(LOG_SMOKE_HEADERS,RUNS.map((r,i)=>smokeRunTableRow(r,i)).join(''),'لا توجد اختبارات.')}</div>
+      <div class="card" id="arcQuality"><h2 class="h2">اختبار الجودة اليدوي</h2>${logTable(LOG_QUALITY_HEADERS,QUALITY_RUNS.map((r,i)=>qualityRunTableRow(r,i)).join(''),'لا توجد اختبارات.')}</div>
+      <div class="card" id="arcFiles"><h2 class="h2">اختبار رفع الملفات اليدوي</h2>${logTable(LOG_FILES_HEADERS,FILE_RUNS.map((r,i)=>fileManualRunTableRow(r,i)).join(''),'لا توجد اختبارات.')}</div>`;
     screen.querySelectorAll('[data-htab]').forEach(b=>b.onclick=()=>{app.ctx.histTab=b.dataset.htab;render();});
-    /* البطاقات الثلاث تتقاسم أسماء data-*، فيُحصر كل ربط ببطاقته بالمعرّف — الحصر
-       بترتيب nth-of-type كان يترك «استعراض» ميتًا في بطاقتَي الجودة والملفات. */
+    /* الجداول الثلاثة تتقاسم أسماء data-*، فيُحصر كل ربط بجدوله بالمعرّف — الحصر
+       بترتيب nth-of-type كان يترك «استعراض» ميتًا في بطاقتَي الجودة والملفات.
+       والمشاركة والحذف كانتا بلا ربط في الأرشيف أصلًا، فتُربطان هنا. */
     document.querySelectorAll('#arcSmoke [data-viewrun]').forEach(b=>b.onclick=()=>smokeViewRun(+b.dataset.viewrun));
+    document.querySelectorAll('#arcSmoke [data-share]').forEach(b=>b.onclick=()=>shareRun(RUNS[+b.dataset.share]));
+    document.querySelectorAll('#arcSmoke [data-delrun]').forEach(b=>b.onclick=()=>{if(confirm('حذف هذا الاختبار؟')){RUNS.splice(+b.dataset.delrun,1);save(K.runs,RUNS);render();}});
     document.querySelectorAll('#arcQuality [data-viewrun]').forEach(b=>b.onclick=()=>qualityViewRun(+b.dataset.viewrun));
+    document.querySelectorAll('#arcQuality [data-share]').forEach(b=>b.onclick=()=>shareQualityRun(QUALITY_RUNS[+b.dataset.share]));
+    document.querySelectorAll('#arcQuality [data-delrun]').forEach(b=>b.onclick=()=>{if(confirm('حذف هذا الاختبار؟')){QUALITY_RUNS.splice(+b.dataset.delrun,1);save(K.qualityRuns,QUALITY_RUNS);render();}});
     bindFileManualRows(document.getElementById('arcFiles'));
     buildToc();return;
   }
@@ -3865,7 +4027,7 @@ function renderHistory(){
       <div class="field" style="margin-bottom:0;"><label>النموذج</label><select id="fModel"><option value="">الكل</option>${models.map(m=>`<option value="${esc(m)}" ${f.model===m?'selected':''}>${esc(m)}</option>`).join('')}</select></div>
     </div>
     <div class="field" style="margin-top:12px;"><label>الموظف</label><select id="fEmp"><option value="">الكل</option>${emps.map(m=>`<option value="${esc(m)}" ${f.employee===m?'selected':''}>${esc(m)}</option>`).join('')}</select></div>
-    ${filtered.length?filtered.map((r,i)=>v2RunRow(r,V2_RUNS.indexOf(r))).join(''):'<div class="empty">لا توجد اختبارات مطابقة.</div>'}
+    ${logTable(LOG_V2_HEADERS,filtered.map(r=>v2RunTableRow(r,V2_RUNS.indexOf(r))).join(''),'لا توجد اختبارات مطابقة.')}
   </div>`;
   screen.querySelectorAll('[data-htab]').forEach(b=>b.onclick=()=>{app.ctx.histTab=b.dataset.htab;render();});
   document.getElementById('goCompare').onclick=()=>{app.ctx.histSub='compare';app.ctx.cmpSel=[];render();window.scrollTo(0,0);};
