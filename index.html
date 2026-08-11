@@ -1827,6 +1827,11 @@ function fileManualPool(win,fileRefs){
   return items;
 }
 function sample(arr,n){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return n?a.slice(0,n):a;}
+/* طلب العدد الكامل من مجموعةٍ ما ليس انتقاء عيّنة، فلا يُخلط: تُسلَّم المجموعة كما هي
+   بترتيب بنك الأسئلة، ويتكرّر الترتيب نفسه في كل مرة. السبب أن المختبِر قد يشغّل عدة
+   جلسات في وقت واحد على نفس النوع ويريد طرح السؤال نفسه فيها جميعًا في اللحظة نفسها،
+   والخلط يفكّ هذا التوافق. أقلّ من العدد الكامل يبقى عيّنة عشوائية كما كان. */
+function takeQuestions(arr,n){return n>=arr.length?arr.slice():sample(arr,n);}
 function modeList(t){const m=t.modes||{normal:true,detailed:false};const a=[];if(m.normal)a.push('normal');if(m.detailed)a.push('detailed');return a.length?a:['normal'];}
 function modeLabel(t){const l=modeList(t);return l.map(x=>x==='normal'?'عادي':'تفصيلي').join(' + ');}
 function isDual(t){const m=t.modes||{};return m.normal&&m.detailed;}
@@ -2615,6 +2620,8 @@ function qualityImport(){
   const sel=app.ctx.qImportSel||[];
   const allOn=sel.includes('__all__');
   const counts=app.ctx.qImportCounts=app.ctx.qImportCounts||{};
+  /* «الكل» يسحب من كل الأقسام النصّية مجتمعة، فيُعرض متاحها ليتبيّن العدد الكامل */
+  const allN=allOn?qualityPool(['__all__']).length:0;
   const optsHtml=opts.map(o=>{
     const on=sel.includes(o.key);
     const cnt=Math.min(counts[o.key]!=null?counts[o.key]:3,o.n);
@@ -2628,9 +2635,10 @@ function qualityImport(){
     <label class="qoption ${allOn?'sel':''}" data-qopt="__all__"><input type="checkbox" ${allOn?'checked':''}><span class="qtext"><b>الكل</b></span></label>
     ${optsHtml||'<div class="muted-note">لا توجد أسئلة في بنك الأسئلة بعد.</div>'}
     ${allOn?`<div class="field" id="countField" style="margin-top:14px;">
-      <label>عدد الأسئلة المطلوب استيرادها (عشوائيًا من الكل)</label>
-      <input id="f_count" type="number" min="1" value="${esc(app.ctx.qImportCount||20)}">
+      <label>عدد الأسئلة المطلوب استيرادها (المتاح الآن: ${allN})</label>
+      <input id="f_count" type="number" min="1" max="${Math.max(allN,1)}" value="${esc(Math.min(app.ctx.qImportCount||20,Math.max(allN,1)))}">
     </div>`:''}
+    ${sel.length?`<div class="muted-note" style="margin-top:10px;" data-edit-key="qimport.order.note">${esc(t('qimport.order.note','إن طلبت العدد الكامل جاءت الأسئلة بترتيب بنك الأسئلة نفسه في كل مرة، فتتوافق الجلسات المتوازية سؤالًا بسؤال. وإن طلبت عددًا أقل سُحبت عيّنة عشوائية.'))}</div>`:''}
     <div class="warnmsg" id="w">اختر نوعًا واحدًا على الأقل.</div>
     <div class="nav-btns"><button class="btn btn-ghost" id="cancel">إلغاء</button><button class="btn btn-primary" id="go">استيراد وبدء ←</button></div>
   </div>`;
@@ -2652,12 +2660,12 @@ function qualityImport(){
     if(s.includes('__all__')){
       const pool=qualityPool(s);
       if(!pool.length){w.textContent='لا توجد أسئلة مطابقة لهذا الاختيار.';w.classList.add('show');return;}
-      tests=sample(pool,Math.min(app.ctx.qImportCount||20,pool.length));
+      tests=takeQuestions(pool,Math.min(app.ctx.qImportCount||20,pool.length));
     }else{
       tests=[];const seen=new Set();
       s.forEach(k=>{
         const pool=qualityPool([k]);
-        sample(pool,Math.min(counts[k]!=null?counts[k]:3,pool.length)).forEach(it=>{const id=it.kind+'|'+JSON.stringify(it.q||it.messages||it.title||'');if(!seen.has(id)){seen.add(id);tests.push(it);}});
+        takeQuestions(pool,Math.min(counts[k]!=null?counts[k]:3,pool.length)).forEach(it=>{const id=it.kind+'|'+JSON.stringify(it.q||it.messages||it.title||'');if(!seen.has(id)){seen.add(id);tests.push(it);}});
       });
       if(!tests.length){w.textContent='لا توجد أسئلة مطابقة لهذا الاختيار.';w.classList.add('show');return;}
     }
@@ -3562,7 +3570,8 @@ function v2Setup(){
     ${s.kind==='quality'?`<label class="qoption ${s.onlyScorable?'sel':''}" data-onlyscorable style="margin-top:10px;"><input type="checkbox" ${s.onlyScorable?'checked':''}><span class="qtext">اقتصر على الأسئلة التي لها معايير إجابة صحيحة${noCrit?`<span class="cn" style="display:block;font-size:11.5px;color:var(--muted);margin-top:3px;">${noCrit} سؤال في اختيارك الحالي بلا معايير — لا يمكن إعطاؤه نسبة.</span>`:''}</span></label>`:''}
     ${v2TakesAll(s)
       ?`<div class="tip" style="margin-top:14px;"><span class="ic"><svg class="icon"><use href="#ic-lamp"/></svg></span><div>ستُطرح <b>كل أسئلة الملفات المختارة</b> — ${poolN} سؤال. لتقليل العدد اختر ملفات أقل من الأعلى.</div></div>`
-      :`<div class="field" style="margin-top:14px;"><label>عدد الأسئلة (المتاح الآن: ${poolN})</label><input id="v_count" type="number" min="1" max="${Math.max(poolN,1)}" value="${Math.min(s.count,Math.max(poolN,1))}"></div>`}
+      :`<div class="field" style="margin-top:14px;"><label>عدد الأسئلة (المتاح الآن: ${poolN})</label><input id="v_count" type="number" min="1" max="${Math.max(poolN,1)}" value="${Math.min(s.count,Math.max(poolN,1))}"></div>
+        <div class="muted-note" style="margin-top:-6px;margin-bottom:12px;" data-edit-key="v2.setup.count.note">${esc(t('v2.setup.count.note','إن طلبت العدد الكامل المتاح جاءت الأسئلة بترتيب بنك الأسئلة نفسه في كل مرة، فتتوافق الجلسات المتوازية سؤالًا بسؤال. وإن طلبت عددًا أقل سُحبت عيّنة عشوائية.'))}</div>`}
     ${s.searchMode==='both'?`<div class="muted-note" style="margin-top:-6px;margin-bottom:12px;">${Math.min(s.count,Math.max(poolN,1))} سؤال × نمطَي بحث = ${Math.min(s.count,Math.max(poolN,1))*2} محادثة.</div>`:''}
     ${poolN?'':`<div class="warnmsg show">${isFiles?'لا توجد أسئلة في ملفات هذا الاختيار.':'لا توجد أسئلة مطابقة لهذا الاختيار.'}</div>`}
 
@@ -3606,7 +3615,7 @@ function v2Setup(){
     /* اختبار الملفات يأخذ المجموعة كلها بترتيبها كما في البنك — لا عيّنة عشوائية،
        فالأسئلة على ملفٍ واحد يُقرأ تسلسلها في التقرير. */
     const take=v2TakesAll(s)?pool.length:Math.min(s.count,pool.length);
-    const picked=v2TakesAll(s)?pool:sample(pool,take);
+    const picked=v2TakesAll(s)?pool.slice():takeQuestions(pool,take);
     app.ctx.v2run={
       id:'v2'+Date.now()+Math.random().toString(36).slice(2,7),
       kind:s.kind,employee:CURRENT_USER_EMAIL,date:today(),lang:v2EffLang(s),searchMode:s.searchMode,model:s.model,
