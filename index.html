@@ -184,6 +184,15 @@
   [data-theme="dark"] .progress-fill{box-shadow:0 0 12px -2px var(--brand-glow);}
   .progress-meta{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);}
 
+  /* مربّع بيانات الجلسة: يلتصق أسفل الشريط العلوي فيبقى ظاهرًا مهما طالت الشاشة */
+  .sessbar{position:sticky;top:63px;z-index:15;display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center;background:var(--card-2);border:1px solid var(--line-2);border-radius:12px;padding:10px 14px;margin-bottom:14px;box-shadow:var(--shadow);}
+  .sessbar .sb-i{display:flex;align-items:center;gap:7px;min-width:0;}
+  .sessbar .sb-i+.sb-i{border-inline-start:1px solid var(--line-2);padding-inline-start:20px;}
+  .sessbar .sb-ic{color:var(--brand-2);flex:0 0 auto;}
+  .sessbar .sb-l{font-size:11.5px;font-weight:600;color:var(--muted-2);white-space:nowrap;}
+  .sessbar .sb-v{font-size:13px;font-weight:700;color:var(--ink-2);}
+  @media (max-width:560px){.sessbar .sb-i+.sb-i{border-inline-start:none;padding-inline-start:0;}}
+
   .qoption{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line-2);border-radius:10px;padding:11px 12px;margin-bottom:8px;cursor:pointer;background:var(--card-2);transition:.15s;}
   .qoption:hover{border-color:var(--brand-2);}
   .qoption.sel{border-color:var(--brand);background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--brand);}
@@ -2434,7 +2443,8 @@ function smokeTest(){
       </div>`;
   }
 
-  screen.innerHTML=`<div class="card">
+  screen.innerHTML=`${sessionBarHtml(isDual(t)?'both':modeList(t)[0],r.model,manualLangLabel(res.lang))}
+  <div class="card">
     <div class="progress-meta"><span>${esc(t.cat)}</span><span>الحالة ${i+1} من ${total}</span></div>
     <div class="progress-track"><div class="progress-fill" style="width:${(i/total)*100}%"></div></div>
     <div style="margin-top:14px;"><b style="font-size:17px;color:var(--ink-2);">${esc(t.title)}</b></div>
@@ -2443,7 +2453,6 @@ function smokeTest(){
     ${qHtml}
     ${t.fileNote?`<div class="filenote"><svg class="icon"><use href="#ic-paperclip"/></svg> ${esc(t.fileNote)}</div>`:''}
     ${t.reason?`<div class="reason"><b>سبب الحالة:</b> ${esc(t.reason)}</div>`:''}
-    <div class="row" style="margin-top:14px;"><span class="chip">نوع الوضع المطلوب: <b>${esc(modeLabel(t))}</b></span></div>
     <div class="expected"><span class="lbl">النتيجة المتوقعة</span>${esc(t.expected)}</div>
     <div class="section-h">نتيجة التنفيذ</div>
     ${verdictHtml}
@@ -2680,6 +2689,19 @@ function qualityImport(){
    الأوضاع تُنفَّذ في النمطين معًا أصلًا، ولغتها مفتاح لكل حالة على حِدة. */
 /* في جلسة الملفات اللغة تابعة لنوع الملفات، فتُقرأ منه أوّلًا — الجلسات المحفوظة قبل
    إضافة الحقل لا تحمل lang، ولو قُرئت منه وحده لظهرت جلسة ملفات إنجليزية «عربي». */
+/* --- مربّع بيانات الجلسة --- يتكرّر في كل شاشات تنفيذ الاختبار، يدويًا وآليًا،
+   ليرى المختبِر في كل لحظة على أيّ نمط بحثٍ ونموذجٍ ولغةٍ يعمل. */
+const SESS_MODE_ICON={normal:'search',detailed:'search-zoom',both:'repeat'};
+function sessionBarHtml(searchMode,model,langLabel){
+  const cell=(icon,label,val)=>`<div class="sb-i"><svg class="icon sb-ic"><use href="#ic-${icon}"/></svg><span class="sb-l">${esc(label)}</span><span class="sb-v" dir="auto">${esc(val)}</span></div>`;
+  return `<div class="sessbar">
+    ${cell(SESS_MODE_ICON[searchMode]||'search','نوع البحث',searchModeLabel(searchMode))}
+    ${cell('command-square','النموذج المُختبَر',model||'—')}
+    ${cell('note-text','اللغة',langLabel)}
+  </div>`;
+}
+function manualSessionBar(r){return sessionBarHtml(manualSearchMode(r),r.model,manualLangLabel(manualLang(r)));}
+function v2SessionBar(run){return sessionBarHtml(runSearchMode(run),run.model,v2RunLangLabel(run));}
 function manualLang(r){const L=r&&(r.fileLang||r.lang);return L==='en'?'en':'ar';}
 function manualSearchMode(r){return r&&r.searchMode==='detailed'?'detailed':'normal';}
 function manualLangLabel(lang){return lang==='en'?'English':'عربي';}
@@ -2773,14 +2795,16 @@ function qualityTest(){
     bodyHtml=`<div class="qline"><span class="qtext" style="flex:1;">${esc(bilingualText(item.q,res.lang))}</span><button class="copybtn" id="copyQ"><svg class="icon"><use href="#ic-copy"/></svg> نسخ</button></div>
       ${criteria?`<div class="criteria-box" style="margin-top:12px;"><span class="lbl">عناصر الإجابة الصحيحة (مرجع)</span><ul>${criteria}</ul></div>`:''}`;
   }
-  /* لغة الجلسة ونمطها يُعرضان للتذكير فقط — يُختاران مرة واحدة في شاشة البدء.
-     ولا لغة لسؤال الملف أصلًا: نصه نصٌّ واحد لا {ar,en}، فلغته لغة ملفه. */
+  /* لغة الجلسة ونمطها ونموذجها في مربّع البيانات الثابت أعلى الشاشة، للتذكير فقط:
+     تُختار مرة واحدة في شاشة البدء. ولا لغة لسؤال الملف أصلًا: نصه نصٌّ واحد لا
+     {ar,en}، فلغته لغة ملفه — ومن هنا التنبيه أدناه إن لم يكن للسؤال نصٌّ إنجليزي. */
   const hasEn=item.kind==='fileupload'?false:(item.kind==='conversation'?(item.messages||[]).some(m=>bilingualHas(m.q,'en')):bilingualHas(item.q,'en'));
-  const langToggle=`<div class="row" style="margin-bottom:10px;"><span class="chip">لغة الاختبار: ${esc(manualLangLabel(manualLang(r)))}</span><span class="chip">${esc(SEARCH_MODES[manualSearchMode(r)])}</span>${manualLang(r)==='en'&&!hasEn&&item.kind!=='fileupload'?'<span class="chip">لا نصّ إنجليزي لهذا السؤال — يُعرض بالعربية</span>':''}</div>`;
+  const langToggle=manualLang(r)==='en'&&!hasEn&&item.kind!=='fileupload'?`<div class="row" style="margin-bottom:10px;"><span class="chip">لا نصّ إنجليزي لهذا السؤال — يُعرض بالعربية</span></div>`:'';
   const ratingHtml=`<div class="optpills">${[1,2,3,4,5].map(n=>`<button class="optpill ${res.rating===n?'on':''}" data-rate="${n}">${n}</button>`).join('')}</div>`;
   const kindLabel=item.kind==='conversation'?'سياق محادثة':(item.kind==='fileupload'?'اختبار رفع الملفات':'سؤال');
 
-  screen.innerHTML=`<div class="card">
+  screen.innerHTML=`${manualSessionBar(r)}
+  <div class="card">
     <div class="progress-meta"><span>${esc(kindLabel)}</span><span>السؤال ${i+1} من ${total}</span></div>
     <div class="progress-track"><div class="progress-fill" style="width:${(i/total)*100}%"></div></div>
     <div class="section-h">${item.kind==='conversation'?'سياق المحادثة':item.kind==='fileupload'?'الملف وسؤاله':'السؤال (يُنسخ تلقائيًا)'}</div>
@@ -3174,11 +3198,11 @@ function fileManualResume(i){app.ctx.fmrun=clone(FILE_DRAFTS[i]);app.ctx.fmDraft
 function fileManualTest(){
   const r=app.ctx.fmrun,i=r.step,item=r.tests[i],res=r.results[i],total=r.tests.length;
   setCrumb(`السؤال ${i+1}/${total}`);
-  screen.innerHTML=`<div class="card">
+  screen.innerHTML=`${manualSessionBar(r)}
+  <div class="card">
     <div class="progress-meta"><span>اختبار رفع الملفات</span><span>السؤال ${i+1} من ${total}</span></div>
     <div class="progress-track"><div class="progress-fill" style="width:${(i/total)*100}%"></div></div>
     <div class="section-h">الملف وسؤاله</div>
-    <div class="row" style="margin-bottom:10px;"><span class="chip">لغة الاختبار: ${esc(manualLangLabel(manualLang(r)))}</span><span class="chip">${esc(SEARCH_MODES[manualSearchMode(r)])}</span></div>
     ${fileItemRefHtml(item,r.fileLang)}
     <div class="section-h">التقييم</div>
     <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:8px;">قيّم إجابة المنتج من 1 (ضعيف) إلى 5 (ممتاز)</label>
@@ -3647,7 +3671,8 @@ function v2PaintProgress(){
     const fileTag=it.kind==='fileupload'&&it.fileName?`<span class="chip" style="flex:0 0 auto;margin-inline-end:8px;">${esc(it.fileName)}</span>`:'';
     return `<div class="runprog ${cls}"><span class="rp-n">${it.status==='judged'?'<svg class="icon"><use href="#ic-tick"/></svg>':i+1}</span><span class="rp-t">${modeTag}${fileTag}<span dir="auto">${esc(it.title)}</span></span><span class="rp-s">${esc(st)}</span></div>`;
   }).join('');
-  screen.innerHTML=`<div class="card">
+  screen.innerHTML=`${v2SessionBar(run)}
+  <div class="card">
     <div class="eyebrow">${esc(v2RunEyebrow(run))}</div>
     <h1 class="h1">جارٍ تنفيذ الاختبار</h1>
     <p class="sub">${run.kind==='files'?'يرفع البرنامج الملف مع كل سؤال من أسئلته في محادثة مستقلة، ثم يقيّم الإجابة حسب عناصر الإجابة الصحيحة. لا تغلق الصفحة.':'يُنشئ البرنامج محادثة لكل سؤال ويرسلها للنموذج المُختبَر، ثم يقيّم كل إجابة حسب عناصر الإجابة الصحيحة. لا تغلق الصفحة.'}</p>
@@ -3717,7 +3742,8 @@ function v2ScoreCellHtml(it){
 /* --- شاشة المراجعة: بطاقة لكل سؤال --- */
 function v2Review(){
   const run=app.ctx.v2run;setCrumb('مراجعة التقييم');
-  screen.innerHTML=`<div class="card">
+  screen.innerHTML=`${v2SessionBar(run)}
+  <div class="card">
     <div class="eyebrow">${esc(v2KindLabel(run.kind))} · ${esc(searchModeLabel(runSearchMode(run)))} · ${esc(v2RunLangLabel(run))}</div>
     <h1 class="h1" data-edit-key="v2.review.title">${esc(t('v2.review.title','مراجعة نتائج الاختبار'))}</h1>
     <p class="sub" data-edit-key="v2.review.sub">${esc(t('v2.review.sub','راجع تقييم الذكاء الاصطناعي لكل إجابة. إن كان التقييم غير صحيح فحدّد السبب واكتب توضيحًا — تُحفظ ملاحظاتك مع نتيجة الاختبار.'))}</p>
