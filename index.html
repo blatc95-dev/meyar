@@ -1841,6 +1841,13 @@ function sample(arr,n){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j
    جلسات في وقت واحد على نفس النوع ويريد طرح السؤال نفسه فيها جميعًا في اللحظة نفسها،
    والخلط يفكّ هذا التوافق. أقلّ من العدد الكامل يبقى عيّنة عشوائية كما كان. */
 function takeQuestions(arr,n){return n>=arr.length?arr.slice():sample(arr,n);}
+/* أسئلة الملفات مكتوبة على ملفٍ بعينه ويُقرأ تسلسلها في التقرير، فحين يُطلب عدد أقل
+   من المتاح تُسحب عيّنة عشوائية ثم تُعاد إلى ترتيب بنك الأسئلة: يبقى كل ملف مجتمعًا
+   ولا يتنقّل المختبِر بين ملفٍ وآخر ذهابًا وإيابًا. */
+function takeQuestionsOrdered(arr,n){
+  if(n>=arr.length)return arr.slice();
+  return sample(arr.map((_,i)=>i),n).sort((a,b)=>a-b).map(i=>arr[i]);
+}
 function modeList(t){const m=t.modes||{normal:true,detailed:false};const a=[];if(m.normal)a.push('normal');if(m.detailed)a.push('detailed');return a.length?a:['normal'];}
 function modeLabel(t){const l=modeList(t);return l.map(x=>x==='normal'?'عادي':'تفصيلي').join(' + ');}
 function isDual(t){const m=t.modes||{};return m.normal&&m.detailed;}
@@ -3102,50 +3109,78 @@ function fileManualDefaultLang(){
 }
 function fileManualStart(){
   if(!fileManualDashboard_hasFiles()){alert('لا توجد ملفات في بنك الأسئلة. أضِفها من الإعدادات ← بنك الأسئلة.');return;}
-  app.ctx.fm={lang:fileManualDefaultLang(),files:[]};
+  /* count=null يعني كل أسئلة الاختيار، وهو الافتراضي */
+  app.ctx.fm={lang:fileManualDefaultLang(),files:[],count:null};
   app.sub='fmImport';render();window.scrollTo(0,0);
 }
+/* العدد المطلوب فعلًا من مجموعة الاختيار الحالية — يتقلّص معها إن قلّت الملفات */
+function fileManualTake(s,poolN){return s.count==null?poolN:Math.min(s.count,poolN);}
 function fileManualImport(){
   const s=app.ctx.fm;setCrumb('اختيار الملفات');
   const win=fileWinForLang(s.lang);
   const opts=v2FileOptions(win);
   const pool=fileManualPool(win,s.files);
+  const poolN=pool.length;
+  const take=fileManualTake(s,poolN);
   const langPills=['ar','en'].map(L=>{
     const w=QBANK[fileWinForLang(L)];
     return `<button class="optpill ${s.lang===L?'on':''}" data-fmlang="${L}">${esc(w?w.label:FILE_LANG_LABEL[L])} <span class="badge-n" style="margin-inline-start:6px;">${w?bankWinCount(w):0}</span></button>`;
   }).join('');
   const filesHtml=opts.map(o=>`<label class="qoption ${s.files.includes(o.key)?'sel':''}" data-fmfile="${esc(o.key)}"><input type="checkbox" ${s.files.includes(o.key)?'checked':''}><span class="qtext">${esc(o.title)}${o.meta?`<span class="cn" style="display:block;font-size:11.5px;color:var(--muted);margin-top:3px;">${esc(o.meta)}</span>`:''}</span><span class="chip" style="flex:0 0 auto;">${o.n} سؤال</span></label>`).join('');
+  const fuN=pool.filter(x=>(x.followUpQ||'').trim()).length;
+  /* بطاقة الحصيلة تُحدَّث في مكانها مع كل تغيير للعدد، فلا يُعاد رسم الشاشة ويفقد
+     حقل العدد تركيزه بين ضغطتَي السهم */
+  const tipHtml=(n)=>{
+    const all=n>=poolN;
+    return `<span class="ic"><svg class="icon"><use href="#ic-lamp"/></svg></span><div>ستُطرح <b>${n} سؤال</b>${all?'':` من ${poolN} سؤال متاح`}${all&&fuN?` ومعها ${fuN} سؤال تابع في نفس المحادثات`:''}.</div>`;
+  };
   screen.innerHTML=`<div class="card">
     <div class="eyebrow" data-edit-key="fmimport.eyebrow">${esc(t('fmimport.eyebrow','قبل البدء'))}</div>
     <h1 class="h1" data-edit-key="fmimport.title">${esc(t('fmimport.title','اختبار رفع الملفات اليدوي'))}</h1>
-    <p class="sub" data-edit-key="fmimport.sub">${esc(t('fmimport.sub','اختر نوع الملفات ثم الملفات المطلوب اختبارها. لكل ملف زرُّ تنزيل: نزّله وارفعه على المنتج ثم اطرح أسئلته وقيّم كل إجابة من 1 إلى 5.'))}</p>
+    <p class="sub" data-edit-key="fmimport.sub">${esc(t('fmimport.sub','اختر نوع الملفات ثم الملفات المطلوب اختبارها ثم عدد الأسئلة. لكل ملف زرُّ تنزيل: نزّله وارفعه على المنتج ثم اطرح أسئلته وقيّم كل إجابة من 1 إلى 5.'))}</p>
 
     <div class="section-h">١ · نوع الملفات</div>
     <div class="optpills">${langPills}</div>
     <div class="muted-note" style="margin-top:8px;" data-edit-key="fmimport.langnote">${esc(t('fmimport.langnote','لغة الأسئلة هي لغة الملف: الملفات العربية تُسأل بالعربية والإنجليزية بالإنجليزية.'))}</div>
 
     <div class="section-h" style="margin-top:20px;">٢ · الملفات</div>
-    <p class="muted-note" style="margin:0 0 10px;" data-edit-key="fmimport.filesnote">${esc(t('fmimport.filesnote','اترك الملفات دون تحديد لاختبار كل ملفات هذا النوع. تنزل أسئلة كل ملف كاملة وبترتيبها.'))}</p>
+    <p class="muted-note" style="margin:0 0 10px;" data-edit-key="fmimport.filesnote">${esc(t('fmimport.filesnote','اترك الملفات دون تحديد لاختبار كل ملفات هذا النوع، أو حدّد ملفات بعينها.'))}</p>
     ${filesHtml||'<div class="muted-note">لا توجد ملفات في هذا النوع بعد. أضِفها من الإعدادات ← بنك الأسئلة.</div>'}
-    ${pool.length?`<div class="tip" style="margin-top:14px;"><span class="ic"><svg class="icon"><use href="#ic-lamp"/></svg></span><div>ستُطرح <b>${pool.length} سؤال</b>${pool.filter(x=>(x.followUpQ||'').trim()).length?` ومعها ${pool.filter(x=>(x.followUpQ||'').trim()).length} سؤال تابع في نفس المحادثات`:''}.</div></div>`:''}
+
+    ${poolN?`<div class="section-h" style="margin-top:20px;">٣ · عدد الأسئلة</div>
+    <div class="field"><label>عدد الأسئلة (المتاح الآن: ${poolN})</label><input id="fm_count" type="number" min="1" max="${poolN}" value="${Math.max(take,1)}"></div>
+    <div class="muted-note" style="margin-top:-6px;" data-edit-key="fmimport.countnote">${esc(t('fmimport.countnote','الافتراضي كل أسئلة اختيارك، وتنزل أسئلة كل ملف كاملة وبترتيبها. وإن طلبت عددًا أقل سُحبت عيّنة عشوائية منها تبقى على ترتيب بنك الأسئلة، فيبقى كل ملف مجتمعًا.'))}</div>
+    <div class="tip" id="fmTip" style="margin-top:14px;">${tipHtml(take)}</div>`:''}
 
     <div class="warnmsg" id="w"></div>
     <div class="nav-btns"><button class="btn btn-ghost" id="cancel">إلغاء</button><button class="btn btn-primary" id="go">بدء ←</button></div>
   </div>`;
   document.getElementById('cancel').onclick=()=>{app.sub=null;app.ctx.fm=null;render();};
+  /* العدد يُقرأ قبل كل إعادة رسم، وإلا ضاع ما كتبه المستخدم عند تبديل نوعٍ أو ملف.
+     طلبُ العدد الكامل يُحفظ null لا رقمًا، فيتبع الاختيار إن زادت ملفاته أو نقصت. */
+  const cEl=document.getElementById('fm_count');
+  const syncCount=()=>{if(!cEl)return;const v=Math.max(1,Math.min(Math.floor(+cEl.value||1),Math.max(poolN,1)));s.count=v>=poolN?null:v;};
+  if(cEl){
+    cEl.oninput=()=>{syncCount();const tip=document.getElementById('fmTip');if(tip)tip.innerHTML=tipHtml(fileManualTake(s,poolN));};
+    cEl.onchange=()=>{cEl.oninput();cEl.value=Math.max(fileManualTake(s,poolN),1);};
+  }
   /* تغيير النوع يُلغي اختيار الملفات: مفاتيحها تحمل اسم قسمها */
-  screen.querySelectorAll('[data-fmlang]').forEach(b=>b.onclick=()=>{s.lang=b.dataset.fmlang;s.files=[];fileManualImport();});
-  screen.querySelectorAll('[data-fmfile]').forEach(el=>el.querySelector('input').onchange=()=>{const k=el.dataset.fmfile,i=s.files.indexOf(k);if(i>-1)s.files.splice(i,1);else s.files.push(k);fileManualImport();});
+  screen.querySelectorAll('[data-fmlang]').forEach(b=>b.onclick=()=>{syncCount();s.lang=b.dataset.fmlang;s.files=[];fileManualImport();});
+  screen.querySelectorAll('[data-fmfile]').forEach(el=>el.querySelector('input').onchange=()=>{syncCount();const k=el.dataset.fmfile,i=s.files.indexOf(k);if(i>-1)s.files.splice(i,1);else s.files.push(k);fileManualImport();});
   document.getElementById('go').onclick=()=>{
+    syncCount();
     const w=document.getElementById('w');
-    const tests=fileManualPool(win,s.files);
-    if(!tests.length){w.textContent='لا توجد أسئلة في ملفات هذا الاختيار.';w.classList.add('show');return;}
+    const all=fileManualPool(win,s.files);
+    if(!all.length){w.textContent='لا توجد أسئلة في ملفات هذا الاختيار.';w.classList.add('show');return;}
+    const tests=takeQuestionsOrdered(all,fileManualTake(s,all.length));
     /* lang هنا تابعة لـfileLang لا مستقلّة عنها — تُكتب لتقرأها دوال الجلسة اليدوية المشتركة */
     app.ctx.fmrun={employee:CURRENT_USER_EMAIL,date:today(),reason:'',model:'',lang:s.lang,searchMode:'normal',fileLang:s.lang,files:s.files.slice(),
       tests,results:tests.map(()=>({rating:null,note:'',questionId:'',answerText:''})),step:0};
     app.ctx.fmDraftIndex=null;
     app.sub='fmIntro';render();window.scrollTo(0,0);
   };
+  /* نصوص الشاشة تدخل «تعديل النصوص» كبقية الصفحات، ومنها ملاحظة العدد */
+  bindEditable();
 }
 function fileManualIntro(){
   const r=app.ctx.fmrun;setCrumb('اختبار رفع ملفات جديد');
